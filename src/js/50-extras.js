@@ -293,31 +293,44 @@
     document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
   });
 
-  // Ctrl/Cmd+Z: undo last "done"; finishing a task also stops its running timer
+  // Ctrl/Cmd+Z (any layout: matched by physical key): undoes the last change to the task list —
+  // done, delete, move, add, rename, reorder. Finishing a task also stops its running timer.
   const undoSt = [], undoAll = () => S.tasks.concat(S.routines ? [].concat(...Object.values(S.routines)) : []);
-  let undoPrev = null;
+  let undoPrev = null, snapPrev = null, snapKey = null; const snapSt = [];
+  const snapKeyOf = () => JSON.stringify(S.tasks.map((t) => [t.id, t.name, t.where, t.due, t.project, t.at, t.min, t.link, t.rel, t.waitUntil, !!t.done]));
   setInterval(() => {
     const cur = new Map(undoAll().map((t) => [t.id, !!t.done]));
     if (undoPrev) cur.forEach((d, id) => {
       if (d && undoPrev.get(id) === false) {
-        undoSt.push(id); if (undoSt.length > 30) undoSt.shift();
+        undoSt.push({ id, ts: Date.now() }); if (undoSt.length > 30) undoSt.shift();
         if (tdOpen === id) tdOpen = null;
         if (T && !T.work && T.id === id) { try { closeTimer(true); } catch (e) {} render(); }
       }
     });
     undoPrev = cur;
+    const key = snapKeyOf(), full = JSON.stringify(S.tasks);
+    if (snapKey !== null && key !== snapKey && snapPrev) { snapSt.push({ ts: Date.now(), json: snapPrev }); if (snapSt.length > 40) snapSt.shift(); }
+    snapKey = key; snapPrev = full;
   }, 250);
   document.addEventListener("keydown", (e) => {
-    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key !== "z" && e.key !== "я" && e.code !== "KeyZ")) return;
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.code !== "KeyZ") return;
     if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable=true]")) return;
-    if (document.body.classList.contains("wmodal")) return;
-    while (undoSt.length) {
-      const id = undoSt.pop(), t = undoAll().find((x) => x.id === id);
+    if (document.body.classList.contains("wmodal") || view === "work") return;
+    while (undoSt.length) {   // a "done" is the newest thing → bring just that task back
+      const top = undoSt[undoSt.length - 1], sn = snapSt[snapSt.length - 1];
+      if (sn && sn.ts > top.ts + 300) break;
+      undoSt.pop(); const t = undoAll().find((x) => x.id === top.id);
       if (!t || !t.done) continue;
       e.preventDefault(); t.done = false; t.spent = 0; if ("doneAt" in t) t.doneAt = 0; if (t.where === "done") t.where = "today";
-      undoPrev.set(id, false); persist(); render(); toast("Готово отменено: " + (t.name || ""));
+      undoPrev.set(top.id, false); snapKey = snapKeyOf(); snapPrev = JSON.stringify(S.tasks); if (snapSt.length && snapSt[snapSt.length - 1].ts >= top.ts) snapSt.pop();
+      persist(); render(); toast("Готово отменено: " + (t.name || ""));
       return;
     }
+    const sn = snapSt.pop(); if (!sn) return;
+    e.preventDefault();
+    if (T && !T.work && !JSON.parse(sn.json).some((x) => x.id === T.id)) { try { closeTimer(true); } catch (err) {} }
+    S.tasks = JSON.parse(sn.json); pkSel.clear(); snapKey = snapKeyOf(); snapPrev = sn.json; undoPrev = new Map(undoAll().map((t) => [t.id, !!t.done]));
+    persist(); render(); toast("Отменено");
   });
 
   // export all cloud docs (os + map) to a JSON file — for moving to another host

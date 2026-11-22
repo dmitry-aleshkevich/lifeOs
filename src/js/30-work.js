@@ -853,11 +853,9 @@ function focusSeg() {
 }
 function fQueue() {
   const today = dayISO(), q = [];
-  S.work.tasks.filter((t) => t.status === "doing").sort(byOrd).forEach((t) => q.push({ t, work: true }));
   const own = S.tasks.filter((t) => t.where === "today" && !t.done && kmatch(t));
   own.filter((t) => t.at).sort((a, b) => toMin(a.at) - toMin(b.at)).forEach((t) => q.push({ t }));
   own.filter((t) => !t.at).forEach((t) => q.push({ t }));
-  S.work.tasks.filter((t) => t.status === "todo" && t.date === today).sort(byOrd).forEach((t) => q.push({ t, work: true }));
   const live = q.filter((x) => !fSkip.has(x.t.id)), skipped = q.filter((x) => fSkip.has(x.t.id));
   return live.concat(skipped);
 }
@@ -874,7 +872,7 @@ function renderFocus(el) {
   const wrap = document.createElement("div"); wrap.className = "col fwrap";
   wrap.appendChild(tdTriSeg("focus"));
   const q = fQueue(), today = dayISO();
-  const doneN = S.tasks.filter((t) => t.where === "today" && t.done).length + S.work.tasks.filter((t) => t.status === "done" && t.doneAt && dayISO(t.doneAt) === today).length;
+  const doneN = S.tasks.filter((t) => t.where === "today" && t.done).length;
   const info = (x) => { const t = x.t, est = x.work ? wEst(t) : t.min; return `${x.work ? (wproj(t.project) ? `<span class="pchip">${esc(wproj(t.project).icon + " " + wproj(t.project).name)}</span>` : "") : pchip(t.project)}${t.at || t.time ? `<span class="sess">${esc(t.at || t.time)}</span>` : ""}${est ? `<span class="sess">${est} мин</span>` : ""}`; };
   if (!q.length) {
     const e = document.createElement("div"); e.className = "card fempty";

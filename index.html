@@ -1217,6 +1217,13 @@ li.task.tcard.lnh > .lnp:hover, li.task.tcard > .lnp:focus-visible { opacity: 1;
 /* Plan: rubber-band multi-select */
 .pk-band { position: fixed; z-index: 90; pointer-events: none; border: 1.5px solid #2F6DB5; background: color-mix(in srgb, #2F6DB5 14%, transparent); border-radius: 6px; }
 li.task.pk-sel { outline: 2px solid #2F6DB5; outline-offset: -1px; background: color-mix(in srgb, #2F6DB5 12%, var(--surface)); }
+.check { padding: 0; }
+.td-clr { text-decoration: none; margin-left: 6px; }
+.td-clr:hover { color: var(--ink); border-color: var(--ink); }
+body.pk-nosel, body.pk-nosel * { user-select: none !important; -webkit-user-select: none !important; }
+li.qinl .qinl-m { flex: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+li.qinl .qinl-m:hover { border-color: var(--ink); }
+li.qinl .qinl-n { flex: none; width: 64px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 800; text-align: center; background: var(--surface); color: var(--ink); outline: 0; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1950,17 +1957,19 @@ li.task.pk-sel { outline: 2px solid #2F6DB5; outline-offset: -1px; background: c
   document.addEventListener("touchmove", (e) => { if (listDrag && listDrag.active) e.preventDefault(); }, { passive: false });
   function deleteTask(t) {
     const i = S.tasks.indexOf(t); if (i < 0) return;
+    if (t.id === "work-auto") { S.workAutoOff = dayISO(); if (T && !T.work && T.id === t.id) closeTimer(true); }
     const kids = S.tasks.filter((k) => k.link === t.id); kids.forEach((k) => S.tasks.splice(S.tasks.indexOf(k), 1));
     S.tasks.splice(S.tasks.indexOf(t), 1); persist(); render();
-    toast("Задача удалена", "Отменить", () => { if (!S.tasks.includes(t)) { S.tasks.splice(Math.min(i, S.tasks.length), 0, t); kids.forEach((k) => S.tasks.push(k)); persist(); render(); } });
+    toast("Задача удалена", "Отменить", () => { if (t.id === "work-auto") delete S.workAutoOff; if (!S.tasks.includes(t)) { S.tasks.splice(Math.min(i, S.tasks.length), 0, t); kids.forEach((k) => S.tasks.push(k)); persist(); render(); } });
   }
   const doneCount = () => S.tasks.filter((t) => t.done || t.where === "done").length;
   function clearDone() {
     const gone = S.tasks.map((t, i) => ({ t, i })).filter((x) => x.t.done || x.t.where === "done");
     if (!gone.length) { toast("Завершённых нет."); return; }
+    if (gone.some((x) => x.t.id === "work-auto")) S.workAutoOff = dayISO();
     S.tasks = S.tasks.filter((t) => !(t.done || t.where === "done"));
     persist(); render();
-    toast("Убрано завершённых: " + gone.length, "Отменить", () => { gone.forEach(({ t, i }) => S.tasks.splice(Math.min(i, S.tasks.length), 0, t)); persist(); render(); });
+    toast("Убрано завершённых: " + gone.length, "Отменить", () => { if (gone.some((x) => x.t.id === "work-auto")) delete S.workAutoOff; gone.forEach(({ t, i }) => S.tasks.splice(Math.min(i, S.tasks.length), 0, t)); persist(); render(); });
   }
   let zoomT = null;
   function setZoom(v, anchorY) {
@@ -3051,11 +3060,9 @@ function focusSeg() {
 }
 function fQueue() {
   const today = dayISO(), q = [];
-  S.work.tasks.filter((t) => t.status === "doing").sort(byOrd).forEach((t) => q.push({ t, work: true }));
   const own = S.tasks.filter((t) => t.where === "today" && !t.done && kmatch(t));
   own.filter((t) => t.at).sort((a, b) => toMin(a.at) - toMin(b.at)).forEach((t) => q.push({ t }));
   own.filter((t) => !t.at).forEach((t) => q.push({ t }));
-  S.work.tasks.filter((t) => t.status === "todo" && t.date === today).sort(byOrd).forEach((t) => q.push({ t, work: true }));
   const live = q.filter((x) => !fSkip.has(x.t.id)), skipped = q.filter((x) => fSkip.has(x.t.id));
   return live.concat(skipped);
 }
@@ -3072,7 +3079,7 @@ function renderFocus(el) {
   const wrap = document.createElement("div"); wrap.className = "col fwrap";
   wrap.appendChild(tdTriSeg("focus"));
   const q = fQueue(), today = dayISO();
-  const doneN = S.tasks.filter((t) => t.where === "today" && t.done).length + S.work.tasks.filter((t) => t.status === "done" && t.doneAt && dayISO(t.doneAt) === today).length;
+  const doneN = S.tasks.filter((t) => t.where === "today" && t.done).length;
   const info = (x) => { const t = x.t, est = x.work ? wEst(t) : t.min; return `${x.work ? (wproj(t.project) ? `<span class="pchip">${esc(wproj(t.project).icon + " " + wproj(t.project).name)}</span>` : "") : pchip(t.project)}${t.at || t.time ? `<span class="sess">${esc(t.at || t.time)}</span>` : ""}${est ? `<span class="sess">${est} мин</span>` : ""}`; };
   if (!q.length) {
     const e = document.createElement("div"); e.className = "card fempty";
@@ -3577,7 +3584,7 @@ function renderMap() {
   function qaStart(key, opts = {}) {
     const zone = opts.link ? "link" : opts.zone || (view === "today" && document.querySelector("#vToday ul.td-list") ? "today" : null);
     if (!zone) return qaOpen(key, opts);
-    qaInl = { zone, key, opts: { ...opts }, text: "" }; render();
+    qaInl = { zone, key, opts: { ...opts }, text: "", min: 25 }; render();
   }
   function qaInlMount() {
     if (!qaInl) return;
@@ -3589,23 +3596,32 @@ function renderMap() {
     else host = document.querySelector(`.pk-col[data-k="${zone.slice(5)}"] ul.pk-ul`);
     if (!host && !ref) { qaInl = null; return; }
     const li = document.createElement("li"); li.className = "qinl" + (zone === "link" ? " qinl-lnc" : "");
-    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span><input id="qinlIn" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача" placeholder="Новая задача: Enter — добавить ещё, Esc — готово">`;
+    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span><input id="qinlIn" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача"><button type="button" class="qinl-m" aria-label="Время на задачу">▶ <b>${qaInl.min}</b> мин</button>`;
     if (ref) ref.insertAdjacentElement(before ? "beforebegin" : "afterend", li); else host.appendChild(li);
     const inp = li.querySelector("input"); inp.value = qaInl.text;
     const done = () => { qaInl = null; li.remove(); };
     inp.oninput = () => { qaInl.text = inp.value; };
+    const mb = li.querySelector(".qinl-m");
+    mb.onpointerdown = (e) => e.preventDefault();
+    mb.onclick = () => {
+      const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = qaInl.min; n.className = "qinl-n"; n.setAttribute("aria-label", "Минуты");
+      mb.replaceWith(n); n.focus(); n.select();
+      let fin = false; const back = () => { if (fin) return; fin = true; const v = Math.max(1, Math.min(240, Math.round(+n.value) || qaInl.min)); qaInl.min = v; const b2 = mb.cloneNode(true); b2.querySelector("b").textContent = v; b2.onpointerdown = mb.onpointerdown; b2.onclick = mb.onclick; if (n.isConnected) n.replaceWith(b2); inp.focus(); };
+      n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } };
+      n.onblur = () => { if (n.isConnected) back(); };
+    };
     inp.onkeydown = (e) => {
       e.stopPropagation();
       if (e.key === "Escape") { e.preventDefault(); done(); }
       else if (e.key === "Enter") { e.preventDefault(); const raw = inp.value.trim(); if (!raw) return done(); qaCommit(raw); }
     };
-    inp.onblur = () => setTimeout(() => { if (qaInl && !inp.value.trim() && document.activeElement !== inp && li.isConnected) done(); }, 150);
+    inp.onblur = () => setTimeout(() => { if (qaInl && !inp.value.trim() && !li.contains(document.activeElement) && li.isConnected) done(); }, 150);
     setTimeout(() => { if (li.isConnected) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {} li.scrollIntoView({ block: "nearest" }); } }, 0);
   }
   function qaCommit(raw) {
     const { zone, key, opts } = qaInl, q = parseQuick(raw), lnP = opts.link ? S.tasks.find((x) => x.id === opts.link) : null;
     const where0 = zone === "link" ? (lnP ? lnP.where : "today") : zone === "plan:tomorrow" ? "tomorrow" : zone === "plan:week" ? "backlog" : "today";
-    const where = q.where || where0, min = q.min ?? qaLast.min;
+    const where = q.where || where0, min = q.min ?? qaInl.min ?? 25;
     const t = { id: uid(), name: q.name, min, done: false, spent: 0, note: "", project: q.project ?? (lnP ? lnP.project : qaLast.project), where, sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: zone === "plan:week" && !q.where ? addDays(dayISO(), 6) : "", at: q.at || "" };
     qaInsert(t, lnP, opts); qaLast = { min, project: t.project };
     if (zone === "link" && opts.side !== "pre" && opts.rel !== "pre") opts.anchor = t.id;   // next "after" goes below the one just added
@@ -3682,7 +3698,6 @@ function renderMap() {
     const acts = document.createElement("div"); acts.className = "tp-acts";
     const n = doneCount(), back = S.tasks.filter((t) => t.where === "backlog").length;
     const mk = (label, fn, id) => { const b = document.createElement("button"); b.className = "tp-a"; if (id) b.id = id; b.textContent = label; b.onclick = fn; acts.appendChild(b); };
-    if (n) mk(`Очистить завершённые (${n})`, () => { clearDone(); }, "clearDone");
     if (back) mk(`Взять из дел (${back}) →`, () => { tdPop = false; view = "tasks"; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); });
     mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });
     mk("Экспорт всех данных", () => { tdPop = false; render(); exportAll(); }, "expAll");
@@ -3699,9 +3714,9 @@ function renderMap() {
     const items = itemsOf("today").filter(kmatch), dn = items.filter((t) => t.done).length, left = items.filter((t) => !t.done).reduce((s, t) => s + (t.min || 0), 0);
     const head = document.createElement("div"); head.className = "td-h";
     head.innerHTML = `<div><h1 class="td-t">Сегодня</h1><div class="td-s">${items.length ? dn + " из " + items.length : "Пока пусто"}${left ? " · осталось " + tdMin(left) : ""}</div></div>
-      <div class="td-ctl">${fMode ? "" : `<button class="td-core" aria-pressed="${coreShow}" title="Утро, еда, зал и вечер: показать или скрыть">LifeCore</button><div class="seg sm td-seg" role="group" aria-label="Вид"><button data-tm="list" aria-pressed="${todayMode === "list"}">Список</button><button data-tm="cal" aria-pressed="${todayMode === "cal"}">День</button></div>`}<button class="td-gear" aria-label="Вид и фильтры" aria-expanded="${tdPop}">${GEAR}</button></div>`;
+      <div class="td-ctl">${fMode ? "" : `<button class="td-core" aria-pressed="${coreShow}" title="Утро, еда, зал и вечер: показать или скрыть">LifeCore</button>${doneCount() ? `<button class="td-core td-clr" id="clearDone" title="Убрать завершённые из списка">✓ Убрать (${doneCount()})</button>` : ""}<div class="seg sm td-seg" role="group" aria-label="Вид"><button data-tm="list" aria-pressed="${todayMode === "list"}">Список</button><button data-tm="cal" aria-pressed="${todayMode === "cal"}">День</button></div>`}<button class="td-gear" aria-label="Вид и фильтры" aria-expanded="${tdPop}">${GEAR}</button></div>`;
     head.querySelectorAll("[data-tm]").forEach((b) => b.onclick = () => { const m = b.dataset.tm; if (m === todayMode) return; if (m === "list") reorderToday(); todayMode = m; saveUI(); render(); });
-    { const cb = head.querySelector(".td-core"); if (cb) cb.onclick = () => { coreShow = !coreShow; saveUI(); render(); }; }
+    { const cb = head.querySelector(".td-core:not(.td-clr)"); if (cb) cb.onclick = () => { coreShow = !coreShow; saveUI(); render(); }; const cc = head.querySelector("#clearDone"); if (cc) cc.onclick = () => clearDone(); }
     head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };
     page.appendChild(head);
     if (!fMode) page.appendChild(tdTriSeg(todayMode));
@@ -3759,6 +3774,7 @@ function renderMap() {
     const sum = S.work.tasks.filter((t) => (t.status === "todo" || t.status === "doing")).reduce((a, t) => a + (t.est || 0), 0);
     let w = S.tasks.find((t) => t.id === "work-auto");
     const n = S.work.tasks.filter((t) => t.status === "todo" || t.status === "doing").length;
+    if (S.workAutoOff === dayISO()) { if (w) { S.tasks.splice(S.tasks.indexOf(w), 1); persist(); } return; }
     if (!n) { if (w && !w.done && !w.acc && T?.id !== w.id) { S.tasks.splice(S.tasks.indexOf(w), 1); persist(); } return; }
     if (!w) { w = { id: "work-auto", name: "Поработать 💼", min: 0, done: false, spent: 0, note: "", project: "", where: "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: "" }; S.tasks.unshift(w); }
     const m = Math.max(5, Math.min(480, sum || 25));
@@ -4297,31 +4313,44 @@ function renderMap() {
     document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
   });
 
-  // Ctrl/Cmd+Z: undo last "done"; finishing a task also stops its running timer
+  // Ctrl/Cmd+Z (any layout: matched by physical key): undoes the last change to the task list —
+  // done, delete, move, add, rename, reorder. Finishing a task also stops its running timer.
   const undoSt = [], undoAll = () => S.tasks.concat(S.routines ? [].concat(...Object.values(S.routines)) : []);
-  let undoPrev = null;
+  let undoPrev = null, snapPrev = null, snapKey = null; const snapSt = [];
+  const snapKeyOf = () => JSON.stringify(S.tasks.map((t) => [t.id, t.name, t.where, t.due, t.project, t.at, t.min, t.link, t.rel, t.waitUntil, !!t.done]));
   setInterval(() => {
     const cur = new Map(undoAll().map((t) => [t.id, !!t.done]));
     if (undoPrev) cur.forEach((d, id) => {
       if (d && undoPrev.get(id) === false) {
-        undoSt.push(id); if (undoSt.length > 30) undoSt.shift();
+        undoSt.push({ id, ts: Date.now() }); if (undoSt.length > 30) undoSt.shift();
         if (tdOpen === id) tdOpen = null;
         if (T && !T.work && T.id === id) { try { closeTimer(true); } catch (e) {} render(); }
       }
     });
     undoPrev = cur;
+    const key = snapKeyOf(), full = JSON.stringify(S.tasks);
+    if (snapKey !== null && key !== snapKey && snapPrev) { snapSt.push({ ts: Date.now(), json: snapPrev }); if (snapSt.length > 40) snapSt.shift(); }
+    snapKey = key; snapPrev = full;
   }, 250);
   document.addEventListener("keydown", (e) => {
-    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key !== "z" && e.key !== "я" && e.code !== "KeyZ")) return;
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.code !== "KeyZ") return;
     if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable=true]")) return;
-    if (document.body.classList.contains("wmodal")) return;
-    while (undoSt.length) {
-      const id = undoSt.pop(), t = undoAll().find((x) => x.id === id);
+    if (document.body.classList.contains("wmodal") || view === "work") return;
+    while (undoSt.length) {   // a "done" is the newest thing → bring just that task back
+      const top = undoSt[undoSt.length - 1], sn = snapSt[snapSt.length - 1];
+      if (sn && sn.ts > top.ts + 300) break;
+      undoSt.pop(); const t = undoAll().find((x) => x.id === top.id);
       if (!t || !t.done) continue;
       e.preventDefault(); t.done = false; t.spent = 0; if ("doneAt" in t) t.doneAt = 0; if (t.where === "done") t.where = "today";
-      undoPrev.set(id, false); persist(); render(); toast("Готово отменено: " + (t.name || ""));
+      undoPrev.set(top.id, false); snapKey = snapKeyOf(); snapPrev = JSON.stringify(S.tasks); if (snapSt.length && snapSt[snapSt.length - 1].ts >= top.ts) snapSt.pop();
+      persist(); render(); toast("Готово отменено: " + (t.name || ""));
       return;
     }
+    const sn = snapSt.pop(); if (!sn) return;
+    e.preventDefault();
+    if (T && !T.work && !JSON.parse(sn.json).some((x) => x.id === T.id)) { try { closeTimer(true); } catch (err) {} }
+    S.tasks = JSON.parse(sn.json); pkSel.clear(); snapKey = snapKeyOf(); snapPrev = sn.json; undoPrev = new Map(undoAll().map((t) => [t.id, !!t.done]));
+    persist(); render(); toast("Отменено");
   });
 
   // export all cloud docs (os + map) to a JSON file — for moving to another host
@@ -4472,6 +4501,7 @@ function renderMap() {
       if (e.target.closest("button, input, select, textarea, a, .pk-menu, .qinl")) return;
       const li = e.target.closest("li.pk-li");
       if (li) { if (e.metaKey || e.ctrlKey || e.shiftKey) { e.preventDefault(); pkSel.has(li.dataset.id) ? pkSel.delete(li.dataset.id) : pkSel.add(li.dataset.id); paint(); } return; }
+      try { getSelection().removeAllRanges(); } catch {} document.body.classList.add("pk-nosel");
       mq = { x0: e.pageX, y0: e.pageY, cx: e.clientX, cy: e.clientY, on: false, add: e.metaKey || e.ctrlKey || e.shiftKey, base: new Set(pkSel), el: null, raf: 0 };
     });
     // band is kept in page coordinates, so it grows while the page auto-scrolls near the top/bottom edge
@@ -4494,7 +4524,7 @@ function renderMap() {
       if (!mq.on) { if (Math.hypot(e.pageX - mq.x0, e.pageY - mq.y0) < 6) return; mq.on = true; mq.el = document.createElement("div"); mq.el.className = "pk-band"; document.body.appendChild(mq.el); mq.raf = requestAnimationFrame(tick); }
       upd();
     });
-    const end = () => { if (!mq) return; cancelAnimationFrame(mq.raf); const was = mq.on; if (mq.el) mq.el.remove(); if (!was && !mq.add && pkSel.size) { pkSel.clear(); paint(); } mq = null; };
+    const end = () => { document.body.classList.remove("pk-nosel"); if (!mq) return; cancelAnimationFrame(mq.raf); const was = mq.on; if (mq.el) mq.el.remove(); if (!was && !mq.add && pkSel.size) { pkSel.clear(); paint(); } mq = null; };
     window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
     document.addEventListener("keydown", (e) => {
       if (view !== "tasks" || (!pkSel.size && !((e.metaKey || e.ctrlKey) && e.code === "KeyA")) || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return;

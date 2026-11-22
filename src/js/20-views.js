@@ -154,17 +154,19 @@
   document.addEventListener("touchmove", (e) => { if (listDrag && listDrag.active) e.preventDefault(); }, { passive: false });
   function deleteTask(t) {
     const i = S.tasks.indexOf(t); if (i < 0) return;
+    if (t.id === "work-auto") { S.workAutoOff = dayISO(); if (T && !T.work && T.id === t.id) closeTimer(true); }
     const kids = S.tasks.filter((k) => k.link === t.id); kids.forEach((k) => S.tasks.splice(S.tasks.indexOf(k), 1));
     S.tasks.splice(S.tasks.indexOf(t), 1); persist(); render();
-    toast("Задача удалена", "Отменить", () => { if (!S.tasks.includes(t)) { S.tasks.splice(Math.min(i, S.tasks.length), 0, t); kids.forEach((k) => S.tasks.push(k)); persist(); render(); } });
+    toast("Задача удалена", "Отменить", () => { if (t.id === "work-auto") delete S.workAutoOff; if (!S.tasks.includes(t)) { S.tasks.splice(Math.min(i, S.tasks.length), 0, t); kids.forEach((k) => S.tasks.push(k)); persist(); render(); } });
   }
   const doneCount = () => S.tasks.filter((t) => t.done || t.where === "done").length;
   function clearDone() {
     const gone = S.tasks.map((t, i) => ({ t, i })).filter((x) => x.t.done || x.t.where === "done");
     if (!gone.length) { toast("Завершённых нет."); return; }
+    if (gone.some((x) => x.t.id === "work-auto")) S.workAutoOff = dayISO();
     S.tasks = S.tasks.filter((t) => !(t.done || t.where === "done"));
     persist(); render();
-    toast("Убрано завершённых: " + gone.length, "Отменить", () => { gone.forEach(({ t, i }) => S.tasks.splice(Math.min(i, S.tasks.length), 0, t)); persist(); render(); });
+    toast("Убрано завершённых: " + gone.length, "Отменить", () => { if (gone.some((x) => x.t.id === "work-auto")) delete S.workAutoOff; gone.forEach(({ t, i }) => S.tasks.splice(Math.min(i, S.tasks.length), 0, t)); persist(); render(); });
   }
   let zoomT = null;
   function setZoom(v, anchorY) {

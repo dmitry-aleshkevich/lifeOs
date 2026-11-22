@@ -105,6 +105,7 @@
       if (e.target.closest("button, input, select, textarea, a, .pk-menu, .qinl")) return;
       const li = e.target.closest("li.pk-li");
       if (li) { if (e.metaKey || e.ctrlKey || e.shiftKey) { e.preventDefault(); pkSel.has(li.dataset.id) ? pkSel.delete(li.dataset.id) : pkSel.add(li.dataset.id); paint(); } return; }
+      try { getSelection().removeAllRanges(); } catch {} document.body.classList.add("pk-nosel");
       mq = { x0: e.pageX, y0: e.pageY, cx: e.clientX, cy: e.clientY, on: false, add: e.metaKey || e.ctrlKey || e.shiftKey, base: new Set(pkSel), el: null, raf: 0 };
     });
     // band is kept in page coordinates, so it grows while the page auto-scrolls near the top/bottom edge
@@ -127,7 +128,7 @@
       if (!mq.on) { if (Math.hypot(e.pageX - mq.x0, e.pageY - mq.y0) < 6) return; mq.on = true; mq.el = document.createElement("div"); mq.el.className = "pk-band"; document.body.appendChild(mq.el); mq.raf = requestAnimationFrame(tick); }
       upd();
     });
-    const end = () => { if (!mq) return; cancelAnimationFrame(mq.raf); const was = mq.on; if (mq.el) mq.el.remove(); if (!was && !mq.add && pkSel.size) { pkSel.clear(); paint(); } mq = null; };
+    const end = () => { document.body.classList.remove("pk-nosel"); if (!mq) return; cancelAnimationFrame(mq.raf); const was = mq.on; if (mq.el) mq.el.remove(); if (!was && !mq.add && pkSel.size) { pkSel.clear(); paint(); } mq = null; };
     window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
     document.addEventListener("keydown", (e) => {
       if (view !== "tasks" || (!pkSel.size && !((e.metaKey || e.ctrlKey) && e.code === "KeyA")) || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return;

@@ -208,7 +208,7 @@
   function qaStart(key, opts = {}) {
     const zone = opts.link ? "link" : opts.zone || (view === "today" && document.querySelector("#vToday ul.td-list") ? "today" : null);
     if (!zone) return qaOpen(key, opts);
-    qaInl = { zone, key, opts: { ...opts }, text: "" }; render();
+    qaInl = { zone, key, opts: { ...opts }, text: "", min: 25 }; render();
   }
   function qaInlMount() {
     if (!qaInl) return;
@@ -220,23 +220,32 @@
     else host = document.querySelector(`.pk-col[data-k="${zone.slice(5)}"] ul.pk-ul`);
     if (!host && !ref) { qaInl = null; return; }
     const li = document.createElement("li"); li.className = "qinl" + (zone === "link" ? " qinl-lnc" : "");
-    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span><input id="qinlIn" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача" placeholder="Новая задача: Enter — добавить ещё, Esc — готово">`;
+    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span><input id="qinlIn" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача"><button type="button" class="qinl-m" aria-label="Время на задачу">▶ <b>${qaInl.min}</b> мин</button>`;
     if (ref) ref.insertAdjacentElement(before ? "beforebegin" : "afterend", li); else host.appendChild(li);
     const inp = li.querySelector("input"); inp.value = qaInl.text;
     const done = () => { qaInl = null; li.remove(); };
     inp.oninput = () => { qaInl.text = inp.value; };
+    const mb = li.querySelector(".qinl-m");
+    mb.onpointerdown = (e) => e.preventDefault();
+    mb.onclick = () => {
+      const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = qaInl.min; n.className = "qinl-n"; n.setAttribute("aria-label", "Минуты");
+      mb.replaceWith(n); n.focus(); n.select();
+      let fin = false; const back = () => { if (fin) return; fin = true; const v = Math.max(1, Math.min(240, Math.round(+n.value) || qaInl.min)); qaInl.min = v; const b2 = mb.cloneNode(true); b2.querySelector("b").textContent = v; b2.onpointerdown = mb.onpointerdown; b2.onclick = mb.onclick; if (n.isConnected) n.replaceWith(b2); inp.focus(); };
+      n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } };
+      n.onblur = () => { if (n.isConnected) back(); };
+    };
     inp.onkeydown = (e) => {
       e.stopPropagation();
       if (e.key === "Escape") { e.preventDefault(); done(); }
       else if (e.key === "Enter") { e.preventDefault(); const raw = inp.value.trim(); if (!raw) return done(); qaCommit(raw); }
     };
-    inp.onblur = () => setTimeout(() => { if (qaInl && !inp.value.trim() && document.activeElement !== inp && li.isConnected) done(); }, 150);
+    inp.onblur = () => setTimeout(() => { if (qaInl && !inp.value.trim() && !li.contains(document.activeElement) && li.isConnected) done(); }, 150);
     setTimeout(() => { if (li.isConnected) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {} li.scrollIntoView({ block: "nearest" }); } }, 0);
   }
   function qaCommit(raw) {
     const { zone, key, opts } = qaInl, q = parseQuick(raw), lnP = opts.link ? S.tasks.find((x) => x.id === opts.link) : null;
     const where0 = zone === "link" ? (lnP ? lnP.where : "today") : zone === "plan:tomorrow" ? "tomorrow" : zone === "plan:week" ? "backlog" : "today";
-    const where = q.where || where0, min = q.min ?? qaLast.min;
+    const where = q.where || where0, min = q.min ?? qaInl.min ?? 25;
     const t = { id: uid(), name: q.name, min, done: false, spent: 0, note: "", project: q.project ?? (lnP ? lnP.project : qaLast.project), where, sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: zone === "plan:week" && !q.where ? addDays(dayISO(), 6) : "", at: q.at || "" };
     qaInsert(t, lnP, opts); qaLast = { min, project: t.project };
     if (zone === "link" && opts.side !== "pre" && opts.rel !== "pre") opts.anchor = t.id;   // next "after" goes below the one just added
@@ -313,7 +322,6 @@
     const acts = document.createElement("div"); acts.className = "tp-acts";
     const n = doneCount(), back = S.tasks.filter((t) => t.where === "backlog").length;
     const mk = (label, fn, id) => { const b = document.createElement("button"); b.className = "tp-a"; if (id) b.id = id; b.textContent = label; b.onclick = fn; acts.appendChild(b); };
-    if (n) mk(`Очистить завершённые (${n})`, () => { clearDone(); }, "clearDone");
     if (back) mk(`Взять из дел (${back}) →`, () => { tdPop = false; view = "tasks"; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); });
     mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });
     mk("Экспорт всех данных", () => { tdPop = false; render(); exportAll(); }, "expAll");
@@ -330,9 +338,9 @@
     const items = itemsOf("today").filter(kmatch), dn = items.filter((t) => t.done).length, left = items.filter((t) => !t.done).reduce((s, t) => s + (t.min || 0), 0);
     const head = document.createElement("div"); head.className = "td-h";
     head.innerHTML = `<div><h1 class="td-t">Сегодня</h1><div class="td-s">${items.length ? dn + " из " + items.length : "Пока пусто"}${left ? " · осталось " + tdMin(left) : ""}</div></div>
-      <div class="td-ctl">${fMode ? "" : `<button class="td-core" aria-pressed="${coreShow}" title="Утро, еда, зал и вечер: показать или скрыть">LifeCore</button><div class="seg sm td-seg" role="group" aria-label="Вид"><button data-tm="list" aria-pressed="${todayMode === "list"}">Список</button><button data-tm="cal" aria-pressed="${todayMode === "cal"}">День</button></div>`}<button class="td-gear" aria-label="Вид и фильтры" aria-expanded="${tdPop}">${GEAR}</button></div>`;
+      <div class="td-ctl">${fMode ? "" : `<button class="td-core" aria-pressed="${coreShow}" title="Утро, еда, зал и вечер: показать или скрыть">LifeCore</button>${doneCount() ? `<button class="td-core td-clr" id="clearDone" title="Убрать завершённые из списка">✓ Убрать (${doneCount()})</button>` : ""}<div class="seg sm td-seg" role="group" aria-label="Вид"><button data-tm="list" aria-pressed="${todayMode === "list"}">Список</button><button data-tm="cal" aria-pressed="${todayMode === "cal"}">День</button></div>`}<button class="td-gear" aria-label="Вид и фильтры" aria-expanded="${tdPop}">${GEAR}</button></div>`;
     head.querySelectorAll("[data-tm]").forEach((b) => b.onclick = () => { const m = b.dataset.tm; if (m === todayMode) return; if (m === "list") reorderToday(); todayMode = m; saveUI(); render(); });
-    { const cb = head.querySelector(".td-core"); if (cb) cb.onclick = () => { coreShow = !coreShow; saveUI(); render(); }; }
+    { const cb = head.querySelector(".td-core:not(.td-clr)"); if (cb) cb.onclick = () => { coreShow = !coreShow; saveUI(); render(); }; const cc = head.querySelector("#clearDone"); if (cc) cc.onclick = () => clearDone(); }
     head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };
     page.appendChild(head);
     if (!fMode) page.appendChild(tdTriSeg(todayMode));
@@ -390,6 +398,7 @@
     const sum = S.work.tasks.filter((t) => (t.status === "todo" || t.status === "doing")).reduce((a, t) => a + (t.est || 0), 0);
     let w = S.tasks.find((t) => t.id === "work-auto");
     const n = S.work.tasks.filter((t) => t.status === "todo" || t.status === "doing").length;
+    if (S.workAutoOff === dayISO()) { if (w) { S.tasks.splice(S.tasks.indexOf(w), 1); persist(); } return; }
     if (!n) { if (w && !w.done && !w.acc && T?.id !== w.id) { S.tasks.splice(S.tasks.indexOf(w), 1); persist(); } return; }
     if (!w) { w = { id: "work-auto", name: "Поработать 💼", min: 0, done: false, spent: 0, note: "", project: "", where: "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: "" }; S.tasks.unshift(w); }
     const m = Math.max(5, Math.min(480, sum || 25));

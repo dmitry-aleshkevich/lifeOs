@@ -1206,3 +1206,10 @@ li.task.tcard.lnh > .lnp:hover, li.task.tcard > .lnp:focus-visible { opacity: 1;
 /* Plan: rubber-band multi-select */
 .pk-band { position: fixed; z-index: 90; pointer-events: none; border: 1.5px solid #2F6DB5; background: color-mix(in srgb, #2F6DB5 14%, transparent); border-radius: 6px; }
 li.task.pk-sel { outline: 2px solid #2F6DB5; outline-offset: -1px; background: color-mix(in srgb, #2F6DB5 12%, var(--surface)); }
+.check { padding: 0; }
+.td-clr { text-decoration: none; margin-left: 6px; }
+.td-clr:hover { color: var(--ink); border-color: var(--ink); }
+body.pk-nosel, body.pk-nosel * { user-select: none !important; -webkit-user-select: none !important; }
+li.qinl .qinl-m { flex: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+li.qinl .qinl-m:hover { border-color: var(--ink); }
+li.qinl .qinl-n { flex: none; width: 64px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 800; text-align: center; background: var(--surface); color: var(--ink); outline: 0; }
