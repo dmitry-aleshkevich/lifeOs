@@ -15,3 +15,6 @@
   li.task, .wcard, .dblk { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 }
 .sce-l .sce-b:not(.sce-x) { display: none !important; }
+.td-tri { display: flex; gap: 2px; margin: 4px 0 10px; } .td-tri button { flex: 1; } .td-tri .td-foc { flex: none; padding: 0 12px; margin-left: 6px; border-radius: 10px; background: #D85A30 !important; color: #fff !important; font-weight: 800; }
+.td-seg { display: none !important; }
+.fwrap .fexit { align-self: flex-start; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); font-weight: 800; font-size: 13px; color: var(--muted); background: transparent; }

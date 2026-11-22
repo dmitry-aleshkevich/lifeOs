@@ -1168,6 +1168,9 @@ li.task.tdopen > .lnk { display: none; }
   li.task, .wcard, .dblk { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 }
 .sce-l .sce-b:not(.sce-x) { display: none !important; }
+.td-tri { display: flex; gap: 2px; margin: 4px 0 10px; } .td-tri button { flex: 1; } .td-tri .td-foc { flex: none; padding: 0 12px; margin-left: 6px; border-radius: 10px; background: #D85A30 !important; color: #fff !important; font-weight: 800; }
+.td-seg { display: none !important; }
+.fwrap .fexit { align-self: flex-start; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); font-weight: 800; font-size: 13px; color: var(--muted); background: transparent; }
 
 /* ===== floating pill tab bar with center + ===== */
 #navPlus { display: none; }
@@ -1687,7 +1690,7 @@ li.task.tdopen > .lnk { display: none; }
     chevL: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
     chevR: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   };
-  const VIEWS = [["today", "Сегодня", I.home], ["tasks", "Дела", I.list], ["habits", "Привычки", I.repeat], ["stats", "Итоги", I.chart], ["work", "Работа", I.work], ["map", "Карта", I.map], ["scen", "Сценарии", I.sun]];
+  const VIEWS = [["today", "Сегодня", I.home], ["tasks", "План", I.list], ["habits", "Привычки", I.repeat], ["stats", "Итоги", I.chart], ["work", "Работа", I.work], ["map", "Карта", I.map], ["scen", "Сценарии", I.sun]];
   { const ORD = ["today", "tasks", "work", "habits", "stats", "scen", "map"]; VIEWS.sort((a, b) => ORD.indexOf(a[0]) - ORD.indexOf(b[0])); }
   const CHIPS = [[0, "Без таймера"], [5, "5"], [10, "10"], [15, "15"], [25, "25"], [50, "50"]];
 
@@ -2017,7 +2020,7 @@ li.task.tdopen > .lnk { display: none; }
   }
 
   function renderTasks() {
-    const el = $("vTasks"); el.innerHTML = "";
+    const el = $("vTasks"); el.innerHTML = ""; el.appendChild(tdTriSeg("plan"));
     const col = document.createElement("div"); col.className = "col"; col.style.maxWidth = "760px";
 
     const seg = document.createElement("div"); seg.className = "seg"; seg.setAttribute("role", "group");
@@ -3458,7 +3461,7 @@ function fDone(x) {
 }
 function renderFocus(el) {
   const wrap = document.createElement("div"); wrap.className = "col fwrap";
-  wrap.appendChild(focusSeg());
+  { const x = document.createElement("button"); x.className = "fexit"; x.textContent = "← Выйти из фокуса"; x.onclick = () => fSetMode(false); wrap.appendChild(x); }
   const q = fQueue(), today = dayISO();
   const doneN = S.tasks.filter((t) => t.where === "today" && t.done).length + S.work.tasks.filter((t) => t.status === "done" && t.doneAt && dayISO(t.doneAt) === today).length;
   const info = (x) => { const t = x.t, est = x.work ? wEst(t) : t.min; return `${x.work ? (wproj(t.project) ? `<span class="pchip">${esc(wproj(t.project).icon + " " + wproj(t.project).name)}</span>` : "") : pchip(t.project)}${t.at || t.time ? `<span class="sess">${esc(t.at || t.time)}</span>` : ""}${est ? `<span class="sess">${est} мин</span>` : ""}`; };
@@ -3472,7 +3475,7 @@ function renderFocus(el) {
     h.querySelector("#fGo").onclick = () => fStart(x); h.querySelector("#fOk").onclick = () => fDone(x);
     const sk = h.querySelector("#fSkip"); if (sk) sk.onclick = () => { fSkip.add(x.t.id); render(); };
     wrap.appendChild(h);
-    const rest = q.slice(1, 5);
+    const rest = q.slice(1, 3);
     if (rest.length) {
       const c = document.createElement("div"); c.className = "card fnext"; c.innerHTML = `<div class="card-h"><h2 class="card-t">Дальше</h2><span class="sum">ещё ${q.length - 1}</span></div>`;
       rest.forEach((y) => {
@@ -4090,6 +4093,7 @@ function renderMap() {
     { const cb = head.querySelector(".td-core"); if (cb) cb.onclick = () => { coreShow = !coreShow; saveUI(); render(); }; }
     head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };
     page.appendChild(head);
+    if (!fMode) page.appendChild(tdTriSeg(todayMode));
     if (!fMode) {
       const qf = document.createElement("form"); qf.className = "td-qa"; qf.autocomplete = "off";
       qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу… (Магазин 18:00 40м)" aria-label="Быстро добавить задачу">`;
@@ -4656,6 +4660,15 @@ function renderMap() {
     b.onclick = (e) => { e.stopPropagation(); if (view === "work") { const r = b.getBoundingClientRect(); wFabMenu(r.left + r.width / 2 + 100, r.top - 8); return; } qaOpen(view === "tasks" ? "backlog" : "today", { where: true, def: view === "tasks" ? "backlog" : "today" }); };
     nv.appendChild(b);
   }
+
+  function tdTriSeg(cur) {
+    const s = document.createElement("div"); s.className = "seg sm td-tri"; s.setAttribute("role", "group"); s.setAttribute("aria-label", "Экран");
+    s.innerHTML = [["list", "Сегодня"], ["cal", "День"], ["plan", "План"]].map(([k, l]) => `<button data-tri="${k}" aria-pressed="${k === cur}">${l}</button>`).join("") + (cur === "plan" ? "" : `<button class="td-foc" title="Фокус: только 3 ближайшие задачи">◎ Фокус</button>`);
+    s.querySelectorAll("[data-tri]").forEach((b) => b.onclick = () => { const k = b.dataset.tri; if (k === "plan") { if (view !== "tasks") setView("tasks"); return; } if (view !== "today") { todayMode = k; saveUI(); setView("today"); return; } if (k === todayMode) return; if (k === "list") reorderToday(); todayMode = k; saveUI(); render(); });
+    const f = s.querySelector(".td-foc"); if (f) f.onclick = () => fSetMode(true);
+    return s;
+  }
+  const setView = (id) => { view = id; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); };
 
   function renderHabits() {
     const el = $("vHabits"); el.innerHTML = "";

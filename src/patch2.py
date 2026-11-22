@@ -221,5 +221,12 @@ rep('/* timer */', open('navpill.css', encoding='utf8').read() + '\n/* timer */'
 rep('  function renderHabits() {', open('navpill.js', encoding='utf8').read() + '\n  function renderHabits() {')
 rep('    renderHeader(); fabSync();', '    renderHeader(); fabSync(); try { navPlusSync(); } catch {}')
 rep('mb.setAttribute("aria-selected", ["habits", "stats", "work", "map", "scen"].includes(view));', 'mb.setAttribute("aria-selected", ["habits", "stats", "map", "scen"].includes(view));')
+# ---- three screens + focus ----
+rep('  function renderHabits() {', open('three.js', encoding='utf8').read() + '\n  function renderHabits() {')
+rep('["tasks", "Дела", I.list]', '["tasks", "План", I.list]')
+rep('    head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };\n    page.appendChild(head);', '    head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };\n    page.appendChild(head);\n    if (!fMode) page.appendChild(tdTriSeg(todayMode));')
+rep('    const el = $("vTasks"); el.innerHTML = "";', '    const el = $("vTasks"); el.innerHTML = ""; el.appendChild(tdTriSeg("plan"));')
+rep('  wrap.appendChild(focusSeg());', '  { const x = document.createElement("button"); x.className = "fexit"; x.textContent = "← Выйти из фокуса"; x.onclick = () => fSetMode(false); wrap.appendChild(x); }')
+rep('    const rest = q.slice(1, 5);', '    const rest = q.slice(1, 3);')
 open('index.html', 'w', encoding='utf8').write(s)
 print("built", len(s))
