@@ -1208,6 +1208,19 @@ li.task > .pen.xbtn { display: grid !important; position: absolute !important; t
 li.task > .pen.xbtn:hover, li.task > .pen.xbtn:focus-visible { opacity: 1 !important; color: var(--danger); }
 li.task > .pen.xbtn svg { width: 12px; height: 12px; }
 @media (hover: none) { li.task > .pen.xbtn { display: none !important; } }
+/* pinned time pill + props row */
+li.task.trun .mins, li.task.tdopen > .go .mins { display: inline-flex !important; visibility: visible !important; }
+li.task .mins.live { background: var(--ink); color: var(--bg); border-color: transparent; font-size: 15px; padding: 8px 14px; font-variant-numeric: tabular-nums; }
+li.task .mins.live.paused { background: transparent; color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); }
+li.task.trun > .tin > .tin-ring, li.task.trun > .tin > .tin-t, li.task.trun > .tin > .tin-c { display: none !important; }
+li.task.trun > .tin { display: block !important; padding: 0 4px !important; }
+li.task .mins.live svg { width: 14px !important; height: 14px !important; }
+.tdx-props { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 10px; padding-left: 4px; }
+.tdx-pi { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); display: grid; place-items: center; }
+.tdx-pi svg { width: 18px; height: 18px; }
+.tdx-pi:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
+.tdx-pi.d:hover { color: var(--danger); }
+.tdx2 { padding-left: 4px !important; display: block !important; }
 
 /* ===== floating pill tab bar with center + ===== */
 #navPlus { display: none; }
@@ -1784,7 +1797,7 @@ li.task > .pen.xbtn svg { width: 12px; height: 12px; }
         x.onclick = (e) => { e.stopPropagation(); deleteTask(t); };
         li.appendChild(x);
       }
-      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdPen(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); }
+      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdPen(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
       else if (tdOpen === t.id && !t.done) tdExpand(li, t, key);
     } else {
       li.innerHTML = `<div class="edit-row">
@@ -4303,20 +4316,49 @@ function renderMap() {
     p.onclick = (e) => { e.stopPropagation(); if (!isRoutine(key)) openSheet({ id: t.id }); else inlineEdit(li, t, li.querySelector(".go")); };
     li.appendChild(p);
   }
+  function tdMenuAt(btn, rows) {
+    const old = $("wmenu"); if (old) old.remove();
+    const m = document.createElement("div"); m.id = "wmenu"; m.className = "wmenu"; m.setAttribute("role", "menu");
+    rows.forEach(([l, fn, cls]) => { const b = document.createElement("button"); b.textContent = l; if (cls) b.className = cls; b.setAttribute("role", "menuitem"); b.onclick = (ev) => { ev.stopPropagation(); m.remove(); fn(); }; m.appendChild(b); });
+    document.body.appendChild(m); const r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(r.left, innerWidth - mr.width - 8)) + "px"; m.style.top = Math.max(8, Math.min(r.bottom + 6, innerHeight - mr.height - 8)) + "px";
+    const close = (ev) => { if (ev.type === "keydown" && ev.key !== "Escape") return; if (ev.type === "pointerdown" && m.contains(ev.target)) return; m.remove(); document.removeEventListener("pointerdown", close, true); document.removeEventListener("keydown", close, true); };
+    setTimeout(() => { document.addEventListener("pointerdown", close, true); document.addEventListener("keydown", close, true); }, 0);
+  }
+  const TDI = { cal: '<path d="M5 6h14v13H5zM5 10h14M9 4v4M15 4v4"/>', clk: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>', hg: '<path d="M7 4h10M7 20h10M8 4c0 5 8 5 8 8s-8 3-8 8M16 4c0 5-8 5-8 8s8 3 8 8"/>', tag: '<path d="M4 4h8l8 8-8 8-8-8z"/><circle cx="8.5" cy="8.5" r="1"/>', del: '<path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>' };
+  function tdProps(box, t, key) {
+    const row = document.createElement("div"); row.className = "tdx-props";
+    const add = (ic, label, fn, cls) => { const b = document.createElement("button"); b.type = "button"; b.className = "tdx-pi" + (cls ? " " + cls : ""); b.title = label; b.setAttribute("aria-label", label); b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${TDI[ic]}</svg>`; b.onclick = (e) => { e.stopPropagation(); fn(b); }; row.appendChild(b); };
+    const rout = isRoutine(key);
+    if (!rout) {
+      add("cal", "День", (b) => tdMenuAt(b, [["На сегодня", "today"], ["На завтра", "tomorrow"], ["В дела", "backlog"]].filter(([, k]) => k !== t.where).map(([l, k]) => [l, () => { moveTask(t, k); tdOpen = null; persist(); render(); }])));
+      add("clk", "Время начала", (b) => tdMenuAt(b, [...["09:00", "12:00", "15:00", "18:00", "20:00"].map((v) => [v, () => { t.at = v; persist(); render(); }]), ...(t.at ? [["Убрать время", () => { t.at = ""; persist(); render(); }]] : [])]));
+    }
+    add("hg", "Минуты", (b) => tdMenuAt(b, [5, 10, 15, 20, 30, 45, 60].map((v) => [v + " мин", () => { t.min = v; persist(); render(); }])));
+    if (!rout) add("tag", "Департамент", (b) => tdMenuAt(b, [["Без проекта", () => { t.project = ""; persist(); render(); }], ...S.projects.filter((p) => !p.archived).map((p) => [p.name, () => { t.project = p.id; persist(); render(); }])]));
+    add("del", "Удалить", () => { tdOpen = null; if (rout) { const a = S.routines[key], i = a.indexOf(t); if (i >= 0) a.splice(i, 1); persist(); render(); } else deleteTask(t); }, "d");
+    box.appendChild(row);
+  }
   function tdExpand(li, t, key) {
     li.classList.add("tdopen");
-    const box = document.createElement("div"); box.className = "tin tdx";
-    const m = t.min || 0;
-    box.innerHTML = `<div class="tin-t"><b class="tin-time">${m ? pad(m) + ":00" : "без таймера"}</b><span class="tin-st">${t.acc ? "уже ушло " + durShort(t.acc) : m ? "не начато" : ""}</span></div><div class="tin-c"></div>`;
-    const c = box.querySelector(".tin-c");
-    const mk = (label, cls, fn) => { const b = document.createElement("button"); b.className = "tb " + cls; b.innerHTML = label; b.onclick = (e) => { e.stopPropagation(); fn(); }; c.appendChild(b); return b; };
+    const box = document.createElement("div"); box.className = "tin tdx tdx2";
     tdLnBox(box, t, key);
     if (!isRoutine(key)) tdCheckBox(box, t);
-    if (m) mk("▶ Старт", "pri tdx-go", () => { tdOpen = null; tdHideRun = null; startTimer(t.id); });
-    mk("Готово ✓", "", () => { tdOpen = null; t.done = true; t.spent = 0; if (!isRoutine(key)) t.doneAt = Date.now(); persist(); render(); maybeCloseDay(key); });
-    mk("Свернуть", "tdx-fold", tdCollapse);
-    li.appendChild(box); tdPen(li, t, key);
+    tdProps(box, t, key);
+    li.appendChild(box);
   }
+  const tdFmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+  setInterval(() => {
+    if (!T || T.work || T.finished) return;
+    const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins"); if (!m) return;
+    const run = T.endsAt != null; m.classList.add("live"); m.classList.toggle("paused", !run);
+    const h = `${run ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>' : (typeof I !== "undefined" ? I.play : "▶")}${tdFmt(remaining())}`;
+    if (m.dataset.h !== h) { m.dataset.h = h; m.innerHTML = h; }
+  }, 300);
+  document.addEventListener("click", (e) => {
+    const m = e.target.closest("li.task .mins.live"); if (!m || !T || T.work) return;
+    e.preventDefault(); e.stopPropagation(); if (T.endsAt != null) pause(); else resume();
+  }, true);
 
   document.addEventListener("click", (e) => {
     if ((view !== "today" && view !== "tasks") || !(tdOpen || (T && !T.work && tdHideRun !== T.id && document.querySelector("li.trun")))) return;
