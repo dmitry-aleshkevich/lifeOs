@@ -3720,9 +3720,10 @@ function renderMap() {
     head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };
     page.appendChild(head);
     if (!fMode) page.appendChild(tdTriSeg(todayMode));
+    let qfEl = null;
     if (!fMode) {
       const qf = document.createElement("form"); qf.className = "td-qa"; qf.autocomplete = "off";
-      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу… (Магазин 18:00 40м)" aria-label="Быстро добавить задачу">`;
+      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу…" aria-label="Быстро добавить задачу">`;
       qf.onsubmit = (e) => { e.preventDefault(); const inp = qf.querySelector("input"), raw = inp.value.trim(); if (!raw) return; const q = parseQuick(raw);
         S.tasks.push({ id: uid(), name: q.name, min: q.min ?? qaLast.min, done: false, spent: 0, note: "", project: q.project ?? "", where: q.where || "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: q.at || "" });
         pullDue(); persist(); render(); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
@@ -3735,7 +3736,7 @@ function renderMap() {
           qf.appendChild(sug); });
         inp.addEventListener("keydown", (e) => { if (!sug) return; if (e.key === "Escape") { shut(); return; } if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : hits.length - 1)) % hits.length; [...sug.children].forEach((x, i) => x.classList.toggle("on", i === sel)); } if (e.key === "Tab" || (e.key === "Enter" && tplKey(inp.value) === tplKey(hits[sel].name))) { e.preventDefault(); take(hits[sel]); } });
         inp.addEventListener("blur", () => setTimeout(shut, 150)); }
-      page.appendChild(qf);
+      qfEl = qf;
     }
     if (tdPop) { const p = tdPopEl(); head.appendChild(p); setTimeout(() => document.addEventListener("pointerdown", function cl(ev) { if (!ev.target.closest(".td-pop, .td-gear")) { tdPop = false; document.removeEventListener("pointerdown", cl); const pp = document.querySelector(".td-pop"); if (pp) pp.remove(); const gb = document.querySelector(".td-gear"); if (gb) gb.setAttribute("aria-expanded", "false"); } else if (!document.querySelector(".td-pop")) document.removeEventListener("pointerdown", cl); }), 0); }
     if (fMode) { const fb = document.createElement("div"); renderFocus(fb); page.appendChild(fb); el.appendChild(page); return; }
@@ -3743,6 +3744,7 @@ function renderMap() {
     if (S.routines.morning.length && coreRun("morning") && S.day.evening !== today && !S.routines.morning.every((t) => t.done)) page.appendChild(tdGroup("morning", today));
     if (todayMode === "cal") { calSel = dayISO(); const box = document.createElement("div"); box.className = "sub"; renderDay(box, { embedded: true }); page.appendChild(box); }
     else { const ul = renderList("today", "Пусто. Нажми «+», чтобы добавить задачу."); ul.classList.add("td-list"); page.appendChild(ul); }
+    if (qfEl) page.appendChild(qfEl);
     { const hh = hiddenHint("today"); if (hh) page.appendChild(hh); }
     if (S.routines.evening.length && coreRun("evening")) page.appendChild(tdGroup("evening", today));
     el.appendChild(page);
