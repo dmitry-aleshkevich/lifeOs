@@ -4319,7 +4319,7 @@ function renderMap() {
   }
 
   document.addEventListener("click", (e) => {
-    if (view !== "today" || !(tdOpen || (T && !T.work && tdHideRun !== T.id && document.querySelector("li.trun")))) return;
+    if ((view !== "today" && view !== "tasks") || !(tdOpen || (T && !T.work && tdHideRun !== T.id && document.querySelector("li.trun")))) return;
     if (e.target.closest("li.task, .dblk, button, input, select, textarea, label, a, #sheet, .sheet, #qa, .wmenu, #mini, #timer, .td-pop, [role=dialog]")) return;
     tdCollapse();
   });
