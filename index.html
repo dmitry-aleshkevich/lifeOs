@@ -1203,6 +1203,11 @@ li.qinl-lnc { margin-left: 26px; }
 li.qinl .qinl-c { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent); }
 li.qinl input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; padding: 6px 0; }
 li.qinl input::placeholder { color: var(--muted); font-weight: 500; font-size: 14px; }
+/* department shelves: the shelf itself is the department — no sticker */
+.pk-s .pchip { display: none; }
+/* ✕ straddles the card corner like the + */
+li.task.tcard > .xbtn { top: -9px; right: -9px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line, rgba(0,0,0,.12)); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+li.task.tcard:hover > .xbtn { opacity: .9; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
