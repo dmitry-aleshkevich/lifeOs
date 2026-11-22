@@ -1151,6 +1151,24 @@ li.task.tdopen > .lnk { display: none; }
 #eveBan.min { width: auto; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
 .eb-mt { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
+/* ===== mobile usability pass ===== */
+@media (max-width: 700px) {
+  nav.views { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  nav.views button[data-v="work"] { display: flex !important; }
+  nav.views button[data-v="habits"], nav.views button[data-v="stats"], nav.views button[data-v="scen"], nav.views button[data-v="map"] { display: none !important; }
+  #bugBtn { display: none; }
+  .sce-g, .pl-l { grid-template-columns: minmax(0, 1fr) !important; }
+  .sce, .sce-c, .pl, .pl-b { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .sce-l li { min-width: 0; } .sce-in { min-width: 0; } .sce-b { width: 22px; }
+  .pl-r { flex-wrap: wrap; } .pl-nm { flex-basis: 100%; }
+  .tdx .tb.tdx-fold { display: none; }
+  header .sub, header p { font-size: 12.5px; }
+  .mark { width: 26px !important; height: 26px !important; } header h1 { font-size: 19px !important; }
+  html, body { overflow-x: hidden; }
+  li.task, .wcard, .dblk { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+}
+.sce-l .sce-b:not(.sce-x) { display: none !important; }
+
 /* timer */
 .timer { position: fixed; inset: 0; z-index: 20; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: space-between;
   padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
@@ -4041,6 +4059,7 @@ function renderMap() {
     if (back) mk(`Взять из дел (${back}) →`, () => { tdPop = false; view = "tasks"; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); });
     mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });
     mk("Экспорт всех данных", () => { tdPop = false; render(); exportAll(); }, "expAll");
+    mk("Баг / правка", () => { tdPop = false; render(); bugOpen(); });
     if (window.lifeosLogout) mk("Выйти из аккаунта", () => window.lifeosLogout());
     p.appendChild(acts);
     return p;
@@ -4240,7 +4259,7 @@ function renderMap() {
     if (!isRoutine(key)) tdCheckBox(box, t);
     if (m) mk("▶ Старт", "pri tdx-go", () => { tdOpen = null; tdHideRun = null; startTimer(t.id); });
     mk("Готово ✓", "", () => { tdOpen = null; t.done = true; t.spent = 0; if (!isRoutine(key)) t.doneAt = Date.now(); persist(); render(); maybeCloseDay(key); });
-    mk("Свернуть", "", tdCollapse);
+    mk("Свернуть", "tdx-fold", tdCollapse);
     li.appendChild(box); tdPen(li, t, key);
   }
 
@@ -4603,6 +4622,19 @@ function renderMap() {
       const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     } catch (e) { toast("Не получилось выгрузить"); }
   }
+
+  // touch: long-press = context menu (task menus need it on phones)
+  (() => {
+    let lt = null, sx = 0, sy = 0;
+    document.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return; const t = e.touches[0], el = e.target.closest("li.task, .dblk, .wcard, .wtask, .mins"); if (!el) return;
+      sx = t.clientX; sy = t.clientY; clearTimeout(lt);
+      lt = setTimeout(() => { lt = null; try { navigator.vibrate && navigator.vibrate(10); } catch {} el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: sx, clientY: sy })); suppressLP = true; setTimeout(() => { suppressLP = false; }, 500); }, 520);
+    }, { passive: true });
+    const cancel = (e) => { if (!lt) return; if (e.type === "touchmove") { const t = e.touches[0]; if (Math.abs(t.clientX - sx) < 10 && Math.abs(t.clientY - sy) < 10) return; } clearTimeout(lt); lt = null; };
+    ["touchmove", "touchend", "touchcancel"].forEach((n) => document.addEventListener(n, cancel, { passive: true }));
+    let suppressLP = false; document.addEventListener("click", (e) => { if (suppressLP) { e.stopPropagation(); e.preventDefault(); suppressLP = false; } }, true);
+  })();
 
   function renderHabits() {
     const el = $("vHabits"); el.innerHTML = "";

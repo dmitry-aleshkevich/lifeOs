@@ -211,5 +211,10 @@ rep('    renderHeader(); fabSync();', '    renderHeader(); fabSync(); try { eveT
 # ---- export all ----
 rep('  function renderHabits() {', open('export.js', encoding='utf8').read() + '\n  function renderHabits() {')
 rep('    mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });', '    mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });\n    mk("Экспорт всех данных", () => { tdPop = false; render(); exportAll(); }, "expAll");\n    if (window.lifeosLogout) mk("Выйти из аккаунта", () => window.lifeosLogout());')
+# ---- mobile pass ----
+rep('/* timer */', open('mobile.css', encoding='utf8').read() + '\n/* timer */')
+rep('  function renderHabits() {', open('mobile.js', encoding='utf8').read() + '\n  function renderHabits() {')
+rep('    mk("Свернуть", "", tdCollapse);', '    mk("Свернуть", "tdx-fold", tdCollapse);')
+rep('    if (window.lifeosLogout) mk(', '    mk("Баг / правка", () => { tdPop = false; render(); bugOpen(); });\n    if (window.lifeosLogout) mk(')
 open('index.html', 'w', encoding='utf8').write(s)
 print("built", len(s))

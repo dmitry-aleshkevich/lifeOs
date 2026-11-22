@@ -1,0 +1,17 @@
+/* ===== mobile usability pass ===== */
+@media (max-width: 700px) {
+  nav.views { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  nav.views button[data-v="work"] { display: flex !important; }
+  nav.views button[data-v="habits"], nav.views button[data-v="stats"], nav.views button[data-v="scen"], nav.views button[data-v="map"] { display: none !important; }
+  #bugBtn { display: none; }
+  .sce-g, .pl-l { grid-template-columns: minmax(0, 1fr) !important; }
+  .sce, .sce-c, .pl, .pl-b { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .sce-l li { min-width: 0; } .sce-in { min-width: 0; } .sce-b { width: 22px; }
+  .pl-r { flex-wrap: wrap; } .pl-nm { flex-basis: 100%; }
+  .tdx .tb.tdx-fold { display: none; }
+  header .sub, header p { font-size: 12.5px; }
+  .mark { width: 26px !important; height: 26px !important; } header h1 { font-size: 19px !important; }
+  html, body { overflow-x: hidden; }
+  li.task, .wcard, .dblk { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+}
+.sce-l .sce-b:not(.sce-x) { display: none !important; }
