@@ -1,5 +1,5 @@
   // ===== Plan page: kanban (Сегодня / Завтра / На неделе + shelves) =====
-  let pkOpen = "", pkSel = new Set();
+  let pkOpen = "", pkSel = new Set(), pkPaint = () => {};
   function renderPlanKB() {
     const el = $("vTasks"); el.innerHTML = "";
     const today = dayISO(), wk = addDays(today, 7), live = S.tasks.filter((t) => !t.done && t.where !== "done" && !t.tpl);
@@ -83,25 +83,56 @@
   (function pkMarquee() {
     const root = $("vTasks"); let mq = null;
     const cards = () => [...root.querySelectorAll("li.pk-li")];
-    const paint = () => cards().forEach((li) => li.classList.toggle("pk-sel", pkSel.has(li.dataset.id)));
+    const bulkBar = () => {
+      let bar = $("pkbulk");
+      if (view !== "tasks" || !pkSel.size) { if (bar) bar.remove(); return; }
+      if (!bar) { bar = document.createElement("div"); bar.id = "pkbulk"; bar.className = "wbulk"; document.body.appendChild(bar);
+        bar.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.a === "del") pkBulkDelete(); else { pkSel.clear(); paint(); } }); }
+      bar.innerHTML = `<b>Выбрано ${pkSel.size}</b><div class="wbs"><button data-a="del" class="danger">Удалить</button><button data-a="x">Снять</button></div>`;
+    };
+    const paint = () => { cards().forEach((li) => li.classList.toggle("pk-sel", pkSel.has(li.dataset.id))); bulkBar(); };
+    pkPaint = paint;
+    function pkBulkDelete() {
+      const gone = S.tasks.filter((t) => pkSel.has(t.id)); if (!gone.length) return;
+      const set = new Set(gone.map((t) => t.id)), snap = S.tasks.slice();
+      if (T && !T.work && set.has(T.id)) closeTimer(true);
+      S.tasks = S.tasks.filter((t) => !set.has(t.id) && !set.has(t.link)); pkSel.clear(); persist(); render();
+      toast("Удалено: " + gone.length, "Отменить", () => { S.tasks = snap; persist(); render(); });
+    }
     root.addEventListener("selectstart", (e) => { if (mq && mq.on) e.preventDefault(); });
     root.addEventListener("pointerdown", (e) => {
       if (e.pointerType !== "mouse" || e.button !== 0 || !matchMedia("(pointer: fine)").matches) return;
       if (e.target.closest("button, input, select, textarea, a, .pk-menu, .qinl")) return;
       const li = e.target.closest("li.pk-li");
       if (li) { if (e.metaKey || e.ctrlKey || e.shiftKey) { e.preventDefault(); pkSel.has(li.dataset.id) ? pkSel.delete(li.dataset.id) : pkSel.add(li.dataset.id); paint(); } return; }
-      mq = { x0: e.clientX, y0: e.clientY, on: false, add: e.metaKey || e.ctrlKey || e.shiftKey, base: new Set(pkSel), el: null };
+      mq = { x0: e.pageX, y0: e.pageY, cx: e.clientX, cy: e.clientY, on: false, add: e.metaKey || e.ctrlKey || e.shiftKey, base: new Set(pkSel), el: null, raf: 0 };
     });
-    window.addEventListener("pointermove", (e) => {
-      if (!mq) return;
-      if (!mq.on) { if (Math.hypot(e.clientX - mq.x0, e.clientY - mq.y0) < 6) return; mq.on = true; mq.el = document.createElement("div"); mq.el.className = "pk-band"; document.body.appendChild(mq.el); }
-      const x = Math.min(e.clientX, mq.x0), y = Math.min(e.clientY, mq.y0), w = Math.abs(e.clientX - mq.x0), h = Math.abs(e.clientY - mq.y0);
+    // band is kept in page coordinates, so it grows while the page auto-scrolls near the top/bottom edge
+    const upd = () => {
+      if (!mq || !mq.on) return;
+      const sx = scrollX, sy = scrollY, x = Math.min(mq.cx + sx, mq.x0) - sx, y = Math.min(mq.cy + sy, mq.y0) - sy, w = Math.abs(mq.cx + sx - mq.x0), h = Math.abs(mq.cy + sy - mq.y0);
       Object.assign(mq.el.style, { left: x + "px", top: y + "px", width: w + "px", height: h + "px" });
       pkSel = mq.add ? new Set(mq.base) : new Set();
       cards().forEach((li) => { const r = li.getBoundingClientRect(); if (r.right > x && r.left < x + w && r.bottom > y && r.top < y + h) pkSel.add(li.dataset.id); });
       paint();
+    };
+    const tick = () => {
+      if (!mq || !mq.on) return;
+      const edge = 50, dy = mq.cy > innerHeight - edge ? Math.ceil((mq.cy - (innerHeight - edge)) / 3) : mq.cy < edge ? -Math.ceil((edge - mq.cy) / 3) : 0;
+      if (dy) { scrollBy(0, dy); upd(); }
+      mq.raf = requestAnimationFrame(tick);
+    };
+    window.addEventListener("pointermove", (e) => {
+      if (!mq) return; mq.cx = e.clientX; mq.cy = e.clientY;
+      if (!mq.on) { if (Math.hypot(e.pageX - mq.x0, e.pageY - mq.y0) < 6) return; mq.on = true; mq.el = document.createElement("div"); mq.el.className = "pk-band"; document.body.appendChild(mq.el); mq.raf = requestAnimationFrame(tick); }
+      upd();
     });
-    const end = () => { if (!mq) return; const was = mq.on; if (mq.el) mq.el.remove(); if (!was && !mq.add && pkSel.size) { pkSel.clear(); paint(); } mq = null; };
+    const end = () => { if (!mq) return; cancelAnimationFrame(mq.raf); const was = mq.on; if (mq.el) mq.el.remove(); if (!was && !mq.add && pkSel.size) { pkSel.clear(); paint(); } mq = null; };
     window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
-    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && pkSel.size && view === "tasks" && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) { pkSel.clear(); paint(); } });
+    document.addEventListener("keydown", (e) => {
+      if (view !== "tasks" || (!pkSel.size && !((e.metaKey || e.ctrlKey) && e.code === "KeyA")) || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) return;
+      if (e.key === "Escape") { pkSel.clear(); paint(); }
+      else if ((e.metaKey || e.ctrlKey) && e.code === "KeyA") { e.preventDefault(); pkSel = new Set(cards().map((li) => li.dataset.id)); paint(); }
+      else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); pkBulkDelete(); }
+    });
   })();

@@ -132,7 +132,7 @@
     else renderStats();
     [["today", "vToday"], ["tasks", "vTasks"], ["habits", "vHabits"], ["stats", "vStats"], ["work", "vWork"], ["map", "vMap"], ["scen", "vScen"]].forEach(([v, id]) => { if (v !== view) $(id).replaceChildren(); });
     if (view !== "work") wLeave();
-    qaInlMount();
+    qaInlMount(); pkPaint();
     if (fid) { const b = $(fid); if (b && b !== document.activeElement) { b.focus(); try { if (pos != null) b.setSelectionRange(pos, pos); } catch {} } }
   }
   $("editBtn").onclick = () => {
