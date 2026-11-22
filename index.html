@@ -1224,6 +1224,10 @@ body.pk-nosel, body.pk-nosel * { user-select: none !important; -webkit-user-sele
 li.qinl .qinl-m { flex: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
 li.qinl .qinl-m:hover { border-color: var(--ink); }
 li.qinl .qinl-n { flex: none; width: 64px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 800; text-align: center; background: var(--surface); color: var(--ink); outline: 0; }
+.td-qa input.field { padding-right: 110px; }
+.td-qa .qa-m { position: absolute; right: 6px; top: 6px; height: 30px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.td-qa .qa-m:hover { border-color: var(--ink); }
+.td-qa .qa-n { position: absolute; right: 6px; top: 6px; width: 72px !important; height: 30px !important; padding: 0 10px !important; border-radius: 999px !important; font-size: 13px !important; font-weight: 800; text-align: center; padding-right: 10px !important; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3568,7 +3572,7 @@ function renderMap() {
   }
 
   // ===== "+" quick add window for Сегодня / Завтра / Дела =====
-  let qaLast = { min: 25, project: "" };
+  let qaLast = { min: 25, project: "" }, tdQaMin = 25;
   function qaInsert(t, lnP, opts) {
     if (lnP) { t.link = lnP.id; t.rel = opts.rel; t.where = lnP.where; t.project = t.project || lnP.project; lnP.lnOpen = true; const ks = S.tasks.filter((x) => x.link === lnP.id), pres = ks.filter((x) => x.rel === "pre"), posts = ks.filter((x) => x.rel !== "pre"); let at, after;
         const an = opts.anchor && opts.anchor !== lnP.id ? S.tasks.find((x) => x.id === opts.anchor) : null;
@@ -3723,10 +3727,14 @@ function renderMap() {
     let qfEl = null;
     if (!fMode) {
       const qf = document.createElement("form"); qf.className = "td-qa"; qf.autocomplete = "off";
-      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу…" aria-label="Быстро добавить задачу">`;
+      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу…" aria-label="Быстро добавить задачу"><button type="button" class="qa-m" aria-label="Время на задачу">▶ <b>${tdQaMin}</b> мин</button>`;
+      { const mb = qf.querySelector(".qa-m"), inp0 = qf.querySelector("input"); mb.onpointerdown = (e) => e.preventDefault();
+        mb.onclick = () => { const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = tdQaMin; n.className = "qa-n"; n.setAttribute("aria-label", "Минуты"); mb.replaceWith(n); n.focus(); n.select(); let fin = false;
+          const back = () => { if (fin) return; fin = true; tdQaMin = Math.max(1, Math.min(240, Math.round(+n.value) || tdQaMin)); mb.querySelector("b").textContent = tdQaMin; if (n.isConnected) n.replaceWith(mb); inp0.focus(); };
+          n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } }; n.onblur = back; }; }
       qf.onsubmit = (e) => { e.preventDefault(); const inp = qf.querySelector("input"), raw = inp.value.trim(); if (!raw) return; const q = parseQuick(raw);
-        S.tasks.push({ id: uid(), name: q.name, min: q.min ?? qaLast.min, done: false, spent: 0, note: "", project: q.project ?? "", where: q.where || "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: q.at || "" });
-        pullDue(); persist(); render(); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
+        S.tasks.push({ id: uid(), name: q.name, min: q.min ?? tdQaMin, done: false, spent: 0, note: "", project: q.project ?? "", where: q.where || "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: q.at || "" });
+        tdQaMin = 25; pullDue(); persist(); render(); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
       { const inp = qf.querySelector("input"); let sug = null, sel = 0, hits = [];
         const shut = () => { if (sug) sug.remove(); sug = null; hits = []; };
         const take = (tp) => { shut(); inp.value = ""; tplTake(tp, "today"); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };

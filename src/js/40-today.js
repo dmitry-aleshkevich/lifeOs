@@ -192,7 +192,7 @@
   }
 
   // ===== "+" quick add window for Сегодня / Завтра / Дела =====
-  let qaLast = { min: 25, project: "" };
+  let qaLast = { min: 25, project: "" }, tdQaMin = 25;
   function qaInsert(t, lnP, opts) {
     if (lnP) { t.link = lnP.id; t.rel = opts.rel; t.where = lnP.where; t.project = t.project || lnP.project; lnP.lnOpen = true; const ks = S.tasks.filter((x) => x.link === lnP.id), pres = ks.filter((x) => x.rel === "pre"), posts = ks.filter((x) => x.rel !== "pre"); let at, after;
         const an = opts.anchor && opts.anchor !== lnP.id ? S.tasks.find((x) => x.id === opts.anchor) : null;
@@ -347,10 +347,14 @@
     let qfEl = null;
     if (!fMode) {
       const qf = document.createElement("form"); qf.className = "td-qa"; qf.autocomplete = "off";
-      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу…" aria-label="Быстро добавить задачу">`;
+      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу…" aria-label="Быстро добавить задачу"><button type="button" class="qa-m" aria-label="Время на задачу">▶ <b>${tdQaMin}</b> мин</button>`;
+      { const mb = qf.querySelector(".qa-m"), inp0 = qf.querySelector("input"); mb.onpointerdown = (e) => e.preventDefault();
+        mb.onclick = () => { const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = tdQaMin; n.className = "qa-n"; n.setAttribute("aria-label", "Минуты"); mb.replaceWith(n); n.focus(); n.select(); let fin = false;
+          const back = () => { if (fin) return; fin = true; tdQaMin = Math.max(1, Math.min(240, Math.round(+n.value) || tdQaMin)); mb.querySelector("b").textContent = tdQaMin; if (n.isConnected) n.replaceWith(mb); inp0.focus(); };
+          n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } }; n.onblur = back; }; }
       qf.onsubmit = (e) => { e.preventDefault(); const inp = qf.querySelector("input"), raw = inp.value.trim(); if (!raw) return; const q = parseQuick(raw);
-        S.tasks.push({ id: uid(), name: q.name, min: q.min ?? qaLast.min, done: false, spent: 0, note: "", project: q.project ?? "", where: q.where || "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: q.at || "" });
-        pullDue(); persist(); render(); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
+        S.tasks.push({ id: uid(), name: q.name, min: q.min ?? tdQaMin, done: false, spent: 0, note: "", project: q.project ?? "", where: q.where || "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: q.at || "" });
+        tdQaMin = 25; pullDue(); persist(); render(); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
       { const inp = qf.querySelector("input"); let sug = null, sel = 0, hits = [];
         const shut = () => { if (sug) sug.remove(); sug = null; hits = []; };
         const take = (tp) => { shut(); inp.value = ""; tplTake(tp, "today"); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
