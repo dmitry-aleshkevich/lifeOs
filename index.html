@@ -4335,7 +4335,7 @@ function renderMap() {
       add("clk", "Время начала", (b) => tdMenuAt(b, [...["09:00", "12:00", "15:00", "18:00", "20:00"].map((v) => [v, () => { t.at = v; persist(); render(); }]), ...(t.at ? [["Убрать время", () => { t.at = ""; persist(); render(); }]] : [])]));
     }
     add("hg", "Минуты", (b) => tdMenuAt(b, [5, 10, 15, 20, 30, 45, 60].map((v) => [v + " мин", () => { t.min = v; persist(); render(); }])));
-    if (!rout) add("tag", "Департамент", (b) => tdMenuAt(b, [["Без проекта", () => { t.project = ""; persist(); render(); }], ...S.projects.filter((p) => !p.archived).map((p) => [p.name, () => { t.project = p.id; persist(); render(); }])]));
+    if (!rout) add("tag", "Департамент", (b) => tdMenuAt(b, [["Без проекта", () => { t.project = ""; persist(); render(); }], ...S.projects.filter((p) => !p.archived && p.kind !== "work").map((p) => [p.name, () => { t.project = p.id; persist(); render(); }])]));
     add("del", "Удалить", () => { tdOpen = null; if (rout) { const a = S.routines[key], i = a.indexOf(t); if (i >= 0) a.splice(i, 1); persist(); render(); } else deleteTask(t); }, "d");
     box.appendChild(row);
   }
