@@ -11,10 +11,10 @@ with sync_playwright() as p:
     if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
     nav=pg.evaluate("document.querySelector('#views').getBoundingClientRect().height"); print("nav h",nav); assert nav<100
     vis=pg.evaluate("[...document.querySelectorAll('#views button')].filter(b=>b.offsetParent).map(b=>b.innerText.trim())"); print(vis); assert vis==["Сегодня","План","Работа","Ещё",""]
-    pg.locator("#navPlus").tap(); pg.wait_for_timeout(300); assert pg.is_visible("#qa"); pg.keyboard.press("Escape")
+    pg.locator("#navPlus").tap(); pg.wait_for_timeout(300); assert pg.is_visible("#qinlIn") or pg.is_visible("#qa"); pg.keyboard.press("Escape")
     assert not pg.is_visible("#bugBtn")
     # long press on task -> menu
-    li=pg.locator("li.task").nth(1); bb=li.bounding_box()
+    pg.evaluate("window.scrollTo(0,0)"); pg.wait_for_timeout(200); li=pg.locator("li.task").nth(1); li.scroll_into_view_if_needed(); bb=li.bounding_box()
     pg.evaluate("""([x,y])=>{const el=document.elementFromPoint(x,y);const t=new Touch({identifier:1,target:el,clientX:x,clientY:y});el.dispatchEvent(new TouchEvent('touchstart',{touches:[t],changedTouches:[t],bubbles:true}));}""",[bb["x"]+120,bb["y"]+bb["height"]/2])
     pg.wait_for_timeout(700); m=pg.locator(".wmenu, [role=menu]").count(); print("menus",m); assert m>0
     pg.screenshot(path="/tmp/m3_menu.png")

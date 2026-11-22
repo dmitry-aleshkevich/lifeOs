@@ -1186,3 +1186,9 @@ li.task.tcard > .lnp-pre { top: -13px; } li.task.tcard > .lnp-post { bottom: -13
 li.task.tcard.lnh:hover > .lnp { opacity: .9; transform: none; }
 li.task.tcard.lnh > .lnp:hover { opacity: 1; transform: scale(1.12); }
 @media (hover: none) { li.task.tcard > .lnp { display: none; } }
+/* seamless add: ghost card in the list */
+li.qinl { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 56px; margin: 0 0 6px; padding: 8px 10px; box-sizing: border-box; border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 14px; background: transparent; }
+li.qinl-lnc { margin-left: 26px; }
+li.qinl .qinl-c { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent); }
+li.qinl input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; padding: 6px 0; }
+li.qinl input::placeholder { color: var(--muted); font-weight: 500; font-size: 14px; }

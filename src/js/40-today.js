@@ -79,7 +79,7 @@
     const el = e.target, typing = el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
     if (typing || !$("sheetBg").hidden) return;
     if (/^Digit[1-6]$/.test(e.code)) { const v = VIEWS[+e.code.slice(5) - 1]; if (v) { e.preventDefault(); view = v[0]; lsSet(LS_VIEW, view); saveUI(); render(); } return; }
-    if (e.code === "KeyN") { e.preventDefault(); if (view === "work") wOpenNewTask({}); else qaOpen(view === "tasks" ? "backlog" : "today", { where: true, def: view === "tasks" ? "backlog" : "today" }); return; }
+    if (e.code === "KeyN") { e.preventDefault(); if (view === "work") wOpenNewTask({}); else qaStart(view === "tasks" ? "today" : "today", view === "tasks" ? { zone: "plan:today" } : {}); return; }
     if (e.code === "Space" && typeof T !== "undefined" && T && !T.finished && (el === document.body || !el.closest("button, a"))) { e.preventDefault(); T.endsAt == null ? resume() : pause(); }
   });
 
@@ -193,6 +193,55 @@
 
   // ===== "+" quick add window for Сегодня / Завтра / Дела =====
   let qaLast = { min: 25, project: "" };
+  function qaInsert(t, lnP, opts) {
+    if (lnP) { t.link = lnP.id; t.rel = opts.rel; t.where = lnP.where; t.project = t.project || lnP.project; lnP.lnOpen = true; const ks = S.tasks.filter((x) => x.link === lnP.id), pres = ks.filter((x) => x.rel === "pre"), posts = ks.filter((x) => x.rel !== "pre"); let at, after;
+        const an = opts.anchor && opts.anchor !== lnP.id ? S.tasks.find((x) => x.id === opts.anchor) : null;
+        if (an) { at = an; after = opts.side === "post"; }
+        else if (opts.rel === "pre") { at = pres.length ? pres[pres.length - 1] : lnP; after = !!pres.length; }
+        else { at = posts.length ? posts[0] : lnP; after = !posts.length; }
+        S.tasks.splice(S.tasks.indexOf(at) + (after ? 1 : 0), 0, t); }
+    else S.tasks.push(t);
+  }
+
+  // ===== seamless add: a ghost card right in the list; Enter adds and opens the next one, Esc/empty Enter finishes =====
+  let qaInl = null;   // { zone, key, opts, text }
+  function qaStart(key, opts = {}) {
+    const zone = opts.link ? "link" : opts.zone || (view === "today" && document.querySelector("#vToday ul.td-list") ? "today" : null);
+    if (!zone) return qaOpen(key, opts);
+    qaInl = { zone, key, opts: { ...opts }, text: "" }; render();
+  }
+  function qaInlMount() {
+    if (!qaInl) return;
+    const { zone, opts } = qaInl; let host = null, ref = null, before = false;
+    if (zone === "link") {
+      const aid = opts.anchor || opts.link; ref = document.querySelector(`li.task[data-id="${aid}"]`); before = opts.side === "pre" || (!opts.anchor && opts.rel === "pre");
+      if (!ref) { qaInl = null; return; }
+    } else if (zone === "today") host = [...document.querySelectorAll("#vToday ul.td-list")].pop();
+    else host = document.querySelector(`.pk-col[data-k="${zone.slice(5)}"] ul.pk-ul`);
+    if (!host && !ref) { qaInl = null; return; }
+    const li = document.createElement("li"); li.className = "qinl" + (zone === "link" ? " qinl-lnc" : "");
+    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span><input id="qinlIn" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача" placeholder="Новая задача: Enter — добавить ещё, Esc — готово">`;
+    if (ref) ref.insertAdjacentElement(before ? "beforebegin" : "afterend", li); else host.appendChild(li);
+    const inp = li.querySelector("input"); inp.value = qaInl.text;
+    const done = () => { qaInl = null; li.remove(); };
+    inp.oninput = () => { qaInl.text = inp.value; };
+    inp.onkeydown = (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") { e.preventDefault(); done(); }
+      else if (e.key === "Enter") { e.preventDefault(); const raw = inp.value.trim(); if (!raw) return done(); qaCommit(raw); }
+    };
+    inp.onblur = () => setTimeout(() => { if (qaInl && !inp.value.trim() && document.activeElement !== inp && li.isConnected) done(); }, 150);
+    setTimeout(() => { if (li.isConnected) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {} li.scrollIntoView({ block: "nearest" }); } }, 0);
+  }
+  function qaCommit(raw) {
+    const { zone, key, opts } = qaInl, q = parseQuick(raw), lnP = opts.link ? S.tasks.find((x) => x.id === opts.link) : null;
+    const where0 = zone === "link" ? (lnP ? lnP.where : "today") : zone === "plan:tomorrow" ? "tomorrow" : zone === "plan:week" ? "backlog" : "today";
+    const where = q.where || where0, min = q.min ?? qaLast.min;
+    const t = { id: uid(), name: q.name, min, done: false, spent: 0, note: "", project: q.project ?? (lnP ? lnP.project : qaLast.project), where, sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: zone === "plan:week" && !q.where ? addDays(dayISO(), 6) : "", at: q.at || "" };
+    qaInsert(t, lnP, opts); qaLast = { min, project: t.project };
+    if (zone === "link" && opts.side !== "pre" && opts.rel !== "pre") opts.anchor = t.id;   // next "after" goes below the one just added
+    qaInl.text = ""; pullDue(); persist(); render();
+  }
   function qaOpen(key, opts = {}) {
     if ($("qa")) return;
     const where0 = opts.def || (opts.where ? "backlog" : key), d = { min: qaLast.min, project: filterProject !== "all" ? filterProject : qaLast.project, at: "", due: "", note: "", where: where0 };
@@ -228,13 +277,7 @@
       const q = parseQuick(raw), pj = f.querySelector(".qa-pj").value, wh = f.querySelector(".qa-wh");
       const where = q.where || (wh ? wh.value : where0), min = q.min ?? d.min;
       const t = { id: uid(), name: q.name, min, done: false, spent: 0, note: f.querySelector(".qa-note").value.trim(), project: q.project ?? pj, where, sessions: 0, acc: 0, waitUntil: where === "wait" ? addDays(dayISO(), 2) : "", doneAt: 0, due: f.querySelector(".qa-due").value || "", at: q.at || f.querySelector(".qa-at").value || "" };
-      if (lnP) { t.link = lnP.id; t.rel = opts.rel; t.where = lnP.where; t.project = t.project || lnP.project; lnP.lnOpen = true; const ks = S.tasks.filter((x) => x.link === lnP.id), pres = ks.filter((x) => x.rel === "pre"), posts = ks.filter((x) => x.rel !== "pre"); let at, after;
-        const an = opts.anchor && opts.anchor !== lnP.id ? S.tasks.find((x) => x.id === opts.anchor) : null;
-        if (an) { at = an; after = opts.side === "post"; }
-        else if (opts.rel === "pre") { at = pres.length ? pres[pres.length - 1] : lnP; after = !!pres.length; }
-        else { at = posts.length ? posts[0] : lnP; after = !posts.length; }
-        S.tasks.splice(S.tasks.indexOf(at) + (after ? 1 : 0), 0, t); }
-      else S.tasks.push(t);
+      qaInsert(t, lnP, opts);
       qaLast = { min, project: t.project };
       pullDue(); persist(); close(); render();
     };
@@ -338,7 +381,7 @@
   }
   function fabSync() {
     let f = $("fab");
-    if (!f) { f = document.createElement("button"); f.id = "fab"; f.setAttribute("aria-label", "Добавить задачу"); f.title = "Добавить задачу (N)"; f.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'; f.onclick = () => qaOpen(view === "tasks" ? "backlog" : "today", { where: true, def: view === "tasks" ? "backlog" : "today" }); document.body.appendChild(f); }
+    if (!f) { f = document.createElement("button"); f.id = "fab"; f.setAttribute("aria-label", "Добавить задачу"); f.title = "Добавить задачу (N)"; f.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'; f.onclick = () => qaStart(view === "tasks" ? "today" : "today", view === "tasks" ? { zone: "plan:today" } : {}); document.body.appendChild(f); }
     f.hidden = !(view === "today" || view === "tasks");
   }
 
@@ -423,7 +466,7 @@
       const rel = t.link ? t.rel : side;
       const b = document.createElement("button"); b.type = "button"; b.className = "lnp lnp-" + side; b.setAttribute("aria-label", lbl); b.title = lbl; b.innerHTML = LNPLUS;
       b.addEventListener("pointerdown", (e) => e.stopPropagation());
-      b.onclick = (e) => { e.stopPropagation(); e.preventDefault(); qaOpen(t.where, { link: t.link || t.id, rel, anchor: t.id, side }); };
+      b.onclick = (e) => { e.stopPropagation(); e.preventDefault(); qaStart(t.where, { link: t.link || t.id, rel, anchor: t.id, side }); };
       el.appendChild(b);
     });
     const ks = t.link ? [] : lnKids(t); if (!ks.length) return;
@@ -538,7 +581,7 @@
     it("Все настройки…", () => { if (!rout) openSheet({ id: t.id }); else { const li = el.closest("li.task"); if (li) inlineEdit(li, t, li.querySelector(".go")); } });
     hr();
     it(done ? "Вернуть в работу" : "Готово ✓", () => { if (!rout && t.where === "done") { t.where = "today"; t.done = false; } else { t.done = !t.done; t.spent = 0; if (!rout) t.doneAt = t.done ? Date.now() : 0; } persist(); render(); if (t.done) maybeCloseDay(key); });
-    if (!rout && !t.link && !done) { hr(); it("＋ Задача до", () => qaOpen(t.where, { link: t.id, rel: "pre" })); it("＋ Задача после", () => qaOpen(t.where, { link: t.id, rel: "post" })); if (lnKids(t).length) it(t.lnOpen ? "Скрыть связанные" : "Показать связанные", () => { t.lnOpen = !t.lnOpen; persist(); render(); }); }
+    if (!rout && !t.link && !done) { hr(); it("＋ Задача до", () => qaStart(t.where, { link: t.id, rel: "pre" })); it("＋ Задача после", () => qaStart(t.where, { link: t.id, rel: "post" })); if (lnKids(t).length) it(t.lnOpen ? "Скрыть связанные" : "Показать связанные", () => { t.lnOpen = !t.lnOpen; persist(); render(); }); }
     if (!rout && !t.link && !done) {
       hr();
       [["today", "На сегодня"], ["tomorrow", "На завтра"], ["backlog", "В дела"]].filter(([k]) => k !== t.where).forEach(([k, l]) => it(l, () => { moveTask(t, k); persist(); render(); }));

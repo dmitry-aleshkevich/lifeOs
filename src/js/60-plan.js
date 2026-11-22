@@ -33,10 +33,10 @@
     page.innerHTML = `<div class="pk-h"><h1 class="td-t">План</h1><div class="td-s">Перетаскивай задачи между днями и департаментами. На телефоне — долгое нажатие на задачу.</div></div>`;
     const row = document.createElement("div"); row.className = "pk-cols";
     cols.forEach(([k, l, ls]) => {
-      const col = document.createElement("div"); col.className = "pk-col"; dropZone(col, k);
+      const col = document.createElement("div"); col.className = "pk-col"; col.dataset.k = k; dropZone(col, k);
       col.innerHTML = `<div class="pk-ch"><b>${l}</b><em>${sum(ls)}</em></div>`;
       ul(col, ls);
-      const a = document.createElement("button"); a.className = "pk-add"; a.textContent = "+ задача"; a.onclick = () => qaOpen(k === "week" ? "backlog" : k, { where: true, def: k === "week" ? "backlog" : k }); col.appendChild(a);
+      const a = document.createElement("button"); a.className = "pk-add"; a.textContent = "+ задача"; a.onclick = () => qaStart(k, { zone: "plan:" + k }); col.appendChild(a);
       row.appendChild(col);
     });
     page.appendChild(row);

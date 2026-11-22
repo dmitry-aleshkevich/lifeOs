@@ -10,7 +10,7 @@ with sync_playwright() as p:
     if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
     assert not pg.is_visible("#fab")
     pg.screenshot(path="/tmp/m4_today.png")
-    pg.locator("#navPlus").tap(); pg.wait_for_timeout(300); assert pg.is_visible("#qa"); pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    pg.locator("#navPlus").tap(); pg.wait_for_timeout(300); assert pg.is_visible("#qinlIn") or pg.is_visible("#qa"); pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.locator("#views button:has-text('Работа')").tap(); pg.wait_for_timeout(400)
     pg.locator("#navPlus").tap(); pg.wait_for_timeout(300); print("work menu", pg.locator(".wfabm, .wmenu").count()); assert pg.locator(".wfabm, .wmenu").count()>0
     pg.screenshot(path="/tmp/m4_work.png")
