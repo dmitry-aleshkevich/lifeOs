@@ -228,12 +228,6 @@
 
   // ===== "+" quick add window for Сегодня / Завтра / Дела =====
   let qaLast = { min: 25, project: "" };
-  function qaButton(key, opts) {
-    const w = document.createElement("div"); w.className = "qa-wrap";
-    w.innerHTML = `<button type="button" class="qa-plus" id="qa-${key}" aria-label="Добавить задачу" title="Добавить задачу (N)">+</button>`;
-    w.firstChild.onclick = () => qaOpen(key, opts);
-    return w;
-  }
   function qaOpen(key, opts = {}) {
     if ($("qa")) return;
     const where0 = opts.def || (opts.where ? "backlog" : key), d = { min: qaLast.min, project: filterProject !== "all" ? filterProject : qaLast.project, at: "", due: "", note: "", where: where0 };

@@ -5,7 +5,7 @@ out=sys.argv[1]; os.makedirs(out, exist_ok=True)
 with sync_playwright() as p:
     b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
     for name,vp in [("d",dict(width=1300,height=900)),("m",dict(width=390,height=844))]:
-        ctx=b.new_context(viewport=vp, has_touch=(name=="m")); pg=ctx.new_page()
+        ctx=b.new_context(viewport=vp, has_touch=(name=="m")); pg=ctx.new_page(); pg.on("pageerror",lambda e:print("PAGEERROR",name,e))
         pg.add_init_script("localStorage.setItem('lifeos.focus.v1','plan'); Date.now=(()=>{const r=Date.now;const o=new Date('2026-11-22T14:00:00').getTime()-r();return ()=>r()+o})()")
         pg.goto("file:///home/claude/work/lo/index.html"); pg.wait_for_timeout(700)
         if pg.is_visible("#mscen"): pg.keyboard.press("Escape")

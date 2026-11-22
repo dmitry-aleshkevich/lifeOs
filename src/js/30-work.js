@@ -229,10 +229,6 @@
     return { pct, over, label, pl, tp, to };
   }
   const wTBar = (g) => `<div class="wtbar${g.over ? " over" : ""}" title="Время: ${g.label}"><i class="wtb-p" style="width:${g.tp.toFixed(1)}%"></i><i class="wtb-o" style="width:${g.to.toFixed(1)}%"></i></div>`;
-  function wProgHTML(t) {
-    const g = t.status === "done" ? null : wProg(t); if (!g) return "";
-    return `<div class="wprog${g.over ? " over" : ""}"><div class="wpbar"><i style="width:${Math.min(100, g.pct)}%"></i></div><div class="wpl"><span>${g.label}</span><b>${g.pct}%</b></div></div>`;
-  }
   function wUpdProg(t) {
     const el = document.querySelector(`#vWork .wcard[data-id="${t.id}"]:not(.wsub)`); if (!el) return;
     const g = t.status === "done" ? null : wProg(t), bg = el.querySelector(".wbig"), lt = el.querySelector(".wlt");

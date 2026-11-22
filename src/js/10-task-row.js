@@ -100,38 +100,6 @@
     enableDrag(ul);
     return ul;
   }
-  function addForm(key, opts = {}) {
-    if (!isRoutine(key)) return qaButton(key, opts);
-    const f = document.createElement("form");
-    f.className = "add"; f.autocomplete = "off";
-    const sel = chosen[key] ?? (isRoutine(key) ? 5 : 25);
-    const withProject = !isRoutine(key);
-    f.innerHTML = `<input type="text" id="add-${key}" maxlength="90" placeholder="${esc(opts.placeholder || "Что сделать?")}">
-      <div class="add-row">${CHIPS.map(([m, l]) => `<button type="button" class="chip" data-m="${m}" aria-pressed="${m === sel}">${l}${m ? " мин" : ""}</button>`).join("")}
-      ${withProject ? `<select aria-label="Проект" id="addp-${key}">${projectOptions(drafts["p-" + key] ?? (filterProject !== "all" ? filterProject : (S.projects.find((p) => onlyKind() && p.kind === onlyKind())?.id || "")))}</select>` : ""}
-      ${opts.where ? `<select aria-label="Куда" id="addw-${key}"><option value="backlog">В дела</option><option value="today">Сегодня</option><option value="tomorrow">Завтра</option><option value="wait">Жду</option></select>` : ""}
-      <button type="submit" class="pill-btn">Добавить</button></div>`;
-    const inp = f.querySelector("input"), btn = f.querySelector(".pill-btn");
-    inp.value = drafts[key] || ""; btn.disabled = !inp.value.trim();
-    inp.oninput = () => { drafts[key] = inp.value; btn.disabled = !inp.value.trim(); };
-    const ps = f.querySelector(`#addp-${key}`); if (ps) ps.onchange = () => { drafts["p-" + key] = ps.value; };
-    f.querySelectorAll(".chip").forEach((c) => c.onclick = () => { chosen[key] = +c.dataset.m; f.querySelectorAll(".chip").forEach((x) => x.setAttribute("aria-pressed", x === c)); });
-    f.onsubmit = (e) => {
-      e.preventDefault();
-      const v = inp.value.trim(); if (!v) return;
-      const min = chosen[key] ?? sel;
-      if (isRoutine(key)) S.routines[key].push({ id: uid(), name: v, min, done: false, spent: 0, note: "" });
-      else {
-        const where = opts.where ? f.querySelector(`#addw-${key}`).value : key;
-        const q = parseQuick(v), wh = q.where || where;
-        S.tasks.push({ id: uid(), name: q.name, min: q.min ?? min, done: false, spent: 0, note: "", project: q.project ?? (ps ? ps.value : ""), where: wh, sessions: 0, acc: 0, waitUntil: wh === "wait" ? addDays(dayISO(), 2) : "", doneAt: 0, due: "", at: q.at || "" });
-      }
-      drafts[key] = "";
-      persist(); render();
-      const again = $("add-" + key); if (again) again.focus();
-    };
-    return f;
-  }
   const sumLine = (items) => {
     const done = items.filter((t) => t.done).length, left = items.filter((t) => !t.done).reduce((s, t) => s + t.min, 0);
     return items.length ? `${done} из ${items.length}` + (left ? ` · осталось ${left} мин` : "") : "";
