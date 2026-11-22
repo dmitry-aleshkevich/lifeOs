@@ -4747,6 +4747,33 @@ function renderMap() {
     document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
   });
 
+  // Ctrl/Cmd+Z: undo last "done"; finishing a task also stops its running timer
+  const undoSt = [], undoAll = () => S.tasks.concat(S.routines ? [].concat(...Object.values(S.routines)) : []);
+  let undoPrev = null;
+  setInterval(() => {
+    const cur = new Map(undoAll().map((t) => [t.id, !!t.done]));
+    if (undoPrev) cur.forEach((d, id) => {
+      if (d && undoPrev.get(id) === false) {
+        undoSt.push(id); if (undoSt.length > 30) undoSt.shift();
+        if (tdOpen === id) tdOpen = null;
+        if (T && !T.work && T.id === id) { try { closeTimer(true); } catch (e) {} render(); }
+      }
+    });
+    undoPrev = cur;
+  }, 250);
+  document.addEventListener("keydown", (e) => {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || (e.key !== "z" && e.key !== "я" && e.code !== "KeyZ")) return;
+    if (e.target.closest && e.target.closest("input, textarea, select, [contenteditable=true]")) return;
+    if (document.body.classList.contains("wmodal")) return;
+    while (undoSt.length) {
+      const id = undoSt.pop(), t = undoAll().find((x) => x.id === id);
+      if (!t || !t.done) continue;
+      e.preventDefault(); t.done = false; t.spent = 0; if ("doneAt" in t) t.doneAt = 0; if (t.where === "done") t.where = "today";
+      undoPrev.set(id, false); persist(); render(); toast("Готово отменено: " + (t.name || ""));
+      return;
+    }
+  });
+
   // export all cloud docs (os + map) to a JSON file — for moving to another host
   async function exportAll() {
     try {
