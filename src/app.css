@@ -1203,3 +1203,6 @@ li.task.tcard > .lnp svg { width: 12px; height: 12px; }
 li.task.tcard > .lnp-pre { top: -9px; } li.task.tcard > .lnp-post { bottom: -9px; }
 li.task.tcard.lnh:hover > .lnp { opacity: .9; transform: none; }
 li.task.tcard.lnh > .lnp:hover, li.task.tcard > .lnp:focus-visible { opacity: 1; transform: scale(1.25); background: #2F6DB5; color: #fff; border-color: #2F6DB5; }
+/* Plan: rubber-band multi-select */
+.pk-band { position: fixed; z-index: 90; pointer-events: none; border: 1.5px solid #2F6DB5; background: color-mix(in srgb, #2F6DB5 14%, transparent); border-radius: 6px; }
+li.task.pk-sel { outline: 2px solid #2F6DB5; outline-offset: -1px; background: color-mix(in srgb, #2F6DB5 12%, var(--surface)); }
