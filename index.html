@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><title>LifeOS_v1</title>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-512.png"><meta name="apple-mobile-web-app-title" content="LifeOS"><meta name="apple-mobile-web-app-capable" content="yes"><title>LifeOS_v1</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@500;600;700;800&display=swap">
@@ -1151,6 +1151,77 @@ li.task.tdopen > .lnk { display: none; }
 #eveBan.min { width: auto; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
 .eb-mt { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
+/* ===== mobile usability pass ===== */
+@media (max-width: 700px) {
+  nav.views { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  nav.views button[data-v="work"] { display: flex !important; }
+  nav.views button[data-v="habits"], nav.views button[data-v="stats"], nav.views button[data-v="scen"], nav.views button[data-v="map"] { display: none !important; }
+  #bugBtn { display: none; }
+  .sce-g, .pl-l { grid-template-columns: minmax(0, 1fr) !important; }
+  .sce, .sce-c, .pl, .pl-b { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .sce-l li { min-width: 0; } .sce-in { min-width: 0; } .sce-b { width: 22px; }
+  .pl-r { flex-wrap: wrap; } .pl-nm { flex-basis: 100%; }
+  .tdx .tb.tdx-fold { display: none; }
+  header .sub, header p { font-size: 12.5px; }
+  .mark { width: 26px !important; height: 26px !important; } header h1 { font-size: 19px !important; }
+  html, body { overflow-x: hidden; }
+  li.task, .wcard, .dblk { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+}
+.sce-l .sce-b:not(.sce-x) { display: none !important; }
+.td-tri { display: flex; gap: 2px; margin: 4px 0 10px; } .td-tri button { flex: 1; } .td-tri .td-foc { flex: none; padding: 0 12px; margin-left: 6px; border-radius: 10px; background: #D85A30 !important; color: #fff !important; font-weight: 800; }
+.td-seg { display: none !important; }
+.fwrap .fexit { align-self: flex-start; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); font-weight: 800; font-size: 13px; color: var(--muted); background: transparent; }
+.pk-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.pk-col { background: var(--surface-2); border-radius: 14px; padding: 8px; min-height: 160px; } .pk-col.over, .pk-s.over { outline: 2px solid #378ADD; }
+.pk-ch { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; margin: 2px 2px 8px; } .pk-ch b { font-weight: 800; } .pk-ch em { font-style: normal; color: var(--muted); font-size: 12px; font-weight: 700; }
+.pk-c { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; cursor: grab; } .pk-c.drag { opacity: .4; } .pk-c.open { border-color: #D85A30; }
+.pk-n { font-size: 14px; font-weight: 700; } .pk-m { font-size: 11.5px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.pk-a { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; } .pk-a button { font-size: 12px; font-weight: 700; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); }
+.pk-add { width: 100%; text-align: left; font-size: 13px; color: var(--muted); padding: 6px; font-weight: 700; }
+.pk-lbl { font-size: 13px; font-weight: 800; color: var(--muted); margin: 18px 0 8px; }
+.pk-sh { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.pk-s { border: 1px solid var(--line); border-radius: 14px; padding: 8px; } .pk-ro { opacity: .75; cursor: pointer; }
+.pk-p { display: inline-block; font-size: 12px; font-weight: 600; border: 1px solid var(--line); border-radius: 8px; padding: 3px 7px; margin: 0 4px 4px 0; }
+@media (max-width: 700px) {
+  .pk-cols { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 12px -16px 0; padding: 0 16px; }
+  .pk-col { flex: 0 0 82%; scroll-snap-align: start; }
+  .pk-sh { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+.pk-ul { margin: 0; padding: 0; } .pk-ul li.task { background: var(--surface); border-radius: 10px; margin-bottom: 6px; border: 1px solid var(--line); padding-left: 8px; padding-right: 8px; } .pk-li.drag { opacity: .4; }
+.pk-col .pk-ul li.task .name, .pk-s .pk-ul li.task .name { font-size: 14px; }
+.pk-dm { font-size: 15px; color: var(--muted); padding: 0 4px; } .pk-new { color: var(--muted); font-weight: 800; font-size: 13px; border-style: dashed; min-height: 60px; }
+.pk-arch { margin-top: 10px; font-size: 12.5px; color: var(--muted); font-weight: 700; } .pk-arch button { border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; margin: 2px; font-size: 12px; }
+.pk-menu { position: fixed; z-index: 70; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 4px; display: flex; flex-direction: column; min-width: 170px; }
+.pk-menu button { text-align: left; padding: 9px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; } .pk-menu button:hover { background: var(--surface-2); } .pk-menu .dz { color: var(--danger); }
+.pk-ul li.task { min-width: 0; max-width: 100%; box-sizing: border-box; } .pk-ul li.task .name { word-break: normal; overflow-wrap: anywhere; min-width: 60px; } .pk-ul .tdx-btns, .pk-ul li.task .tin-c { flex-wrap: wrap; }
+
+.pk-sh { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important; align-items: start; }
+@media (max-width: 700px) { .pk-sh { grid-template-columns: minmax(0, 1fr) !important; } }
+.pk-ul li.task .txt, .pk-ul li.task .body { flex: 1 1 auto; min-width: 0; }
+.pk-ul li.task .name { overflow-wrap: break-word; word-break: normal; }
+.pk-ul li.task:not(:hover) .pen { display: none; }
+.pk-ul li.task .mins { padding: 4px 9px; font-size: 12px; flex: none; }
+/* v: no pencil on rows; ✕ only in top-right corner hotspot */
+li.task > .pen:not(.gowork):not(.xbtn) { display: none !important; }
+li.task { position: relative; }
+li.task > .pen.xbtn { display: grid !important; position: absolute !important; top: 2px !important; right: 2px !important; left: auto !important; transform: none !important; width: 24px; height: 24px; border-radius: 8px; opacity: 0 !important; z-index: 5; background: var(--surface); transition: opacity .12s; }
+li.task > .pen.xbtn:hover, li.task > .pen.xbtn:focus-visible { opacity: 1 !important; color: var(--danger); }
+li.task > .pen.xbtn svg { width: 12px; height: 12px; }
+@media (hover: none) { li.task > .pen.xbtn { display: none !important; } }
+
+/* ===== floating pill tab bar with center + ===== */
+#navPlus { display: none; }
+@media (max-width: 700px) {
+  nav.views { left: 12px !important; right: 12px !important; bottom: calc(10px + env(safe-area-inset-bottom)) !important; border-radius: 26px !important; border: 1px solid var(--line) !important; background: var(--surface) !important; box-shadow: 0 10px 30px rgba(0,0,0,.14) !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; padding: 4px !important; overflow: visible !important; }
+  nav.views button[data-v="today"] { order: 1; } nav.views button[data-v="tasks"] { order: 2; } #navPlus { order: 3; } nav.views button[data-v="work"] { order: 4; } nav.views .vmore { order: 5; }
+  #navPlus { display: flex; align-items: center; justify-content: center; align-self: center; justify-self: center; width: 60px; height: 60px; min-height: 0 !important; margin-top: -26px; padding: 0 !important; border-radius: 50% !important; background: #D85A30 !important; color: #fff !important; box-shadow: 0 8px 20px rgba(216,90,48,.4); }
+  #navPlus svg { width: 28px !important; height: 28px !important; background: none !important; padding: 0 !important; }
+  #navPlus:active { transform: scale(.94); }
+  #fab, #wFab { display: none !important; }
+  body.has-mini #mini, #mini { bottom: calc(92px + env(safe-area-inset-bottom)) !important; }
+  .wrap { padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; }
+}
+
 /* timer */
 .timer { position: fixed; inset: 0; z-index: 20; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: space-between;
   padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
@@ -1413,7 +1484,7 @@ li.task.tdopen > .lnk { display: none; }
     const base = DEFAULTS();
     return {
       v: 1, updatedAt: Number(d.updatedAt) || 0, ...(Array.isArray(d.mScen) && d.mScen.length === 3 ? { mScen: d.mScen.map((sc) => ({ id: String(sc.id), name: String(sc.name || ""), icon: String(sc.icon || "•"), items: Array.isArray(sc.items) ? sc.items.map(normItem).map((x) => ({ id: x.id, name: x.name, min: x.min, note: x.note })) : [] })) } : {}), ...(d.mScenCur ? { mScenCur: String(d.mScenCur) } : {}), ...(Array.isArray(d.plan) ? { plan: d.plan.map((b) => ({ id: String(b.id || uid()), name: String(b.name || "Блок"), at: /^\d\d:\d\d$/.test(b.at || "") ? b.at : "12:00", min: Math.max(0, Math.min(240, Number(b.min) || 0)), days: Array.isArray(b.days) ? [...new Set(b.days.map(Number).filter((x) => x >= 0 && x <= 6))] : [0, 1, 2, 3, 4, 5, 6], pre: (Array.isArray(b.pre) ? b.pre : []).map((k) => ({ id: String(k.id || uid()), name: String(k.name || ""), min: Math.max(0, Math.min(240, Number(k.min) || 0)) })), post: (Array.isArray(b.post) ? b.post : []).map((k) => ({ id: String(k.id || uid()), name: String(k.name || ""), min: Math.max(0, Math.min(240, Number(k.min) || 0)) })) })) } : {}), ...(d.planGen ? { planGen: String(d.planGen) } : {}), ...(Array.isArray(d.tpls) ? { tpls: d.tpls.map((x) => ({ id: String(x.id || uid()), name: String(x.name || "Сценарий").slice(0, 40), mode: x.mode === "check" ? "check" : "sub", items: (Array.isArray(x.items) ? x.items : []).map((k) => ({ id: String(k.id || uid()), name: String(k.name || "").slice(0, 80), min: Math.max(0, Math.min(240, Number(k.min) || 0)) })) })) } : {}),
-      projects: Array.isArray(d.projects) ? d.projects.map((p) => ({ id: String(p.id), name: String(p.name), color: COLORS.includes(p.color) ? p.color : "gray", kind: KIND_IDS.includes(p.kind) ? p.kind : guessKind(p) })) : base.projects,
+      projects: Array.isArray(d.projects) ? d.projects.map((p) => ({ id: String(p.id), name: String(p.name), color: COLORS.includes(p.color) ? p.color : "gray", kind: KIND_IDS.includes(p.kind) ? p.kind : guessKind(p), ...(p.archived ? { archived: true } : {}) })) : base.projects,
       tasks: d.tasks.map((t) => ({ ...normItem(t), project: t.project ? String(t.project) : "", where: ["today", "tomorrow", "backlog", "wait", "done"].includes(t.where) ? t.where : "backlog",
         sessions: Math.max(0, Number(t.sessions) || 0), acc: Math.max(0, Number(t.acc) || 0), waitUntil: t.waitUntil ? String(t.waitUntil) : "", doneAt: Number(t.doneAt) || 0, due: /^\d{4}-\d\d-\d\d$/.test(t.due || "") ? t.due : "", at: /^\d\d:\d\d$/.test(t.at || "") ? t.at : "", ...(t.link ? { link: String(t.link), rel: t.rel === "pre" ? "pre" : "post" } : {}), ...(t.lnOpen ? { lnOpen: true } : {}), ...(t.tpl ? { tpl: String(t.tpl), tplDay: String(t.tplDay || "") } : {}), ...(Array.isArray(t.check) && t.check.length ? { check: t.check.slice(0, 60).map((c) => ({ id: String(c.id || uid()), text: String(c.text || "").slice(0, 120), done: !!c.done })) } : {}) })),
       routines: { morning: (d.routines?.morning || base.routines.morning).map(normItem), evening: (d.routines?.evening || base.routines.evening).map(normItem) },
@@ -1656,7 +1727,7 @@ li.task.tdopen > .lnk { display: none; }
     chevL: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
     chevR: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
   };
-  const VIEWS = [["today", "Сегодня", I.home], ["tasks", "Дела", I.list], ["habits", "Привычки", I.repeat], ["stats", "Итоги", I.chart], ["work", "Работа", I.work], ["map", "Карта", I.map], ["scen", "Сценарии", I.sun]];
+  const VIEWS = [["today", "Сегодня", I.home], ["tasks", "План", I.list], ["habits", "Привычки", I.repeat], ["stats", "Итоги", I.chart], ["work", "Работа", I.work], ["map", "Карта", I.map], ["scen", "Сценарии", I.sun]];
   { const ORD = ["today", "tasks", "work", "habits", "stats", "scen", "map"]; VIEWS.sort((a, b) => ORD.indexOf(a[0]) - ORD.indexOf(b[0])); }
   const CHIPS = [[0, "Без таймера"], [5, "5"], [10, "10"], [15, "15"], [25, "25"], [50, "50"]];
 
@@ -1815,7 +1886,7 @@ li.task.tdopen > .lnk { display: none; }
       b.onclick = () => { const go = () => { view = id; lsSet(LS_VIEW, view); armedDel = null; saveUI(); render(); window.scrollTo({ top: 0 }); }; if (document.startViewTransition && id !== view && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(go); else go(); };
       b.dataset.v = id; nav.appendChild(b);
     });
-    const mb = document.createElement("button"); mb.className = "vmore"; mb.setAttribute("role", "tab"); mb.setAttribute("aria-selected", ["habits", "stats", "work", "map", "scen"].includes(view)); mb.setAttribute("aria-haspopup", "menu");
+    const mb = document.createElement("button"); mb.className = "vmore"; mb.setAttribute("role", "tab"); mb.setAttribute("aria-selected", ["habits", "stats", "map", "scen"].includes(view)); mb.setAttribute("aria-haspopup", "menu");
     mb.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span>Ещё</span>';
     mb.onclick = (e) => { e.stopPropagation(); let pop = document.querySelector(".vpop"); if (pop) { pop.remove(); return; } pop = document.createElement("div"); pop.className = "vpop"; pop.setAttribute("role", "menu");
       VIEWS.filter(([id]) => ["habits", "stats", "work", "map", "scen"].includes(id)).forEach(([id, label, icon]) => { const it = document.createElement("button"); it.setAttribute("role", "menuitem"); it.setAttribute("aria-current", id === view); it.innerHTML = icon + `<span>${label}</span>`; it.onclick = () => { pop.remove(); view = id; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); }; pop.appendChild(it); });
@@ -1986,6 +2057,7 @@ li.task.tdopen > .lnk { display: none; }
   }
 
   function renderTasks() {
+    if (true) { renderPlanKB(); return; }
     const el = $("vTasks"); el.innerHTML = "";
     const col = document.createElement("div"); col.className = "col"; col.style.maxWidth = "760px";
 
@@ -3427,7 +3499,7 @@ function fDone(x) {
 }
 function renderFocus(el) {
   const wrap = document.createElement("div"); wrap.className = "col fwrap";
-  wrap.appendChild(focusSeg());
+  wrap.appendChild(tdTriSeg("focus"));
   const q = fQueue(), today = dayISO();
   const doneN = S.tasks.filter((t) => t.where === "today" && t.done).length + S.work.tasks.filter((t) => t.status === "done" && t.doneAt && dayISO(t.doneAt) === today).length;
   const info = (x) => { const t = x.t, est = x.work ? wEst(t) : t.min; return `${x.work ? (wproj(t.project) ? `<span class="pchip">${esc(wproj(t.project).icon + " " + wproj(t.project).name)}</span>` : "") : pchip(t.project)}${t.at || t.time ? `<span class="sess">${esc(t.at || t.time)}</span>` : ""}${est ? `<span class="sess">${est} мин</span>` : ""}`; };
@@ -3441,7 +3513,7 @@ function renderFocus(el) {
     h.querySelector("#fGo").onclick = () => fStart(x); h.querySelector("#fOk").onclick = () => fDone(x);
     const sk = h.querySelector("#fSkip"); if (sk) sk.onclick = () => { fSkip.add(x.t.id); render(); };
     wrap.appendChild(h);
-    const rest = q.slice(1, 5);
+    const rest = q.slice(1, 3);
     if (rest.length) {
       const c = document.createElement("div"); c.className = "card fnext"; c.innerHTML = `<div class="card-h"><h2 class="card-t">Дальше</h2><span class="sum">ещё ${q.length - 1}</span></div>`;
       rest.forEach((y) => {
@@ -4041,6 +4113,7 @@ function renderMap() {
     if (back) mk(`Взять из дел (${back}) →`, () => { tdPop = false; view = "tasks"; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); });
     mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });
     mk("Экспорт всех данных", () => { tdPop = false; render(); exportAll(); }, "expAll");
+    mk("Баг / правка", () => { tdPop = false; render(); bugOpen(); });
     if (window.lifeosLogout) mk("Выйти из аккаунта", () => window.lifeosLogout());
     p.appendChild(acts);
     return p;
@@ -4058,6 +4131,7 @@ function renderMap() {
     { const cb = head.querySelector(".td-core"); if (cb) cb.onclick = () => { coreShow = !coreShow; saveUI(); render(); }; }
     head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };
     page.appendChild(head);
+    if (!fMode) page.appendChild(tdTriSeg(todayMode));
     if (!fMode) {
       const qf = document.createElement("form"); qf.className = "td-qa"; qf.autocomplete = "off";
       qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу… (Магазин 18:00 40м)" aria-label="Быстро добавить задачу">`;
@@ -4240,7 +4314,7 @@ function renderMap() {
     if (!isRoutine(key)) tdCheckBox(box, t);
     if (m) mk("▶ Старт", "pri tdx-go", () => { tdOpen = null; tdHideRun = null; startTimer(t.id); });
     mk("Готово ✓", "", () => { tdOpen = null; t.done = true; t.spent = 0; if (!isRoutine(key)) t.doneAt = Date.now(); persist(); render(); maybeCloseDay(key); });
-    mk("Свернуть", "", tdCollapse);
+    mk("Свернуть", "tdx-fold", tdCollapse);
     li.appendChild(box); tdPen(li, t, key);
   }
 
@@ -4604,6 +4678,115 @@ function renderMap() {
     } catch (e) { toast("Не получилось выгрузить"); }
   }
 
+  // touch: long-press = context menu (task menus need it on phones)
+  (() => {
+    let lt = null, sx = 0, sy = 0;
+    document.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return; const t = e.touches[0], el = e.target.closest("li.task, .dblk, .wcard, .wtask, .mins"); if (!el) return;
+      sx = t.clientX; sy = t.clientY; clearTimeout(lt);
+      lt = setTimeout(() => { lt = null; try { navigator.vibrate && navigator.vibrate(10); } catch {} el.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: sx, clientY: sy })); suppressLP = true; setTimeout(() => { suppressLP = false; }, 500); }, 520);
+    }, { passive: true });
+    const cancel = (e) => { if (!lt) return; if (e.type === "touchmove") { const t = e.touches[0]; if (Math.abs(t.clientX - sx) < 10 && Math.abs(t.clientY - sy) < 10) return; } clearTimeout(lt); lt = null; };
+    ["touchmove", "touchend", "touchcancel"].forEach((n) => document.addEventListener(n, cancel, { passive: true }));
+    let suppressLP = false; document.addEventListener("click", (e) => { if (suppressLP) { e.stopPropagation(); e.preventDefault(); suppressLP = false; } }, true);
+  })();
+
+  function navPlusSync() {
+    const nv = document.getElementById("views"); if (!nv || document.getElementById("navPlus")) return;
+    const b = document.createElement("button"); b.id = "navPlus"; b.type = "button"; b.setAttribute("aria-label", "Добавить");
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    b.onclick = (e) => { e.stopPropagation(); if (view === "work") { const r = b.getBoundingClientRect(); wFabMenu(r.left + r.width / 2 + 100, r.top - 8); return; } qaOpen(view === "tasks" ? "backlog" : "today", { where: true, def: view === "tasks" ? "backlog" : "today" }); };
+    nv.appendChild(b);
+  }
+
+  function tdTriSeg(cur) {
+    const s = document.createElement("div"); s.className = "seg sm td-tri"; s.setAttribute("role", "group"); s.setAttribute("aria-label", "Экран");
+    s.innerHTML = [["list", "Сегодня"], ["cal", "День"], ["focus", "◎ Фокус"]].map(([k, l]) => `<button data-tri="${k}" aria-pressed="${k === cur}">${l}</button>`).join("");
+    s.querySelectorAll("[data-tri]").forEach((b) => b.onclick = () => { const k = b.dataset.tri; if (k === "focus") { if (!fMode) fSetMode(true); return; } if (fMode) { fMode = false; try { localStorage.setItem("lifeos.focus.v1", "plan"); } catch {} } if (view !== "today") { todayMode = k; saveUI(); setView("today"); return; } if (k === todayMode && !arguments.length) return; if (k === "list") reorderToday(); todayMode = k; saveUI(); render(); });
+    return s;
+  }
+  const setView = (id) => { view = id; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); };
+
+  // ===== Plan page: kanban (Сегодня / Завтра / На неделе + shelves) =====
+  let pkOpen = "";
+  function renderPlanKB() {
+    const el = $("vTasks"); el.innerHTML = "";
+    const today = dayISO(), wk = addDays(today, 7), live = S.tasks.filter((t) => !t.done && t.where !== "done" && !t.tpl && !t.link);
+    const cols = [
+      ["today", "Сегодня", live.filter((t) => t.where === "today")],
+      ["tomorrow", "Завтра", live.filter((t) => t.where === "tomorrow")],
+      ["week", "На неделе", live.filter((t) => (t.where === "backlog" || t.where === "wait") && t.due && t.due <= wk)],
+    ];
+    const move = (t, k) => {
+      if (k === "today" || k === "tomorrow") { t.where = k; }
+      else if (k === "week") { t.where = "backlog"; if (!t.due || t.due > wk) t.due = addDays(today, 6); }
+      else if (k === "none") { t.where = "backlog"; t.due = ""; }
+      else if (k === "done") { t.done = true; t.doneAt = Date.now(); }
+      else if (k.startsWith("p:")) { t.project = k.slice(2); if (t.where === "today" || t.where === "tomorrow") {} else t.where = "backlog"; }
+      pkOpen = ""; persist(); render();
+    };
+    const sum = (ls) => { const m = ls.reduce((a, t) => a + (t.min || 0), 0); return ls.length + (m ? " · " + tdMin(m) : ""); };
+    const card = (t) => {
+      const li = renderRow(t, t.where === "today" ? "today" : t.where === "tomorrow" ? "tomorrow" : "backlog");
+      li.draggable = true; li.classList.add("pk-li");
+      li.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", t.id); li.classList.add("drag"); });
+      li.addEventListener("dragend", () => li.classList.remove("drag"));
+      return li;
+    };
+    const ul = (box, ls) => { const u = document.createElement("ul"); u.className = "list pk-ul"; ls.forEach((t) => u.appendChild(card(t))); box.appendChild(u); };
+    const dropZone = (z, k) => {
+      z.ondragover = (e) => { e.preventDefault(); z.classList.add("over"); }; z.ondragleave = () => z.classList.remove("over");
+      z.ondrop = (e) => { e.preventDefault(); z.classList.remove("over"); const t = S.tasks.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (t) move(t, k); };
+    };
+    const page = document.createElement("div"); page.className = "pk";
+    page.innerHTML = `<div class="pk-h"><h1 class="td-t">План</h1><div class="td-s">Перетаскивай задачи между днями и департаментами. На телефоне — долгое нажатие на задачу.</div></div>`;
+    const row = document.createElement("div"); row.className = "pk-cols";
+    cols.forEach(([k, l, ls]) => {
+      const col = document.createElement("div"); col.className = "pk-col"; dropZone(col, k);
+      col.innerHTML = `<div class="pk-ch"><b>${l}</b><em>${sum(ls)}</em></div>`;
+      ul(col, ls);
+      const a = document.createElement("button"); a.className = "pk-add"; a.textContent = "+ задача"; a.onclick = () => qaOpen(k === "week" ? "backlog" : k, { where: true, def: k === "week" ? "backlog" : k }); col.appendChild(a);
+      row.appendChild(col);
+    });
+    page.appendChild(row);
+    const lb = document.createElement("div"); lb.className = "pk-lbl"; lb.textContent = "Без даты · по департаментам"; page.appendChild(lb);
+    const sh = document.createElement("div"); sh.className = "pk-sh";
+    const nod = live.filter((t) => (t.where === "backlog" || t.where === "wait") && !(t.due && t.due <= wk));
+    const wsum = S.work.tasks.filter((t) => t.status === "todo" || t.status === "doing").reduce((x, t) => x + (t.est || 0), 0);
+    const wk2 = document.createElement("div"); wk2.className = "pk-s pk-ro"; wk2.innerHTML = `<div class="pk-ch"><b>💼 Работа</b><em>${wsum ? tdMin(wsum) : "—"}</em></div><div class="pk-m">To do и In progress</div>`; wk2.onclick = () => setView("work"); sh.appendChild(wk2);
+    const deps = S.projects.filter((p) => p.kind !== "work" && !p.archived);
+    [...deps, { id: "", name: "Без департамента" }].forEach((p) => {
+      const ls = nod.filter((t) => (p.id ? t.project === p.id : !proj(t.project) || proj(t.project).kind === "work" || proj(t.project).archived) && (p.id || kindOf(t) !== "work"));
+      if (!p.id && !ls.length) return;
+      const s2 = document.createElement("div"); s2.className = "pk-s"; dropZone(s2, "p:" + p.id);
+      s2.innerHTML = `<div class="pk-ch"><b>${esc(p.name)}</b><em>${ls.length}${p.id ? ` <button class="pk-dm" aria-label="Меню департамента">⋯</button>` : ""}</em></div>`;
+      if (p.id) s2.querySelector(".pk-dm").onclick = (e) => { e.stopPropagation(); const r = e.target.getBoundingClientRect(); pkDepMenu(p, r.left, r.bottom); };
+      ul(s2, ls); sh.appendChild(s2);
+    });
+    { const ad = document.createElement("button"); ad.className = "pk-s pk-new"; ad.textContent = "+ Департамент"; ad.onclick = () => { const v = (prompt("Название департамента") || "").trim(); if (!v) return; S.projects.push({ id: uid(), name: v, color: COLORS[S.projects.length % COLORS.length], kind: "home" }); persist(); render(); }; sh.appendChild(ad); }
+    const arch = S.projects.filter((p) => p.kind !== "work" && p.archived);
+    if (arch.length) { const ab = document.createElement("div"); ab.className = "pk-arch"; ab.innerHTML = "Архив: " + arch.map((p) => `<button data-id="${p.id}">${esc(p.name)} ↩</button>`).join(" "); ab.querySelectorAll("button").forEach((b) => b.onclick = () => { proj(b.dataset.id).archived = false; persist(); render(); }); page.appendChild(sh); page.appendChild(ab); }
+    planInit();
+    const core = document.createElement("div"); core.className = "pk-s pk-ro";
+    core.innerHTML = `<div class="pk-ch"><b>⚙️ LifeCore</b><em>авто</em></div>` + S.plan.map((b) => `<span class="pk-p">${esc(b.name)} ${esc(b.at)}</span>`).join("");
+    sh.appendChild(core);
+    const rt = document.createElement("div"); rt.className = "pk-s pk-ro";
+    rt.innerHTML = `<div class="pk-ch"><b>☀️ Рутины</b><em>авто</em></div><span class="pk-p">Утро · ${S.routines.morning.length}</span><span class="pk-p">Вечер · ${S.routines.evening.length}</span>`;
+    rt.onclick = () => setView("scen"); sh.appendChild(rt);
+    if (!page.contains(sh)) page.appendChild(sh); el.appendChild(page);
+  }
+  function pkDepMenu(p, x, y) {
+    document.querySelectorAll(".pk-menu").forEach((m) => m.remove());
+    const m = document.createElement("div"); m.className = "pk-menu"; m.style.left = Math.min(x, innerWidth - 200) + "px"; m.style.top = y + 4 + "px";
+    m.innerHTML = `<button data-a="ren">Переименовать</button><button data-a="arc">В архив</button><button data-a="del" class="dz">Удалить</button>`;
+    m.onclick = (e) => { const a = e.target.dataset.a; if (!a) return; m.remove();
+      if (a === "ren") { const v = (prompt("Название", p.name) || "").trim(); if (v) p.name = v; }
+      if (a === "arc") p.archived = true;
+      if (a === "del") { if (!confirm(`Удалить «${p.name}»? Задачи останутся без департамента.`)) return; S.tasks.forEach((t) => { if (t.project === p.id) t.project = ""; }); S.projects.splice(S.projects.indexOf(p), 1); }
+      persist(); render(); };
+    document.body.appendChild(m); setTimeout(() => document.addEventListener("click", function h() { m.remove(); document.removeEventListener("click", h); }), 0);
+  }
+
   function renderHabits() {
     const el = $("vHabits"); el.innerHTML = "";
     const col = document.createElement("div"); col.className = "col"; col.style.maxWidth = "760px";
@@ -4728,7 +4911,7 @@ function renderMap() {
 
   function render() {
     const fe = document.activeElement, fid = fe && fe.id, pos = fe && fe.selectionStart;
-    renderHeader(); fabSync(); try { eveTick(); } catch {} document.querySelector(".wrap").classList.toggle("wide", view === "work" || view === "map" || view === "scen");
+    renderHeader(); fabSync(); try { navPlusSync(); } catch {} try { eveTick(); } catch {} document.querySelector(".wrap").classList.toggle("wide", view === "work" || view === "map" || view === "scen");
     if (view === "today") renderToday();
     else if (view === "tasks") renderTasks();
     else if (view === "habits") renderHabits();
