@@ -874,7 +874,6 @@ li.task.trun .mins { display: none; }
 .tday li.task .name { font-size: 16px; font-weight: 600; }
 .tday li.task.done .name { color: var(--muted); }
 .tday li.task .meta { gap: 6px; }
-.tday li.task .meta .pchip { font-size: 0; width: 8px; height: 8px; padding: 0; border-radius: 50%; background: currentColor; flex: none; align-self: center; }
 .tday li.task .meta .dchip { background: transparent; padding: 0; font-size: 12px; color: var(--muted); font-weight: 600; }
 .tday li.task .meta .dchip::before { content: "в "; }
 .tday li.task .mins { background: transparent; color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); box-shadow: none; font-weight: 700; font-size: 13px; padding: 6px 12px 6px 10px; }
@@ -903,7 +902,6 @@ body.has-mini #fab { bottom: 96px; }
   body.has-mini #fab { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .tday li.task .mins { padding: 6px 10px 6px 8px; }
 }
-.tday li.task .meta .pchip { font-size: 0 !important; padding: 0 !important; }
 .tday li.task .xbtn { display: none !important; }
 .tday li.task { position: relative; }
 .tday li.task .pen { position: absolute; right: -40px; top: 50%; transform: translateY(-50%); }
@@ -1236,6 +1234,8 @@ li.task.trun .mins.live { position: relative; z-index: 2; }
 .tday li.task.trun { border: 2px solid var(--ink) !important; border-bottom: 2px solid var(--ink) !important; }
 .tday li.task.tdopen { border-width: 1.5px !important; }
 li.task .pen.gowork { display: none !important; }
+.atc { flex: none; font-size: 13px; font-weight: 700; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+.go { display: flex; align-items: center; }
 
 /* ===== floating pill tab bar with center + ===== */
 #navPlus { display: none; }
@@ -1797,8 +1797,9 @@ li.task .pen.gowork { display: none !important; }
     li.dataset.id = t.id;
     const isTask = !isRoutine(key);
     if (!editing) {
-      const meta = [isTask ? pchip(t.project) : "", isTask && t.at ? `<span class="dchip">${t.at}</span>` : "", t.note ? `<span class="note">${esc(t.note)}</span>` : "", isTask && t.sessions && !t.done ? `<span class="sess">${t.sessions} сес. · ${durShort(t.acc)}</span>` : ""].filter(Boolean).join("");
-      const right = t.done && t.spent && t.min ? spentPill(t) : (t.min ? `<span class="mins">${I.play}${t.min} мин</span>` : "");
+      const meta = [isTask ? pchip(t.project) : "", t.note ? `<span class="note">${esc(t.note)}</span>` : "", isTask && t.sessions && !t.done ? `<span class="sess">${t.sessions} сес. · ${durShort(t.acc)}</span>` : ""].filter(Boolean).join("");
+      const atc = isTask && t.at && !t.done ? `<span class="atc">${t.at}</span>` : "";
+      const right = atc + (t.done && t.spent && t.min ? spentPill(t) : (t.min ? `<span class="mins">${I.play}${t.min} мин</span>` : ""));
       li.innerHTML = `<button class="check" aria-label="Отметить" aria-pressed="${t.done}">${I.check}</button><button class="go"><span class="txt"><span class="name">${esc(t.name)}</span>${meta ? `<span class="meta">${meta}</span>` : ""}</span>${right}</button>`;
       const toggle = () => { t.done = !t.done; t.spent = 0; if (isTask) t.doneAt = t.done ? Date.now() : 0; persist(); render(); if (t.done) maybeCloseDay(key); };
       li.querySelector(".check").onclick = toggle;
