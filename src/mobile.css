@@ -48,3 +48,10 @@
 .pk-ul li.task .name { overflow-wrap: break-word; word-break: normal; }
 .pk-ul li.task:not(:hover) .pen { display: none; }
 .pk-ul li.task .mins { padding: 4px 9px; font-size: 12px; flex: none; }
+/* v: no pencil on rows; ✕ only in top-right corner hotspot */
+li.task > .pen:not(.gowork):not(.xbtn) { display: none !important; }
+li.task { position: relative; }
+li.task > .pen.xbtn { display: grid !important; position: absolute !important; top: 2px !important; right: 2px !important; left: auto !important; transform: none !important; width: 24px; height: 24px; border-radius: 8px; opacity: 0 !important; z-index: 5; background: var(--surface); transition: opacity .12s; }
+li.task > .pen.xbtn:hover, li.task > .pen.xbtn:focus-visible { opacity: 1 !important; color: var(--danger); }
+li.task > .pen.xbtn svg { width: 12px; height: 12px; }
+@media (hover: none) { li.task > .pen.xbtn { display: none !important; } }
