@@ -1803,7 +1803,7 @@ li.task .pen.gowork { display: none !important; }
       const toggle = () => { t.done = !t.done; t.spent = 0; if (isTask) t.doneAt = t.done ? Date.now() : 0; persist(); render(); if (t.done) maybeCloseDay(key); };
       li.querySelector(".check").onclick = toggle;
       li.querySelector(".go").onclick = (e) => { const nm = (tdOpen === t.id || (T && !T.work && T.id === t.id && tdHideRun !== t.id && !tdOpen)) ? tdNameHit(e) : null; if (nm) { e.stopPropagation(); return tdRename(nm, t); } if (t.min && e.target.closest(".mins")) { tdOpen = null; tdHideRun = null; return startTimer(t.id); } tdToggle(t); };
-      if (t.id === "work-auto") { const gw = document.createElement("button"); gw.className = "pen gowork"; gw.title = "Открыть Работу"; gw.setAttribute("aria-label", "Открыть Работу"); gw.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>'; gw.onclick = (e) => { e.stopPropagation(); view = "work"; lsSet(LS_VIEW, view); saveUI(); render(); }; li.appendChild(gw); }
+
       const pen = document.createElement("button"); pen.className = "pen"; pen.setAttribute("aria-label", isTask ? "Править" : "Править название"); pen.innerHTML = PEN;
       pen.onclick = (e) => { e.stopPropagation(); if (isTask) openSheet({ id: t.id }); else inlineEdit(li, t, li.querySelector(".go")); };
       li.appendChild(pen);
