@@ -550,7 +550,7 @@
   const tdFmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
   setInterval(() => {
     if (!T || T.work) return;
-    const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins"); if (!m) return;
+    const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins:not(.mins-add)"); if (!m) return;
     const go = m.parentElement, ex = go.querySelector(".mins-add");
     if (T.finished && !ex) { const a = document.createElement("button"); a.type = "button"; a.className = "mins mins-add"; a.textContent = "+5 мин"; a.title = "Добавить время"; go.insertBefore(a, m); }
     else if (!T.finished && ex) ex.remove();

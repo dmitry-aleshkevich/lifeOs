@@ -24,6 +24,7 @@ with sync_playwright() as p:
     row=pg.locator("li.task:has-text('ТТ')").first
     print("pill:", row.locator(".mins.live:not(.mins-add)").inner_text(), "| add:", row.locator(".mins-add").count())
     assert "Готово" in row.locator(".mins.live:not(.mins-add)").inner_text() and row.locator(".mins-add").count()==1
+    assert row.locator(".mins-add").inner_text()=="+5 мин", row.locator(".mins-add").inner_text()
     row.locator(".mins-add").click(); pg.wait_for_timeout(500)
     r=pg.locator("li.task:has-text('ТТ') .mins.live").inner_text(); print("after +5:",r); assert "Готово" not in r
     assert pg.locator("li.task:has-text('ТТ') .mins-add").count()==0
