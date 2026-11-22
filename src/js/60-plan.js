@@ -77,3 +77,4 @@
       persist(); render(); };
     document.body.appendChild(m); setTimeout(() => document.addEventListener("click", function h() { m.remove(); document.removeEventListener("click", h); }), 0);
   }
+

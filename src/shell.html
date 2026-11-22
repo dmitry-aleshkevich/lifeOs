@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LifeOS_v1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+/*@CSS*/
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">
+        <span class="mark" aria-hidden="true"><svg viewBox="0 0 40 40"><defs><linearGradient id="lgM" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3A3F4C"/><stop offset="1" stop-color="#101217"/></linearGradient><radialGradient id="glM" cx=".28" cy=".18" r=".85"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".18"/><stop offset=".6" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient></defs><rect width="40" height="40" rx="12" fill="url(#lgM)"/><rect width="40" height="40" rx="12" fill="url(#glM)"/><rect x=".5" y=".5" width="39" height="39" rx="11.5" fill="none" stroke="#FFFFFF" stroke-opacity=".12"/><circle cx="20" cy="20" r="11" fill="none" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="3.4"/><path d="M20 9A11 11 0 1 1 9 20" fill="none" stroke="#FF6E35" stroke-width="3.4" stroke-linecap="round"/><circle cx="9" cy="20" r="2.7" fill="#FF6E35"/><path d="M15.4 20.4l3.1 3.1 6-6.4" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h1>LifeOS</h1><span class="ver">v1</span>
+      </div>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="hdr-right">
+      <span class="count-pill" id="countPill"></span>
+      <button class="ghost" id="editBtn" aria-pressed="false" aria-label="Править"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg><span>Править</span></button>
+    </div>
+  </header>
+
+  <nav class="views" id="views" role="tablist" aria-label="Разделы"></nav>
+
+  <main id="vToday"></main>
+  <main id="vTasks" hidden></main>
+  <main id="vHabits" hidden></main>
+  <main id="vStats" hidden></main>
+  <main id="vWork" hidden></main>
+  <main id="vMap" hidden></main>
+  <main id="vScen" hidden></main>
+
+  <div class="note-line" id="note" hidden></div>
+</div>
+
+<button class="mini" id="mini" hidden aria-label="Развернуть таймер"><span class="mini-name" id="miniName"></span><span class="mini-time" id="miniTime"></span><span class="mini-b" id="miniPause" role="button" tabindex="0" aria-label="Пауза" hidden></span><span class="mini-b" id="miniDone" role="button" tabindex="0" aria-label="Готово" hidden>✓</span></button>
+
+<div class="timer" id="timer" hidden>
+  <div class="timer-top">
+    <button class="close" id="tClose" aria-label="Закрыть таймер"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <span class="t-label" id="tLabel">Таймер</span>
+    <button class="close" id="tMin" aria-label="Свернуть таймер"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
+  </div>
+  <div class="timer-mid">
+    <h2 class="t-name" id="tName"></h2>
+    <div class="t-note" id="tNote" hidden></div>
+    <div class="ring"><svg viewBox="0 0 200 200"><circle class="trk" cx="100" cy="100" r="90" fill="none" stroke-width="10"/><circle class="prg" id="tPrg" cx="100" cy="100" r="90" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="565.49" stroke-dashoffset="0"/></svg><div class="count" id="tCount"></div></div>
+    <div class="status" id="tStatus"></div>
+  </div>
+  <div class="controls" id="tControls"></div>
+</div>
+
+<div class="night" id="night" hidden>
+  <div class="n-clock" id="nClock"></div>
+  <div class="n-mid">
+    <h2 class="n-title">Всё круто. День закрыт</h2>
+    <div class="n-sub" id="nSub">Утром отсканируй код будильником. Потом нажми любую клавишу или кликни — утро начнётся само с «Раздуплиться».</div>
+    <div class="qr" id="qr"></div>
+    <div class="n-list" id="nList"></div>
+  </div>
+  <div class="n-actions">
+    <button class="n-btn" id="nMorning">Начать утро</button>
+    <button class="n-link" id="nBack">Вернуться к вечеру</button>
+  </div>
+</div>
+
+<div class="sheet-bg" id="sheetBg" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Задача"></div></div>
+
+<script>
+/*@JS*/
+</script>
+</body>
+</html>
