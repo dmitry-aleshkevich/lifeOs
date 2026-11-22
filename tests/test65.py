@@ -30,9 +30,9 @@ with sync_playwright() as p:
     assert pg.locator("li.task:has-text('Поработать')").count()==0
     # 7/8: ghost add: no placeholder, 25 min pill, editable
     pg.mouse.click(5,500); pg.keyboard.press("n"); pg.wait_for_timeout(300)
-    assert pg.get_attribute("#qinlIn","placeholder") in (None,""); assert pg.locator(".qinl-m b").inner_text()=="25"
+    assert pg.get_attribute("#qinlIn","placeholder") in (None,""); assert pg.locator(".qinl .qf-m b").inner_text()=="25"
     pg.keyboard.type("Т1"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
-    pg.locator(".qinl-m").click(); pg.keyboard.type("40"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
+    pg.locator(".qinl .qf-m").click(); pg.keyboard.type("40"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
     assert pg.evaluate("document.activeElement.id")=="qinlIn"; pg.keyboard.type("Т2"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300); pg.keyboard.press("Escape")
     mins=pg.evaluate("JSON.parse(localStorage.getItem('lifeos.v1')).tasks.filter(t=>/^Т[12]$/.test(t.name)).map(t=>t.name+t.min)"); print(mins); assert mins==["Т125","Т240"]
     # 1: Plan undo of delete/move

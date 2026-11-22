@@ -743,17 +743,8 @@ nav.views .vmore { display: none; }
 .qa { width: min(480px, 92vw); background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 64px rgba(0,0,0,.28); padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; }
 .qa-h { display: flex; align-items: baseline; gap: 8px; } .qa-h b { font-size: 18px; } .qa-h span { font-size: 13px; color: var(--muted); font-weight: 700; }
 .qa-x { margin-left: auto; font-size: 24px; width: 34px; height: 34px; border-radius: 50%; color: var(--muted); }
-.qa-name { font-size: 18px; font-weight: 600; padding: 14px 14px; }
-.qa-l { font-size: 12px; font-weight: 800; color: var(--muted); margin-bottom: -4px; }
-.qa-ch { display: flex; flex-wrap: wrap; gap: 6px; }
-.qa-more { align-self: flex-start; font-size: 13px; font-weight: 800; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; padding: 4px 0; }
-.qa-more i { font-style: normal; transition: transform .15s; } .qa-more[aria-expanded="true"] i { transform: rotate(90deg); }
-.qa-adv { display: flex; flex-direction: column; gap: 10px; }
-.qa-adv label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 800; color: var(--muted); }
-.qa-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.qa-f { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .qa-hint { font-size: 12px; color: var(--muted); }
-@media (max-width: 700px) { #qa { align-items: flex-end; padding: 0; } .qa { width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom)); } .qa-hint { display: none; } .qa-f .qa-add { flex: 1; min-height: 48px; } }
+@media (max-width: 700px) { #qa { align-items: flex-end; padding: 0; } .qa { width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(18px + env(safe-area-inset-bottom)); } .qa-hint { display: none; } }
 /* ===== minimal Today ===== */
 .tday { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; padding-bottom: 90px; }
 .td-h { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
@@ -851,7 +842,6 @@ body.has-mini #fab { bottom: 96px; }
 li.task.lnc .name { color: color-mix(in srgb, var(--ink) 72%, transparent); }
 .dblk.lnc { border-style: dotted !important; }
 .td-qa { margin: 0 0 12px; }
-.td-qa input { width: 100%; box-sizing: border-box; height: 42px; border-radius: 12px; padding: 0 14px; font-size: 15px; }
 li.task .name, .dblk b { cursor: text; }
 .name.wedit, .dblk b.wedit { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; cursor: text; }
 .tdren { position: absolute; z-index: 9; box-sizing: border-box; padding: 0 4px; border: 2px solid var(--accent); border-radius: 6px; background: var(--surface); color: var(--ink); outline: none; }
@@ -1190,8 +1180,6 @@ li.task.tcard.lnh > .lnp:hover { opacity: 1; transform: scale(1.12); }
 li.qinl { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 56px; margin: 0 0 6px; padding: 8px 10px; box-sizing: border-box; border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 14px; background: transparent; }
 li.qinl-lnc { margin-left: 26px; }
 li.qinl .qinl-c { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent); }
-li.qinl input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; padding: 6px 0; }
-li.qinl input::placeholder { color: var(--muted); font-weight: 500; font-size: 14px; }
 /* department shelves: the shelf itself is the department — no sticker */
 .pk-s .pchip { display: none; }
 /* ✕ straddles the card corner like the + */
@@ -1210,10 +1198,18 @@ li.task.pk-sel { outline: 2px solid #2F6DB5; outline-offset: -1px; background: c
 .td-clr { text-decoration: none; margin-left: 6px; }
 .td-clr:hover { color: var(--ink); border-color: var(--ink); }
 body.pk-nosel, body.pk-nosel * { user-select: none !important; -webkit-user-select: none !important; }
-li.qinl .qinl-m { flex: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
-li.qinl .qinl-m:hover { border-color: var(--ink); }
-li.qinl .qinl-n { flex: none; width: 64px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 800; text-align: center; background: var(--surface); color: var(--ink); outline: 0; }
-.td-qa input.field { padding-right: 110px; }
-.td-qa .qa-m { position: absolute; right: 6px; top: 6px; height: 30px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 0 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
-.td-qa .qa-m:hover { border-color: var(--ink); }
-.td-qa .qa-n { position: absolute; right: 6px; top: 6px; width: 72px !important; height: 30px !important; padding: 0 10px !important; border-radius: 999px !important; font-size: 13px !important; font-weight: 800; text-align: center; padding-right: 10px !important; }
+
+/* the one task-entry field (qaField): input + minutes pill */
+.qf { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.qf-in { flex: 1; min-width: 0; box-sizing: border-box; }
+.qf-m { flex: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.qf-m:hover { border-color: var(--ink); }
+.qf-n { flex: none; width: 64px; border: 1.5px solid var(--ink); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 13px; font-weight: 800; text-align: center; background: var(--surface); color: var(--ink); outline: 0; }
+.qf-ghost { flex: 1; }
+.qf-ghost .qf-in { border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; font-weight: 600; padding: 6px 0; }
+.qf-top, .qf-pop { position: relative; display: block; }
+.qf-top .qf-in, .qf-pop .qf-in { width: 100%; height: 42px; border-radius: 12px; padding: 0 118px 0 14px; font-size: 15px; }
+.qf-pop .qf-in { height: 50px; font-size: 18px; font-weight: 600; }
+.qf-top .qf-m, .qf-top .qf-n, .qf-pop .qf-m, .qf-pop .qf-n { position: absolute; right: 6px; top: 6px; height: 30px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
+.qf-pop .qf-m, .qf-pop .qf-n { top: 10px; }
+.qf-top .qf-n, .qf-pop .qf-n { width: 72px; }

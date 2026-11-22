@@ -192,7 +192,7 @@
   }
 
   // ===== "+" quick add window for Сегодня / Завтра / Дела =====
-  let qaLast = { min: 25, project: "" }, tdQaMin = 25;
+  let tdQaMin = 25;
   function qaInsert(t, lnP, opts) {
     if (lnP) { t.link = lnP.id; t.rel = opts.rel; t.where = lnP.where; t.project = t.project || lnP.project; lnP.lnOpen = true; const ks = S.tasks.filter((x) => x.link === lnP.id), pres = ks.filter((x) => x.rel === "pre"), posts = ks.filter((x) => x.rel !== "pre"); let at, after;
         const an = opts.anchor && opts.anchor !== lnP.id ? S.tasks.find((x) => x.id === opts.anchor) : null;
@@ -203,11 +203,48 @@
     else S.tasks.push(t);
   }
 
-  // ===== seamless add: a ghost card right in the list; Enter adds and opens the next one, Esc/empty Enter finishes =====
-  let qaInl = null;   // { zone, key, opts, text }
+  // ===== ONE task-entry field: input + minutes pill (default 25, "10м" in the text wins) + parseQuick + qaInsert.
+  // Hosts (top row, ghost card, day-mode popup) only decide where the field is shown.
+  //   o: { cls, id, field, ph, min, text, onMin(v), onInput(v), onCommit(raw, min), onCancel(), onEmpty(), onBlur(), key(e) -> true if consumed }
+  function qaField(o) {
+    const w = document.createElement("div"); w.className = "qf " + (o.cls || "");
+    w.innerHTML = `<input class="qf-in${o.field ? " field" : ""}" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача"><button type="button" class="qf-m" aria-label="Время на задачу">▶ <b></b> мин</button>`;
+    const inp = w.querySelector("input"), mb = w.querySelector(".qf-m"); let min = o.min || 25;
+    if (o.id) inp.id = o.id; if (o.ph) inp.placeholder = o.ph; inp.value = o.text || "";
+    const paint = () => { mb.querySelector("b").textContent = min; };
+    paint();
+    const focus = () => { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {} };
+    mb.onpointerdown = (e) => e.preventDefault();
+    mb.onclick = () => {
+      const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = min; n.className = "qf-n"; n.setAttribute("aria-label", "Минуты");
+      mb.replaceWith(n); n.focus(); n.select(); let fin = false;
+      const back = () => { if (fin) return; fin = true; min = Math.max(1, Math.min(240, Math.round(+n.value) || min)); if (o.onMin) o.onMin(min); paint(); if (n.isConnected) n.replaceWith(mb); inp.focus(); };
+      n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } };
+      n.onblur = () => { if (n.isConnected) back(); };
+    };
+    inp.oninput = () => { if (o.onInput) o.onInput(inp.value); };
+    inp.onkeydown = (e) => {
+      e.stopPropagation();
+      if (o.key && o.key(e)) return;
+      if (e.key === "Escape") { if (o.onCancel) { e.preventDefault(); o.onCancel(); } }
+      else if (e.key === "Enter") { e.preventDefault(); const raw = inp.value.trim(); if (!raw) { if (o.onEmpty) o.onEmpty(); return; } o.onCommit(raw, min); }
+    };
+    if (o.onBlur) inp.onblur = () => o.onBlur(inp, w);
+    return { el: w, input: inp, focus, reset() { min = 25; paint(); inp.value = ""; } };
+  }
+  // build + insert a task from the typed text. ctx: { zone, key, opts }; zone = "top" | "pop" | "today" | "link" | "plan:<col>"
+  function qaMake(raw, min, ctx) {
+    const { zone, key, opts } = ctx, q = parseQuick(raw), lnP = opts.link ? S.tasks.find((x) => x.id === opts.link) : null;
+    const where0 = zone === "link" ? (lnP ? lnP.where : "today") : zone === "plan:tomorrow" ? "tomorrow" : zone === "plan:week" ? "backlog" : zone === "pop" ? key : "today";
+    const t = { id: uid(), name: q.name, min: q.min ?? min ?? 25, done: false, spent: 0, note: "", project: q.project ?? (lnP ? lnP.project : filterProject !== "all" ? filterProject : ""), where: q.where || where0, sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: zone === "plan:week" && !q.where ? addDays(dayISO(), 6) : "", at: q.at || "" };
+    qaInsert(t, lnP, opts); pullDue(); persist(); return t;
+  }
+
+  // ===== where the field lives: a ghost card in the list (Enter adds and opens the next one, Esc/empty Enter finishes) =====
+  let qaInl = null;   // { zone, key, opts, text, min }
   function qaStart(key, opts = {}) {
     const zone = opts.link ? "link" : opts.zone || (view === "today" && document.querySelector("#vToday ul.td-list") ? "today" : null);
-    if (!zone) return qaOpen(key, opts);
+    if (!zone) return qaPop(key, opts);
     qaInl = { zone, key, opts: { ...opts }, text: "", min: 25 }; render();
   }
   function qaInlMount() {
@@ -220,77 +257,36 @@
     else host = document.querySelector(`.pk-col[data-k="${zone.slice(5)}"] ul.pk-ul`);
     if (!host && !ref) { qaInl = null; return; }
     const li = document.createElement("li"); li.className = "qinl" + (zone === "link" ? " qinl-lnc" : "");
-    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span><input id="qinlIn" type="text" maxlength="140" autocomplete="off" aria-label="Новая задача"><button type="button" class="qinl-m" aria-label="Время на задачу">▶ <b>${qaInl.min}</b> мин</button>`;
-    if (ref) ref.insertAdjacentElement(before ? "beforebegin" : "afterend", li); else host.appendChild(li);
-    const inp = li.querySelector("input"); inp.value = qaInl.text;
+    li.innerHTML = `<span class="qinl-c" aria-hidden="true"></span>`;
     const done = () => { qaInl = null; li.remove(); };
-    inp.oninput = () => { qaInl.text = inp.value; };
-    const mb = li.querySelector(".qinl-m");
-    mb.onpointerdown = (e) => e.preventDefault();
-    mb.onclick = () => {
-      const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = qaInl.min; n.className = "qinl-n"; n.setAttribute("aria-label", "Минуты");
-      mb.replaceWith(n); n.focus(); n.select();
-      let fin = false; const back = () => { if (fin) return; fin = true; const v = Math.max(1, Math.min(240, Math.round(+n.value) || qaInl.min)); qaInl.min = v; const b2 = mb.cloneNode(true); b2.querySelector("b").textContent = v; b2.onpointerdown = mb.onpointerdown; b2.onclick = mb.onclick; if (n.isConnected) n.replaceWith(b2); inp.focus(); };
-      n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } };
-      n.onblur = () => { if (n.isConnected) back(); };
-    };
-    inp.onkeydown = (e) => {
-      e.stopPropagation();
-      if (e.key === "Escape") { e.preventDefault(); done(); }
-      else if (e.key === "Enter") { e.preventDefault(); const raw = inp.value.trim(); if (!raw) return done(); qaCommit(raw); }
-    };
-    inp.onblur = () => setTimeout(() => { if (qaInl && !inp.value.trim() && !li.contains(document.activeElement) && li.isConnected) done(); }, 150);
-    setTimeout(() => { if (li.isConnected) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch {} li.scrollIntoView({ block: "nearest" }); } }, 0);
+    const f = qaField({ cls: "qf-ghost", id: "qinlIn", min: qaInl.min, text: qaInl.text,
+      onMin: (v) => { qaInl.min = v; }, onInput: (v) => { qaInl.text = v; },
+      onCancel: done, onEmpty: done,
+      onCommit: (raw, min) => {
+        const t = qaMake(raw, min, qaInl);
+        if (zone === "link" && opts.side !== "pre" && opts.rel !== "pre") opts.anchor = t.id;   // next "after" goes below the one just added
+        qaInl.text = ""; qaInl.min = 25; render();
+      },
+      onBlur: (inp) => setTimeout(() => { if (qaInl && !inp.value.trim() && !li.contains(document.activeElement) && li.isConnected) done(); }, 150) });
+    li.appendChild(f.el);
+    if (ref) ref.insertAdjacentElement(before ? "beforebegin" : "afterend", li); else host.appendChild(li);
+    setTimeout(() => { if (li.isConnected) { f.focus(); li.scrollIntoView({ block: "nearest" }); } }, 0);
   }
-  function qaCommit(raw) {
-    const { zone, key, opts } = qaInl, q = parseQuick(raw), lnP = opts.link ? S.tasks.find((x) => x.id === opts.link) : null;
-    const where0 = zone === "link" ? (lnP ? lnP.where : "today") : zone === "plan:tomorrow" ? "tomorrow" : zone === "plan:week" ? "backlog" : "today";
-    const where = q.where || where0, min = q.min ?? qaInl.min ?? 25;
-    const t = { id: uid(), name: q.name, min, done: false, spent: 0, note: "", project: q.project ?? (lnP ? lnP.project : qaLast.project), where, sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: zone === "plan:week" && !q.where ? addDays(dayISO(), 6) : "", at: q.at || "" };
-    qaInsert(t, lnP, opts); qaLast = { min, project: t.project };
-    if (zone === "link" && opts.side !== "pre" && opts.rel !== "pre") opts.anchor = t.id;   // next "after" goes below the one just added
-    qaInl.text = ""; pullDue(); persist(); render();
-  }
-  function qaOpen(key, opts = {}) {
+
+  // ===== ...or a small window with the same field (Day mode, where there is no list to put a ghost card in) =====
+  function qaPop(key, opts = {}) {
     if ($("qa")) return;
-    const where0 = opts.def || (opts.where ? "backlog" : key), d = { min: qaLast.min, project: filterProject !== "all" ? filterProject : qaLast.project, at: "", due: "", note: "", where: where0 };
-    const CH = [[0, "Без таймера"], [5, "5"], [10, "10"], [15, "15"], [25, "25"], [50, "50"]];
     const lnP = opts.link ? S.tasks.find((x) => x.id === opts.link) : null;
-    const title = lnP ? (opts.rel === "pre" ? "перед «" : "после «") + lnP.name + "»" : opts.where ? "" : ({ today: "Сегодня", tomorrow: "Завтра", backlog: "Дела" }[key] || "");
+    const title = lnP ? (opts.rel === "pre" ? "перед «" : "после «") + lnP.name + "»" : ({ today: "Сегодня", tomorrow: "Завтра", backlog: "Дела" }[key] || "");
     const bg = document.createElement("div"); bg.id = "qa";
-    bg.innerHTML = `<form class="qa" role="dialog" aria-label="Новая задача" autocomplete="off">
-      <div class="qa-h"><b>Новая задача</b><span>${esc(title)}</span><button type="button" class="qa-x" aria-label="Закрыть">×</button></div>
-      <input class="field qa-name" maxlength="120" placeholder="Что сделать?" aria-label="Название">
-      <div class="qa-l">Время</div>
-      <div class="qa-ch">${CH.map(([m, l]) => `<button type="button" class="chip" data-m="${m}" aria-pressed="${m === d.min}">${l}${m ? " мин" : ""}</button>`).join("")}</div>
-      <button type="button" class="qa-more" aria-expanded="false">Дополнительно <i>›</i></button>
-      <div class="qa-adv" hidden>
-        <label>Проект<select class="field qa-pj">${projectOptions(d.project)}</select></label>
-        ${opts.where ? `<label>Куда<select class="field qa-wh">${[["today", "Сегодня"], ["tomorrow", "Завтра"], ["backlog", "В дела"], ["wait", "Жду"]].map(([v, l]) => `<option value="${v}"${v === where0 ? " selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}
-        <div class="qa-2"><label>Начало<input type="time" class="field qa-at"></label><label>Дата<input type="date" class="field qa-due"></label></div>
-        <label>Комментарий<input class="field qa-note" maxlength="160" placeholder="Необязательно"></label>
-      </div>
-      <div class="qa-f"><span class="qa-hint">Можно писать прямо в названии: «18:10 10м #дом»</span><button type="submit" class="act primary qa-add" disabled>Добавить</button></div>
-    </form>`;
-    document.body.appendChild(bg);
-    const f = bg.querySelector("form"), nm = f.querySelector(".qa-name"), add = f.querySelector(".qa-add"), adv = f.querySelector(".qa-adv"), more = f.querySelector(".qa-more");
+    bg.innerHTML = `<div class="qa" role="dialog" aria-label="Новая задача"><div class="qa-h"><b>Новая задача</b><span>${esc(title)}</span><button type="button" class="qa-x" aria-label="Закрыть">×</button></div><div class="qa-hint">Можно писать прямо в названии: «18:10 10м #дом»</div></div>`;
     const esc0 = (e) => { if (e.key === "Escape") { e.preventDefault(); close(); } };
     const close = () => { bg.remove(); document.removeEventListener("keydown", esc0, true); };
-    f.querySelector(".qa-x").onclick = close; bg.onpointerdown = (e) => { if (e.target === bg) close(); };
+    const f = qaField({ cls: "qf-pop", id: "qaIn", field: true, onCancel: close, onCommit: (raw, min) => { qaMake(raw, min, { zone: "pop", key, opts }); close(); render(); } });
+    bg.querySelector(".qa").insertBefore(f.el, bg.querySelector(".qa-hint"));
+    bg.querySelector(".qa-x").onclick = close; bg.onpointerdown = (e) => { if (e.target === bg) close(); };
     document.addEventListener("keydown", esc0, true);
-    nm.oninput = () => { add.disabled = !nm.value.trim(); };
-    f.querySelectorAll(".qa-ch .chip").forEach((c) => c.onclick = () => { d.min = +c.dataset.m; f.querySelectorAll(".qa-ch .chip").forEach((x) => x.setAttribute("aria-pressed", x === c)); nm.focus(); });
-    more.onclick = () => { adv.hidden = !adv.hidden; more.setAttribute("aria-expanded", !adv.hidden); };
-    f.onsubmit = (e) => {
-      e.preventDefault(); const raw = nm.value.trim(); if (!raw) return;
-      const q = parseQuick(raw), pj = f.querySelector(".qa-pj").value, wh = f.querySelector(".qa-wh");
-      const where = q.where || (wh ? wh.value : where0), min = q.min ?? d.min;
-      const t = { id: uid(), name: q.name, min, done: false, spent: 0, note: f.querySelector(".qa-note").value.trim(), project: q.project ?? pj, where, sessions: 0, acc: 0, waitUntil: where === "wait" ? addDays(dayISO(), 2) : "", doneAt: 0, due: f.querySelector(".qa-due").value || "", at: q.at || f.querySelector(".qa-at").value || "" };
-      qaInsert(t, lnP, opts);
-      qaLast = { min, project: t.project };
-      pullDue(); persist(); close(); render();
-    };
-    setTimeout(() => nm.focus(), 0);
+    document.body.appendChild(bg); setTimeout(() => f.focus(), 0);
   }
 
 
@@ -346,24 +342,20 @@
     if (!fMode) page.appendChild(tdTriSeg(todayMode));
     let qfEl = null;
     if (!fMode) {
-      const qf = document.createElement("form"); qf.className = "td-qa"; qf.autocomplete = "off";
-      qf.innerHTML = `<input class="field" id="tdQa" maxlength="120" placeholder="Добавить задачу…" aria-label="Быстро добавить задачу"><button type="button" class="qa-m" aria-label="Время на задачу">▶ <b>${tdQaMin}</b> мин</button>`;
-      { const mb = qf.querySelector(".qa-m"), inp0 = qf.querySelector("input"); mb.onpointerdown = (e) => e.preventDefault();
-        mb.onclick = () => { const n = document.createElement("input"); n.type = "number"; n.min = 1; n.max = 240; n.value = tdQaMin; n.className = "qa-n"; n.setAttribute("aria-label", "Минуты"); mb.replaceWith(n); n.focus(); n.select(); let fin = false;
-          const back = () => { if (fin) return; fin = true; tdQaMin = Math.max(1, Math.min(240, Math.round(+n.value) || tdQaMin)); mb.querySelector("b").textContent = tdQaMin; if (n.isConnected) n.replaceWith(mb); inp0.focus(); };
-          n.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); back(); } }; n.onblur = back; }; }
-      qf.onsubmit = (e) => { e.preventDefault(); const inp = qf.querySelector("input"), raw = inp.value.trim(); if (!raw) return; const q = parseQuick(raw);
-        S.tasks.push({ id: uid(), name: q.name, min: q.min ?? tdQaMin, done: false, spent: 0, note: "", project: q.project ?? "", where: q.where || "today", sessions: 0, acc: 0, waitUntil: "", doneAt: 0, due: "", at: q.at || "" });
-        tdQaMin = 25; pullDue(); persist(); render(); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
-      { const inp = qf.querySelector("input"); let sug = null, sel = 0, hits = [];
-        const shut = () => { if (sug) sug.remove(); sug = null; hits = []; };
-        const take = (tp) => { shut(); inp.value = ""; tplTake(tp, "today"); setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0); };
-        inp.addEventListener("input", () => { shut(); hits = tplFind(inp.value); if (!hits.length) return; sel = 0;
-          sug = document.createElement("div"); sug.className = "tp-sug";
-          hits.forEach((tp, i) => { const b = document.createElement("button"); b.type = "button"; b.className = i === sel ? "on" : ""; b.innerHTML = `Взять сценарий «${esc(tp.name)}»<em>${tp.items.length} · ${tp.mode === "check" ? "чеклист" : "подзадачи"}</em>`; b.onpointerdown = (e) => { e.preventDefault(); take(tp); }; sug.appendChild(b); });
-          qf.appendChild(sug); });
-        inp.addEventListener("keydown", (e) => { if (!sug) return; if (e.key === "Escape") { shut(); return; } if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : hits.length - 1)) % hits.length; [...sug.children].forEach((x, i) => x.classList.toggle("on", i === sel)); } if (e.key === "Tab" || (e.key === "Enter" && tplKey(inp.value) === tplKey(hits[sel].name))) { e.preventDefault(); take(hits[sel]); } });
-        inp.addEventListener("blur", () => setTimeout(shut, 150)); }
+      const qf = document.createElement("div"); qf.className = "td-qa";
+      let sug = null, sel = 0, hits = [];
+      const shut = () => { if (sug) sug.remove(); sug = null; hits = []; };
+      const refocus = () => setTimeout(() => { const n = $("tdQa"); if (n) n.focus(); }, 0);
+      const fld = qaField({ cls: "qf-top", id: "tdQa", field: true, ph: "Добавить задачу…", min: tdQaMin, onMin: (v) => { tdQaMin = v; },
+        key: (e) => { if (!sug) return false; if (e.key === "Escape") { shut(); return true; } if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : hits.length - 1)) % hits.length; [...sug.children].forEach((x, i) => x.classList.toggle("on", i === sel)); return true; } if (e.key === "Tab" || (e.key === "Enter" && tplKey(fld.input.value) === tplKey(hits[sel].name))) { e.preventDefault(); take(hits[sel]); return true; } return false; },
+        onCommit: (raw, min) => { qaMake(raw, min, { zone: "top", key: "today", opts: {} }); tdQaMin = 25; render(); refocus(); } });
+      const take = (tp) => { shut(); fld.input.value = ""; tplTake(tp, "today"); refocus(); };
+      fld.input.addEventListener("input", () => { shut(); hits = tplFind(fld.input.value); if (!hits.length) return; sel = 0;
+        sug = document.createElement("div"); sug.className = "tp-sug";
+        hits.forEach((tp, i) => { const b = document.createElement("button"); b.type = "button"; b.className = i === sel ? "on" : ""; b.innerHTML = `Взять сценарий «${esc(tp.name)}»<em>${tp.items.length} · ${tp.mode === "check" ? "чеклист" : "подзадачи"}</em>`; b.onpointerdown = (e) => { e.preventDefault(); take(tp); }; sug.appendChild(b); });
+        qf.appendChild(sug); });
+      fld.input.addEventListener("blur", () => setTimeout(shut, 150));
+      qf.appendChild(fld.el);
       qfEl = qf;
     }
     if (tdPop) { const p = tdPopEl(); head.appendChild(p); setTimeout(() => document.addEventListener("pointerdown", function cl(ev) { if (!ev.target.closest(".td-pop, .td-gear")) { tdPop = false; document.removeEventListener("pointerdown", cl); const pp = document.querySelector(".td-pop"); if (pp) pp.remove(); const gb = document.querySelector(".td-gear"); if (gb) gb.setAttribute("aria-expanded", "false"); } else if (!document.querySelector(".td-pop")) document.removeEventListener("pointerdown", cl); }), 0); }
