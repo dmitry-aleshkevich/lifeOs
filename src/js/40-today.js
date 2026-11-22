@@ -177,52 +177,17 @@
     setTimeout(() => tx.focus(), 0);
   }
 
-  // ===== inline timer: the running task expands in place in its list =====
-  const TIN_R = 34, TIN_C = 2 * Math.PI * TIN_R;
+  // ===== inline timer: the running task stays in its list as an open card; the time pill shows the countdown =====
   function tinAttach(li, t, key) {
     li.classList.add("trun");
-    li.insertAdjacentHTML("beforeend", `<div class="tin" data-id="${esc(t.id)}" data-key="${esc(key)}"><svg class="tin-ring" viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="${TIN_R}" class="tin-bg"/><circle cx="40" cy="40" r="${TIN_R}" class="tin-fg" stroke-dasharray="${TIN_C.toFixed(2)}" stroke-dashoffset="0" transform="rotate(-90 40 40)"/></svg><div class="tin-t"><b class="tin-time">--:--</b><span class="tin-st"></span></div><div class="tin-c"></div></div>`);
+    li.insertAdjacentHTML("beforeend", `<div class="tin" data-id="${esc(t.id)}" data-key="${esc(key)}"></div>`);
     setTimeout(() => { if (T) update(true); }, 0);
   }
-  function tinNext(f) {
-    if (!f) return null;
-    if (isRoutine(f.key)) return routineNext(f);
-    const list = itemsOf(f.key).filter((x) => !x.done), i = list.indexOf(f.t);
-    return list.slice(i + 1).find((x) => x.min > 0) || list.find((x) => x.min > 0 && x !== f.t) || null;
-  }
-  function tinSkip(f) {
-    if (!f) { closeTimer(); return; }
-    const nx = tinNext(f);
-    if (isRoutine(f.key)) closeTimer(true);
-    else { finish(false); const t = f.t, i = S.tasks.indexOf(t); if (i >= 0) { S.tasks.splice(i, 1); S.tasks.push(t); } if (t.at) t.at = ""; persist(); }
-    if (nx && nx !== f.t) startTimer(nx.id); else render();
-  }
-  function tinAddMenu(btn) {
-    const old = $("wmenu"); if (old) old.remove();
-    const m = document.createElement("div"); m.id = "wmenu"; m.className = "wmenu tin-menu";
-    m.innerHTML = [1, 3, 5, 10, 15, 30].map((v) => `<button data-m="${v}">+${v} мин</button>`).join("");
-    document.body.appendChild(m); const r = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
-    m.style.left = Math.max(8, Math.min(r.left, innerWidth - mr.width - 8)) + "px"; m.style.top = Math.max(8, Math.min(r.bottom + 6, innerHeight - mr.height - 8)) + "px";
-    m.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; m.remove(); addTime(+b.dataset.m); };
-    setTimeout(() => document.addEventListener("pointerdown", function once(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener("pointerdown", once); } }), 0);
-  }
-  function tinControls(box, mode, f) {
-    const nx = tinNext(f), mk = (label, cls, fn, title) => { const b = document.createElement("button"); b.className = "tb " + cls; b.textContent = label; if (title) b.title = title; b.onclick = (e) => { e.stopPropagation(); fn(); }; return b; };
-    const add = mk("+5 мин", "", () => addTime(5), "Правый клик — выбрать сколько"); add.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); tinAddMenu(add); };
-    const skip = mk("Пропустить", "", () => tinSkip(f), f && isRoutine(f.key) ? "Пропустить и перейти дальше" : "В конец списка, время сохранится");
-    const fin = nx ? mk("Далее ▶", "pri", () => { finish(true); startTimer(nx.id); }, "Готово и сразу: " + nx.name) : mk("Готово ✓", "pri", () => finish(true));
-    box.replaceChildren(...(mode === "done" ? [add, skip, fin] : [mode === "paused" ? mk("Продолжить", "", resume) : mk("Пауза", "", pause), add, skip, fin]));
-    if (nx) { const n = document.createElement("div"); n.className = "tin-nx"; n.textContent = "Дальше: " + nx.name; box.appendChild(n); }
-  }
+  // timer tick: if the running task is visible in a list, hide the fullscreen timer and the mini bar
   function tinUpdate(f, txt, rem, mode) {
     const el = document.querySelector(`.tin[data-id="${T.id}"]`);
     $("timer").hidden = true; $("mini").hidden = !!el; document.body.classList.toggle("has-mini", !el);
-    if (!el) { $("miniName").textContent = f ? f.t.name : "Задача"; $("miniTime").textContent = txt; $("miniTime").classList.toggle("paused", mode === "paused"); return true; }
-    el.querySelector(".tin-time").textContent = txt;
-    el.querySelector(".tin-fg").setAttribute("stroke-dashoffset", (T.finished ? 0 : TIN_C * (1 - rem / T.total)).toFixed(2));
-    el.classList.toggle("ringing", mode === "done"); el.classList.toggle("paused", mode === "paused");
-    el.querySelector(".tin-st").textContent = mode === "done" ? "время вышло" : mode === "paused" ? "пауза" : "осталось · " + Math.round(T.total / 60000) + " мин";
-    if (el.dataset.mode !== mode) { el.dataset.mode = mode; tinControls(el.querySelector(".tin-c"), mode, f); }
+    if (!el) { $("miniName").textContent = f ? f.t.name : "Задача"; $("miniTime").textContent = txt; $("miniTime").classList.toggle("paused", mode === "paused"); }
     return true;
   }
 

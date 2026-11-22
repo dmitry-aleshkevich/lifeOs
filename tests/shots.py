@@ -6,7 +6,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
     for name,vp in [("d",dict(width=1300,height=900)),("m",dict(width=390,height=844))]:
         ctx=b.new_context(viewport=vp, has_touch=(name=="m")); pg=ctx.new_page(); pg.on("pageerror",lambda e:print("PAGEERROR",name,e))
-        pg.add_init_script("localStorage.setItem('lifeos.focus.v1','plan'); Date.now=(()=>{const r=Date.now;const o=new Date('2026-11-22T14:00:00').getTime()-r();return ()=>r()+o})()")
+        pg.add_init_script("localStorage.setItem('lifeos.focus.v1','plan'); (()=>{const R=Date, off=new R('2026-11-22T14:00:00')-R.now(); class F extends R{constructor(...a){a.length?super(...a):super(R.now()+off)} static now(){return R.now()+off}}; Date=F;})()")
         pg.goto("file:///home/claude/work/lo/index.html"); pg.wait_for_timeout(700)
         if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
         pg.fill("#tdQa","Магазин 18:00 40м"); pg.press("#tdQa","Enter"); pg.wait_for_timeout(300)

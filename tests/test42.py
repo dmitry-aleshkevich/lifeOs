@@ -11,7 +11,7 @@ with sync_playwright() as p:
     t=pg.inner_text("#vToday"); assert "Утро" in t and "Обед" in t and "Вечер" in t, t[:300]
     pg.click(".td-core"); pg.wait_for_timeout(200)
     t=pg.inner_text("#vToday"); print(t[:200].replace("\n"," | ")); assert "Утро" not in t and "Обед" not in t and "Зал" not in t and "Вечер" not in t
-    pg.click(".td-seg [data-tm=cal]"); pg.wait_for_timeout(300)
+    pg.click(".td-tri [data-tri=cal]"); pg.wait_for_timeout(300)
     t=pg.inner_text("#vToday"); assert "Обед" not in t and "Ужин" not in t
     pg.screenshot(path="/tmp/core_off.png")
     pg.reload(); pg.wait_for_timeout(600)

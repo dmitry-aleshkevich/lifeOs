@@ -18,7 +18,7 @@ with sync_playwright() as p:
     t=pg.input_value(".bg-out"); print(t)
     assert "Кнопка плюс" in t and "Карточка" in t and "## Работа" in t
     assert pg.evaluate("navigator.clipboard.readText()")==t
-    pg.reload(); pg.wait_for_timeout(400); pg.click("#bugBtn"); assert pg.locator(".bg-ls li").count()==2
+    pg.wait_for_timeout(1200); pg.reload(); pg.wait_for_timeout(1000); pg.click("#bugBtn"); assert pg.locator(".bg-ls li").count()==2
     pg.screenshot(path="/tmp/bug.png")
     pg.keyboard.press("Escape"); assert not pg.is_visible("#bugPop")
     b.close()
