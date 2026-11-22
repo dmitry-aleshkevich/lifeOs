@@ -34,3 +34,10 @@
   .pk-col { flex: 0 0 82%; scroll-snap-align: start; }
   .pk-sh { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
+.pk-ul { margin: 0; padding: 0; } .pk-ul li.task { background: var(--surface); border-radius: 10px; margin-bottom: 6px; border: 1px solid var(--line); padding-left: 8px; padding-right: 8px; } .pk-li.drag { opacity: .4; }
+.pk-col .pk-ul li.task .name, .pk-s .pk-ul li.task .name { font-size: 14px; }
+.pk-dm { font-size: 15px; color: var(--muted); padding: 0 4px; } .pk-new { color: var(--muted); font-weight: 800; font-size: 13px; border-style: dashed; min-height: 60px; }
+.pk-arch { margin-top: 10px; font-size: 12.5px; color: var(--muted); font-weight: 700; } .pk-arch button { border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; margin: 2px; font-size: 12px; }
+.pk-menu { position: fixed; z-index: 70; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 4px; display: flex; flex-direction: column; min-width: 170px; }
+.pk-menu button { text-align: left; padding: 9px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; } .pk-menu button:hover { background: var(--surface-2); } .pk-menu .dz { color: var(--danger); }
+.pk-ul li.task, .pk-ul li.task div { flex-wrap: wrap; min-width: 0; max-width: 100%; box-sizing: border-box; } .pk-ul li.task input { min-width: 0; max-width: 100%; }

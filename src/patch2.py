@@ -230,5 +230,6 @@ rep('  wrap.appendChild(focusSeg());', '  wrap.appendChild(tdTriSeg("focus"));')
 rep('    const rest = q.slice(1, 5);', '    const rest = q.slice(1, 3);')
 # ---- plan kanban ----
 rep('  function renderHabits() {', open('plankb.js', encoding='utf8').read() + '\n  function renderHabits() {')
+rep('kind: KIND_IDS.includes(p.kind) ? p.kind : guessKind(p) }))', 'kind: KIND_IDS.includes(p.kind) ? p.kind : guessKind(p), ...(p.archived ? { archived: true } : {}) }))')
 open('index.html', 'w', encoding='utf8').write(s)
 print("built", len(s))
