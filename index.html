@@ -1221,6 +1221,12 @@ li.task .mins.live svg { width: 14px !important; height: 14px !important; }
 .tdx-pi:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .tdx-pi.d:hover { color: var(--danger); }
 .tdx2 { padding-left: 4px !important; display: block !important; }
+/* Today: tasks as rounded cards like Plan */
+.td-list > li.task { background: var(--surface); border: 1px solid var(--line) !important; border-radius: 14px !important; margin: 0 0 6px !important; padding-left: 10px; padding-right: 10px; }
+.td-list > li.task.tdopen { border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent) !important; border-radius: 22px !important; }
+.td-list > li.task:last-child { border-bottom: 1px solid var(--line) !important; }
+.td-list > li.task.tdd { position: relative; z-index: 20; box-shadow: 0 10px 28px rgba(0,0,0,.22); opacity: .95; cursor: grabbing; }
+.td-list > li.task:not(.tdopen):not(.trun) { cursor: grab; touch-action: pan-y; }
 
 /* ===== floating pill tab bar with center + ===== */
 #navPlus { display: none; }
@@ -4707,6 +4713,39 @@ function renderMap() {
     el.classList.toggle("late", left <= 60);
     el.innerHTML = min ? `<span class="eb-mt">🌙 ${hm}</span>` : `<button class="eb-x" data-e="min" aria-label="Свернуть">–</button><div class="eb-l">До полуночи осталось</div><div class="eb-t">${hm}</div><div class="eb-s">${n ? "Успей закончить дела: ещё " + n + " " + (n % 10 === 1 && n % 100 !== 11 ? "задача" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "задачи" : "задач") : "Дела закрыты — можно на вечернюю рутину"}</div>`;
   }
+
+  // drag & drop reorder of tasks inside a Today list (ul in .td-g)
+  document.addEventListener("pointerdown", (e) => {
+    const li = e.target.closest(".td-list > li.task"); if (!li || e.button > 0 || li.classList.contains("tdopen") || li.classList.contains("trun") || e.target.closest("input, textarea, select, .check, .tdx-pi, .xbtn")) return;
+    const ul = li.parentElement; if (!S.tasks.some((x) => x.id === li.dataset.id)) return;
+    const touch = e.pointerType === "touch", y0 = e.clientY, x0 = e.clientX; let on = false, timer = 0, dy0 = 0, off = 0;
+    const start = () => { on = true; li.classList.add("tdd"); document.body.style.userSelect = "none"; };
+    if (touch) timer = setTimeout(() => { start(); if (navigator.vibrate) navigator.vibrate(8); }, 320);
+    const mv = (ev) => {
+      if (!on) {
+        const d = Math.hypot(ev.clientX - x0, ev.clientY - y0);
+        if (touch) { if (d > 8) cleanup(); return; }
+        if (d < 6) return; start();
+      }
+      ev.preventDefault();
+      const sib = [...ul.children].filter((x) => x !== li && x.matches("li.task"));
+      const before = sib.find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+      const t0 = li.getBoundingClientRect().top;
+      if (before) { if (li.nextElementSibling !== before) ul.insertBefore(li, before); } else if (sib.length) { const last = sib[sib.length - 1]; if (last.nextElementSibling !== li) last.after(li); }
+      const t1 = li.getBoundingClientRect().top; off -= t1 - t0;
+      li.style.transform = `translateY(${ev.clientY - y0 + off}px)`;
+    };
+    const cleanup = () => { clearTimeout(timer); document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", up); document.body.style.userSelect = ""; };
+    const up = () => {
+      const was = on; cleanup(); if (!was) return;
+      li.classList.remove("tdd"); li.style.transform = "";
+      const ids = [...ul.children].filter((x) => x.matches("li.task")).map((x) => x.dataset.id), ts = ids.map((id) => S.tasks.find((x) => x.id === id)).filter(Boolean);
+      if (ts.length === ids.length) { const slots = ts.map((t) => S.tasks.indexOf(t)).sort((a, b) => a - b); ts.forEach((t, i) => { S.tasks[slots[i]] = t; }); persist(); }
+      const stop = (c) => { c.stopPropagation(); c.preventDefault(); document.removeEventListener("click", stop, true); }; document.addEventListener("click", stop, true); setTimeout(() => document.removeEventListener("click", stop, true), 50);
+      render();
+    };
+    document.addEventListener("pointermove", mv, { passive: false }); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", up);
+  });
 
   // export all cloud docs (os + map) to a JSON file — for moving to another host
   async function exportAll() {
