@@ -747,8 +747,6 @@ nav.views .vmore { display: none; }
 .wlt.over::after { content: ""; }
 .wov { color: #E24B4A; font-weight: 800; }
 /* ===== inline timer (expanded task in list) ===== */
-li.task.trun { flex-wrap: wrap; border: 2px solid var(--ink) !important; border-radius: 22px !important; padding-bottom: 14px; }
-li.task.trun .mins { display: none; }
 .tin { flex-basis: 100%; display: grid; grid-template-columns: 76px 1fr; grid-template-rows: auto auto; gap: 10px 16px; align-items: center; padding: 6px 6px 0 52px; }
 .tin-ring { width: 76px; height: 76px; grid-row: 1; }
 .tin-bg { fill: none; stroke: color-mix(in srgb, var(--ink) 10%, transparent); stroke-width: 7; }
@@ -811,7 +809,7 @@ li.task.trun .mins { display: none; }
 .td-g ul.tl { margin: 0 0 8px; }
 /* quiet rows */
 .tday ul.tl { gap: 0; }
-.tday li.task { background: transparent !important; border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; box-shadow: none !important; padding: 8px 4px; min-height: 56px; }
+.tday li.task:not(.tcard) { background: transparent !important; border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; box-shadow: none !important; padding: 8px 4px; min-height: 56px; }
 .tday li.task .check { width: 24px; height: 24px; }
 .tday li.task .name { font-size: 16px; font-weight: 600; }
 .tday li.task.done .name { color: var(--muted); }
@@ -819,10 +817,6 @@ li.task.trun .mins { display: none; }
 .tday li.task .mins { background: transparent; color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); box-shadow: none; font-weight: 700; font-size: 13px; padding: 6px 12px 6px 10px; }
 .tday li.task .mins svg { width: 10px; height: 10px; }
 .tday li.task.nx .mins { background: #D85A30; border-color: #D85A30; color: #fff; }
-.tday li.task .pen { opacity: 0; transition: opacity .12s; }
-.tday li.task:hover .pen, .tday li.task:focus-within .pen { opacity: .55; }
-@media (hover: none) { .tday li.task .pen { display: none; } }
-.tday li.task.trun { border: 2px solid var(--ink) !important; border-radius: 22px !important; margin: 6px 0; padding: 10px 10px 14px; }
 .tday .sub { margin-top: 4px; }
 .tday .hint, .tday .empty { color: var(--muted); }
 /* floating + */
@@ -841,12 +835,7 @@ body.has-mini #fab { bottom: 96px; }
   body.has-mini #fab { bottom: calc(150px + env(safe-area-inset-bottom)); }
   .tday li.task .mins { padding: 6px 10px 6px 8px; }
 }
-.tday li.task .xbtn { display: none !important; }
-.tday li.task { position: relative; }
-.tday li.task .pen { position: absolute; right: -40px; top: 50%; transform: translateY(-50%); }
-.tday li.task.trun .pen { top: 22px; transform: none; }
 .td-g li.task:last-child { border-bottom: 0 !important; }
-@media (max-width: 760px) { .tday li.task .pen { display: none; } }
 /* timeline inside minimal Today */
 .tday > .sub { display: flex; flex-direction: column; gap: 10px; }
 .tday > .sub > .sub { background: transparent; border: 0; padding: 0; }
@@ -878,7 +867,6 @@ body.has-mini #fab { bottom: 96px; }
 .ms-o.on .ms-go { background: #D85A30; border-color: #D85A30; color: #fff; }
 
 /* linked pre/post tasks */
-li.task.lnh { position: relative; overflow: visible; } .dblk.lnh { overflow: visible; }
 .lnp { position: absolute; left: 50%; width: 22px; height: 22px; margin-left: -11px; border-radius: 50%; border: 2px solid var(--surface); background: #2F6DB5; color: #fff; display: grid; place-items: center; padding: 0; opacity: 0; transform: scale(.6); transition: opacity .12s, transform .12s; z-index: 7; cursor: pointer; }
 .lnp svg { width: 12px; height: 12px; }
 .lnp-pre { top: 1px; } .lnp-post { bottom: 1px; }
@@ -891,24 +879,13 @@ li.task.lnh { position: relative; overflow: visible; } .dblk.lnh { overflow: vis
 .lnk.on svg { transform: rotate(180deg); }
 .lnk:hover { color: var(--ink); }
 .dblk .lnk { position: absolute; right: 34px; top: 3px; z-index: 5; padding: 0 5px 0 6px; }
-li.task.lnc { margin-left: 22px; }
 li.task.lnc .name { color: color-mix(in srgb, var(--ink) 72%, transparent); }
 .dblk.lnc { border-style: dotted !important; }
 .td-qa { margin: 0 0 12px; }
 .td-qa input { width: 100%; box-sizing: border-box; height: 42px; border-radius: 12px; padding: 0 14px; font-size: 15px; }
-li.task.tdopen, li.task.trun { position: relative; }
-.tdx-pen { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: var(--muted); background: transparent; opacity: 0; transition: opacity .12s; z-index: 4; }
-.tdx-pen svg { width: 15px; height: 15px; }
-li.task.tdopen:hover .tdx-pen, li.task.trun:hover .tdx-pen, .tdx-pen:focus-visible { opacity: 1; }
-.tdx-pen:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
-li.task.tdopen > .go .mins { visibility: hidden; }
-.tin.tdx .tin-time { font-size: 30px; }
-.tdx-go { min-width: 110px; }
 li.task .name, .dblk b { cursor: text; }
 .name.wedit, .dblk b.wedit { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; cursor: text; }
 .tdren { position: absolute; z-index: 9; box-sizing: border-box; padding: 0 4px; border: 2px solid var(--accent); border-radius: 6px; background: var(--surface); color: var(--ink); outline: none; }
-li.task.tdopen { flex-wrap: wrap; border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent) !important; border-radius: 22px !important; margin: 6px 0; padding: 10px 10px 14px; }
-.tday li.task.tdopen > .pen, .tday li.task.trun > .pen:not(.gowork) { display: none; }
 .tdx-ln { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); cursor: pointer; }
 .tdx-ln input { width: 16px; height: 16px; accent-color: var(--ink); }
 .tdx-ln em { font-style: normal; font-weight: 500; opacity: .7; }
@@ -1118,56 +1095,22 @@ li.task.tdopen > .lnk { display: none; }
   .pk-col { flex: 0 0 82%; scroll-snap-align: start; }
   .pk-sh { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
-.pk-ul { margin: 0; padding: 0; } .pk-ul li.task { background: var(--surface); border-radius: 10px; margin-bottom: 6px; border: 1px solid var(--line); padding-left: 8px; padding-right: 8px; } .pk-li.drag { opacity: .4; }
-.pk-col .pk-ul li.task .name, .pk-s .pk-ul li.task .name { font-size: 14px; }
+.pk-ul { margin: 0; padding: 0; } .pk-li.drag { opacity: .4; }
 .pk-dm { font-size: 15px; color: var(--muted); padding: 0 4px; } .pk-new { color: var(--muted); font-weight: 800; font-size: 13px; border-style: dashed; min-height: 60px; }
 .pk-arch { margin-top: 10px; font-size: 12.5px; color: var(--muted); font-weight: 700; } .pk-arch button { border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; margin: 2px; font-size: 12px; }
 .pk-menu { position: fixed; z-index: 70; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.18); padding: 4px; display: flex; flex-direction: column; min-width: 170px; }
 .pk-menu button { text-align: left; padding: 9px 12px; border-radius: 8px; font-weight: 700; font-size: 14px; } .pk-menu button:hover { background: var(--surface-2); } .pk-menu .dz { color: var(--danger); }
-.pk-ul li.task { min-width: 0; max-width: 100%; box-sizing: border-box; } .pk-ul li.task .name { word-break: normal; overflow-wrap: anywhere; min-width: 60px; } .pk-ul li.task .tin-c { flex-wrap: wrap; }
 
 .pk-sh { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important; align-items: start; }
 @media (max-width: 700px) { .pk-sh { grid-template-columns: minmax(0, 1fr) !important; } }
-.pk-ul li.task .txt, .pk-ul li.task .body { flex: 1 1 auto; min-width: 0; }
-.pk-ul li.task .name { overflow-wrap: break-word; word-break: normal; }
-.pk-ul li.task:not(:hover) .pen { display: none; }
-.pk-ul li.task .mins { padding: 4px 9px; font-size: 12px; flex: none; }
-/* v: no pencil on rows; ✕ only in top-right corner hotspot */
-li.task > .pen:not(.gowork):not(.xbtn) { display: none !important; }
-li.task { position: relative; }
-li.task > .pen.xbtn { display: grid !important; position: absolute !important; top: 2px !important; right: 2px !important; left: auto !important; transform: none !important; width: 24px; height: 24px; border-radius: 8px; opacity: 0 !important; z-index: 5; background: var(--surface); transition: opacity .12s; }
-li.task > .pen.xbtn:hover, li.task > .pen.xbtn:focus-visible { opacity: 1 !important; color: var(--danger); }
-li.task > .pen.xbtn svg { width: 12px; height: 12px; }
-@media (hover: none) { li.task > .pen.xbtn { display: none !important; } }
 /* pinned time pill + props row */
-li.task.trun .mins, li.task.tdopen > .go .mins { display: inline-flex !important; visibility: visible !important; }
-li.task .mins.live { background: var(--ink); color: var(--bg); border-color: transparent; font-size: 15px; padding: 8px 14px; font-variant-numeric: tabular-nums; }
-li.task .mins.live.paused { background: transparent; color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); }
-li.task.trun > .tin > .tin-ring, li.task.trun > .tin > .tin-t, li.task.trun > .tin > .tin-c { display: none !important; }
-li.task.trun > .tin { display: block !important; padding: 0 4px !important; }
-li.task .mins.live svg { width: 14px !important; height: 14px !important; }
 .tdx-props { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 10px; padding-left: 4px; }
 .tdx-pi { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--muted); display: grid; place-items: center; }
 .tdx-pi svg { width: 18px; height: 18px; }
 .tdx-pi:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); }
 .tdx-pi.d:hover { color: var(--danger); }
-.tdx2 { padding-left: 4px !important; display: block !important; }
-/* Today: tasks as rounded cards like Plan */
-.td-list > li.task:not(.trun):not(.tdopen) { background: var(--surface); border: 1px solid var(--line) !important; border-radius: 14px !important; margin: 0 0 6px !important; padding-left: 10px; padding-right: 10px; }
-.td-list > li.task.tdopen { border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent) !important; border-radius: 22px !important; }
-.td-list > li.task:last-child:not(.trun):not(.tdopen) { border-bottom: 1px solid var(--line) !important; }
 .td-list > li.task.tdd { position: relative; z-index: 20; box-shadow: 0 10px 28px rgba(0,0,0,.22); opacity: .95; cursor: grabbing; }
 .td-list > li.task:not(.tdopen):not(.trun) { cursor: grab; touch-action: pan-y; }
-/* no link "+" buttons, no pencil; clean card border */
-.tdx-pen { display: none !important; }
-.tday li.task.trun, .tday li.task.tdopen, .tday .td-list > li.task.tdopen { border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent) !important; border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent) !important; border-radius: 22px !important; }
-li.task.trun > .tin, li.task.tdopen > .tin { margin: 0 !important; padding-top: 0 !important; }
-li.task.trun:last-child, li.task.tdopen:last-child { border-bottom: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent) !important; }
-li.task.trun .mins.live { position: relative; z-index: 2; }
-.tday li.task.trun { border: 2px solid var(--ink) !important; border-bottom: 2px solid var(--ink) !important; }
-.tday li.task.tdopen { border-width: 1.5px !important; }
-.atc { flex: none; font-size: 13px; font-weight: 700; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
-.go { display: flex; align-items: center; }
 
 /* ===== floating pill tab bar with center + ===== */
 #navPlus { display: none; }
@@ -1231,6 +1174,43 @@ li.task.trun .mins.live { position: relative; z-index: 2; }
 .n-link { color: var(--night-fg); font-weight: 700; font-size: 14px; padding: 8px 12px; }
 
 @media (prefers-reduced-motion: reduce) { .timer.ringing { animation: none; } .bar i, .ring .prg, .task { transition: none; } }
+
+
+/* ===== TASK CARD — the one task look for Сегодня and План =====
+   states: .tdopen (expanded: checklist + property icons), .trun (timer running),
+   .done, .lnc (linked pre/post task, indented). Time pill .mins is pinned right;
+   while running it becomes .mins.live with the countdown. */
+li.task.tcard { position: relative; display: flex; align-items: center; gap: 10px; min-height: 56px; min-width: 0; max-width: 100%; box-sizing: border-box; margin: 0 0 6px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: none; overflow: visible; }
+li.task.tcard .check { width: 24px; height: 24px; flex: none; }
+li.task.tcard .go { display: flex; align-items: center; flex: 1 1 0; min-width: 0; }
+li.task.tcard .txt { flex: 1 1 auto; min-width: 0; }
+li.task.tcard .name { font-size: 16px; font-weight: 600; overflow-wrap: break-word; word-break: normal; }
+li.task.tcard .meta { gap: 6px; }
+li.task.tcard .mins { flex: none; background: transparent; color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); box-shadow: none; font-weight: 700; font-size: 13px; padding: 6px 12px 6px 10px; }
+li.task.tcard .mins svg { width: 10px; height: 10px; }
+li.task.tcard.nx .mins { background: #D85A30; border-color: #D85A30; color: #fff; }
+li.task.tcard .mins.live { background: var(--ink); color: var(--bg); border-color: transparent; font-size: 15px; padding: 8px 14px; font-variant-numeric: tabular-nums; position: relative; z-index: 2; }
+li.task.tcard .mins.live.paused { background: transparent; color: var(--ink); border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); }
+li.task.tcard .mins.live svg { width: 14px; height: 14px; }
+.atc { flex: none; font-size: 13px; font-weight: 700; color: var(--muted); margin-right: 8px; font-variant-numeric: tabular-nums; }
+/* expanded / running */
+li.task.tcard.tdopen, li.task.tcard.trun { flex-wrap: wrap; margin: 6px 0; padding: 10px 10px 14px; border: 1.5px solid color-mix(in srgb, var(--ink) 35%, transparent); border-radius: 22px; }
+li.task.tcard.trun { border: 2px solid var(--ink); }
+li.task.tcard > .tin { flex-basis: 100%; display: block; margin: 0; padding: 0 4px; }
+li.task.tcard.trun > .tin > .tin-ring, li.task.tcard.trun > .tin > .tin-t, li.task.tcard.trun > .tin > .tin-c { display: none; }
+/* linked pre/post tasks: nested under the parent */
+li.task.tcard.lnh { position: relative; overflow: visible; }
+li.task.tcard.lnc { margin-left: 26px; border-style: dashed; }
+/* ✕ appears only on hover over the top-right corner (desktop) */
+li.task.tcard > .xbtn { position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); background: var(--surface); opacity: 0; z-index: 5; transition: opacity .12s; }
+li.task.tcard > .xbtn:hover, li.task.tcard > .xbtn:focus-visible { opacity: 1; color: var(--danger); }
+li.task.tcard > .xbtn svg { width: 12px; height: 12px; }
+@media (hover: none) { li.task.tcard > .xbtn { display: none; } }
+/* reorder by drag in Today */
+.td-list > li.task.tcard:not(.tdopen):not(.trun) { cursor: grab; touch-action: pan-y; }
+.td-list > li.task.tcard.tdd { z-index: 20; box-shadow: 0 10px 28px rgba(0,0,0,.22); opacity: .95; cursor: grabbing; }
+@media (max-width: 700px) { li.task.tcard .mins { padding: 6px 10px 6px 8px; } }
+.dblk.lnh { overflow: visible; }
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1738,15 +1718,12 @@ li.task.trun .mins.live { position: relative; z-index: 2; }
       li.querySelector(".check").onclick = toggle;
       li.querySelector(".go").onclick = (e) => { const nm = (tdOpen === t.id || (T && !T.work && T.id === t.id && tdHideRun !== t.id && !tdOpen)) ? tdNameHit(e) : null; if (nm) { e.stopPropagation(); return tdRename(nm, t); } if (t.min && e.target.closest(".mins")) { tdOpen = null; tdHideRun = null; return startTimer(t.id); } tdToggle(t); };
 
-      const pen = document.createElement("button"); pen.className = "pen"; pen.setAttribute("aria-label", isTask ? "Править" : "Править название"); pen.innerHTML = PEN;
-      pen.onclick = (e) => { e.stopPropagation(); if (isTask) openSheet({ id: t.id }); else inlineEdit(li, t, li.querySelector(".go")); };
-      li.appendChild(pen);
       if (isTask) {
-        const x = document.createElement("button"); x.className = "pen xbtn"; x.setAttribute("aria-label", "Удалить"); x.innerHTML = XIC;
+        const x = document.createElement("button"); x.className = "xbtn"; x.setAttribute("aria-label", "Удалить"); x.innerHTML = XIC;
         x.onclick = (e) => { e.stopPropagation(); deleteTask(t); };
         li.appendChild(x);
       }
-      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdPen(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
+      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
       else if (tdOpen === t.id && !t.done) tdExpand(li, t, key);
     } else {
       li.innerHTML = `<div class="edit-row">
@@ -1783,14 +1760,26 @@ li.task.trun .mins.live { position: relative; z-index: 2; }
       persist(); render();
     };
   }
+  // ===== Task card: the one task entity, shared by Today lists and the Plan kanban =====
+  // renderRow builds the row (check, name, department, start time, time pill, ✕);
+  // open/running states, checklist and property icons are added inside renderRow;
+  // here: checklist counter and linked pre/post "+" decorations.
+  function taskCard(t, key) {
+    const li = renderRow(t, key); if (!isRoutine(key)) li.classList.add("tcard");
+    if (t.check && t.check.length) { const nm = li.querySelector(".name"); if (nm) nm.insertAdjacentHTML("beforeend", `<span class="tdckn">${t.check.filter((c) => c.done).length}/${t.check.length} ✓</span>`); }
+    if (!isRoutine(key) && !editing) lnDecor(li, t);
+    return li;
+  }
+  // visible order: linked pre-tasks before their parent, post-tasks after; hidden when parent is collapsed
+  const taskItems = (list) => lnOrder(list.filter((t) => !lnHidden(t)));
   function renderList(key, emptyText) {
     const ul = document.createElement("ul");
     ul.className = "tl"; ul._key = key;
     const filt = !isRoutine(key) && (hidden.size > 0 || !coreShow);
-    const items = lnOrder(itemsOf(key).filter((t) => (!filt || kmatch(t)) && !lnHidden(t)));
+    const items = taskItems(itemsOf(key).filter((t) => !filt || kmatch(t)));
     if (!items.length) ul.innerHTML = `<li class="empty">${esc(filt && itemsOf(key).length ? "Всё скрыто фильтром." : emptyText)}</li>`;
     ul._ids = items.map((t) => t.id);
-    items.forEach((t) => { const li = renderRow(t, key); if (t.check && t.check.length) { const nm = li.querySelector(".name"); if (nm) nm.insertAdjacentHTML("beforeend", `<span class="tdckn">${t.check.filter((c) => c.done).length}/${t.check.length} ✓</span>`); } if (!isRoutine(key) && !editing) lnDecor(li, t); ul.appendChild(li); });
+    items.forEach((t) => ul.appendChild(taskCard(t, key)));
     enableDrag(ul);
     return ul;
   }
@@ -3868,11 +3857,6 @@ function renderMap() {
     render();
   }
   const PENSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>';
-  function tdPen(li, t, key) {
-    const p = document.createElement("button"); p.className = "tdx-pen"; p.setAttribute("aria-label", "Все настройки"); p.title = "Все настройки"; p.innerHTML = PENSVG;
-    p.onclick = (e) => { e.stopPropagation(); if (!isRoutine(key)) openSheet({ id: t.id }); else inlineEdit(li, t, li.querySelector(".go")); };
-    li.appendChild(p);
-  }
   function tdMenuAt(btn, rows) {
     const old = $("wmenu"); if (old) old.remove();
     const m = document.createElement("div"); m.id = "wmenu"; m.className = "wmenu"; m.setAttribute("role", "menu");
@@ -3906,15 +3890,16 @@ function renderMap() {
   }
   const tdFmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
   setInterval(() => {
-    if (!T || T.work || T.finished) return;
+    if (!T || T.work) return;
     const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins"); if (!m) return;
+    if (T.finished) { m.classList.add("live"); m.classList.remove("paused"); const h = "Готово ✓"; if (m.dataset.h !== h) { m.dataset.h = h; m.textContent = h; m.title = "Время вышло: нажми, чтобы завершить"; } return; }
     const run = T.endsAt != null; m.classList.add("live"); m.classList.toggle("paused", !run);
     const h = `${run ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>' : (typeof I !== "undefined" ? I.play : "▶")}${tdFmt(remaining())}`;
     if (m.dataset.h !== h) { m.dataset.h = h; m.innerHTML = h; }
   }, 300);
   document.addEventListener("click", (e) => {
     const m = e.target.closest("li.task .mins.live"); if (!m || !T || T.work) return;
-    e.preventDefault(); e.stopPropagation(); if (T.endsAt != null) pause(); else resume();
+    e.preventDefault(); e.stopPropagation(); if (T.finished) finish(true); else if (T.endsAt != null) pause(); else resume();
   }, true);
 
   document.addEventListener("click", (e) => {
@@ -4370,7 +4355,7 @@ function renderMap() {
   let pkOpen = "";
   function renderPlanKB() {
     const el = $("vTasks"); el.innerHTML = "";
-    const today = dayISO(), wk = addDays(today, 7), live = S.tasks.filter((t) => !t.done && t.where !== "done" && !t.tpl && !t.link);
+    const today = dayISO(), wk = addDays(today, 7), live = S.tasks.filter((t) => !t.done && t.where !== "done" && !t.tpl);
     const cols = [
       ["today", "Сегодня", live.filter((t) => t.where === "today")],
       ["tomorrow", "Завтра", live.filter((t) => t.where === "tomorrow")],
@@ -4386,13 +4371,13 @@ function renderMap() {
     };
     const sum = (ls) => { const m = ls.reduce((a, t) => a + (t.min || 0), 0); return ls.length + (m ? " · " + tdMin(m) : ""); };
     const card = (t) => {
-      const li = renderRow(t, t.where === "today" ? "today" : t.where === "tomorrow" ? "tomorrow" : "backlog");
+      const li = taskCard(t, t.where === "today" ? "today" : t.where === "tomorrow" ? "tomorrow" : "backlog");
       li.draggable = true; li.classList.add("pk-li");
       li.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", t.id); li.classList.add("drag"); });
       li.addEventListener("dragend", () => li.classList.remove("drag"));
       return li;
     };
-    const ul = (box, ls) => { const u = document.createElement("ul"); u.className = "list pk-ul"; ls.forEach((t) => u.appendChild(card(t))); box.appendChild(u); };
+    const ul = (box, ls) => { const u = document.createElement("ul"); u.className = "list pk-ul"; taskItems(ls).forEach((t) => u.appendChild(card(t))); box.appendChild(u); };
     const dropZone = (z, k) => {
       z.ondragover = (e) => { e.preventDefault(); z.classList.add("over"); }; z.ondragleave = () => z.classList.remove("over");
       z.ondrop = (e) => { e.preventDefault(); z.classList.remove("over"); const t = S.tasks.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (t) move(t, k); };

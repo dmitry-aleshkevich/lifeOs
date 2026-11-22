@@ -44,15 +44,12 @@
       li.querySelector(".check").onclick = toggle;
       li.querySelector(".go").onclick = (e) => { const nm = (tdOpen === t.id || (T && !T.work && T.id === t.id && tdHideRun !== t.id && !tdOpen)) ? tdNameHit(e) : null; if (nm) { e.stopPropagation(); return tdRename(nm, t); } if (t.min && e.target.closest(".mins")) { tdOpen = null; tdHideRun = null; return startTimer(t.id); } tdToggle(t); };
 
-      const pen = document.createElement("button"); pen.className = "pen"; pen.setAttribute("aria-label", isTask ? "Править" : "Править название"); pen.innerHTML = PEN;
-      pen.onclick = (e) => { e.stopPropagation(); if (isTask) openSheet({ id: t.id }); else inlineEdit(li, t, li.querySelector(".go")); };
-      li.appendChild(pen);
       if (isTask) {
-        const x = document.createElement("button"); x.className = "pen xbtn"; x.setAttribute("aria-label", "Удалить"); x.innerHTML = XIC;
+        const x = document.createElement("button"); x.className = "xbtn"; x.setAttribute("aria-label", "Удалить"); x.innerHTML = XIC;
         x.onclick = (e) => { e.stopPropagation(); deleteTask(t); };
         li.appendChild(x);
       }
-      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdPen(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
+      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
       else if (tdOpen === t.id && !t.done) tdExpand(li, t, key);
     } else {
       li.innerHTML = `<div class="edit-row">
@@ -89,14 +86,26 @@
       persist(); render();
     };
   }
+  // ===== Task card: the one task entity, shared by Today lists and the Plan kanban =====
+  // renderRow builds the row (check, name, department, start time, time pill, ✕);
+  // open/running states, checklist and property icons are added inside renderRow;
+  // here: checklist counter and linked pre/post "+" decorations.
+  function taskCard(t, key) {
+    const li = renderRow(t, key); if (!isRoutine(key)) li.classList.add("tcard");
+    if (t.check && t.check.length) { const nm = li.querySelector(".name"); if (nm) nm.insertAdjacentHTML("beforeend", `<span class="tdckn">${t.check.filter((c) => c.done).length}/${t.check.length} ✓</span>`); }
+    if (!isRoutine(key) && !editing) lnDecor(li, t);
+    return li;
+  }
+  // visible order: linked pre-tasks before their parent, post-tasks after; hidden when parent is collapsed
+  const taskItems = (list) => lnOrder(list.filter((t) => !lnHidden(t)));
   function renderList(key, emptyText) {
     const ul = document.createElement("ul");
     ul.className = "tl"; ul._key = key;
     const filt = !isRoutine(key) && (hidden.size > 0 || !coreShow);
-    const items = lnOrder(itemsOf(key).filter((t) => (!filt || kmatch(t)) && !lnHidden(t)));
+    const items = taskItems(itemsOf(key).filter((t) => !filt || kmatch(t)));
     if (!items.length) ul.innerHTML = `<li class="empty">${esc(filt && itemsOf(key).length ? "Всё скрыто фильтром." : emptyText)}</li>`;
     ul._ids = items.map((t) => t.id);
-    items.forEach((t) => { const li = renderRow(t, key); if (t.check && t.check.length) { const nm = li.querySelector(".name"); if (nm) nm.insertAdjacentHTML("beforeend", `<span class="tdckn">${t.check.filter((c) => c.done).length}/${t.check.length} ✓</span>`); } if (!isRoutine(key) && !editing) lnDecor(li, t); ul.appendChild(li); });
+    items.forEach((t) => ul.appendChild(taskCard(t, key)));
     enableDrag(ul);
     return ul;
   }

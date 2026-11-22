@@ -2,7 +2,7 @@
   let pkOpen = "";
   function renderPlanKB() {
     const el = $("vTasks"); el.innerHTML = "";
-    const today = dayISO(), wk = addDays(today, 7), live = S.tasks.filter((t) => !t.done && t.where !== "done" && !t.tpl && !t.link);
+    const today = dayISO(), wk = addDays(today, 7), live = S.tasks.filter((t) => !t.done && t.where !== "done" && !t.tpl);
     const cols = [
       ["today", "Сегодня", live.filter((t) => t.where === "today")],
       ["tomorrow", "Завтра", live.filter((t) => t.where === "tomorrow")],
@@ -18,13 +18,13 @@
     };
     const sum = (ls) => { const m = ls.reduce((a, t) => a + (t.min || 0), 0); return ls.length + (m ? " · " + tdMin(m) : ""); };
     const card = (t) => {
-      const li = renderRow(t, t.where === "today" ? "today" : t.where === "tomorrow" ? "tomorrow" : "backlog");
+      const li = taskCard(t, t.where === "today" ? "today" : t.where === "tomorrow" ? "tomorrow" : "backlog");
       li.draggable = true; li.classList.add("pk-li");
       li.addEventListener("dragstart", (e) => { e.dataTransfer.setData("text/plain", t.id); li.classList.add("drag"); });
       li.addEventListener("dragend", () => li.classList.remove("drag"));
       return li;
     };
-    const ul = (box, ls) => { const u = document.createElement("ul"); u.className = "list pk-ul"; ls.forEach((t) => u.appendChild(card(t))); box.appendChild(u); };
+    const ul = (box, ls) => { const u = document.createElement("ul"); u.className = "list pk-ul"; taskItems(ls).forEach((t) => u.appendChild(card(t))); box.appendChild(u); };
     const dropZone = (z, k) => {
       z.ondragover = (e) => { e.preventDefault(); z.classList.add("over"); }; z.ondragleave = () => z.classList.remove("over");
       z.ondrop = (e) => { e.preventDefault(); z.classList.remove("over"); const t = S.tasks.find((x) => x.id === e.dataTransfer.getData("text/plain")); if (t) move(t, k); };

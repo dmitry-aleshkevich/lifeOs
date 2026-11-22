@@ -494,11 +494,6 @@
     render();
   }
   const PENSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4"/></svg>';
-  function tdPen(li, t, key) {
-    const p = document.createElement("button"); p.className = "tdx-pen"; p.setAttribute("aria-label", "Все настройки"); p.title = "Все настройки"; p.innerHTML = PENSVG;
-    p.onclick = (e) => { e.stopPropagation(); if (!isRoutine(key)) openSheet({ id: t.id }); else inlineEdit(li, t, li.querySelector(".go")); };
-    li.appendChild(p);
-  }
   function tdMenuAt(btn, rows) {
     const old = $("wmenu"); if (old) old.remove();
     const m = document.createElement("div"); m.id = "wmenu"; m.className = "wmenu"; m.setAttribute("role", "menu");
@@ -532,15 +527,16 @@
   }
   const tdFmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
   setInterval(() => {
-    if (!T || T.work || T.finished) return;
+    if (!T || T.work) return;
     const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins"); if (!m) return;
+    if (T.finished) { m.classList.add("live"); m.classList.remove("paused"); const h = "Готово ✓"; if (m.dataset.h !== h) { m.dataset.h = h; m.textContent = h; m.title = "Время вышло: нажми, чтобы завершить"; } return; }
     const run = T.endsAt != null; m.classList.add("live"); m.classList.toggle("paused", !run);
     const h = `${run ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>' : (typeof I !== "undefined" ? I.play : "▶")}${tdFmt(remaining())}`;
     if (m.dataset.h !== h) { m.dataset.h = h; m.innerHTML = h; }
   }, 300);
   document.addEventListener("click", (e) => {
     const m = e.target.closest("li.task .mins.live"); if (!m || !T || T.work) return;
-    e.preventDefault(); e.stopPropagation(); if (T.endsAt != null) pause(); else resume();
+    e.preventDefault(); e.stopPropagation(); if (T.finished) finish(true); else if (T.endsAt != null) pause(); else resume();
   }, true);
 
   document.addEventListener("click", (e) => {
