@@ -858,7 +858,7 @@ li.task .name, .dblk b { cursor: text; }
 .tdx-ln { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); cursor: pointer; }
 .tdx-ln input { width: 16px; height: 16px; accent-color: var(--ink); }
 .tdx-ln em { font-style: normal; font-weight: 500; opacity: .7; }
-li.task.tdopen > .lnk { display: none; }
+
 
 /* ===== work v3: proportions + pre-tasks ===== */
 #vWork .wcol, #vWork .wpcol { padding: 8px; gap: 6px; border-radius: 16px; }

@@ -537,7 +537,6 @@
   function tdExpand(li, t, key) {
     li.classList.add("tdopen");
     const box = document.createElement("div"); box.className = "tin tdx tdx2";
-    tdLnBox(box, t, key);
     if (!isRoutine(key)) tdCheckBox(box, t);
     tdProps(box, t, key);
     li.appendChild(box);
@@ -546,12 +545,16 @@
   setInterval(() => {
     if (!T || T.work) return;
     const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins"); if (!m) return;
+    const go = m.parentElement, ex = go.querySelector(".mins-add");
+    if (T.finished && !ex) { const a = document.createElement("button"); a.type = "button"; a.className = "mins mins-add"; a.textContent = "+5 мин"; a.title = "Добавить время"; go.insertBefore(a, m); }
+    else if (!T.finished && ex) ex.remove();
     if (T.finished) { m.classList.add("live"); m.classList.remove("paused"); const h = "Готово ✓"; if (m.dataset.h !== h) { m.dataset.h = h; m.textContent = h; m.title = "Время вышло: нажми, чтобы завершить"; } return; }
     const run = T.endsAt != null; m.classList.add("live"); m.classList.toggle("paused", !run);
     const h = `${run ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>' : (typeof I !== "undefined" ? I.play : "▶")}${tdFmt(remaining())}`;
     if (m.dataset.h !== h) { m.dataset.h = h; m.innerHTML = h; }
   }, 300);
   document.addEventListener("click", (e) => {
+    const ad = e.target.closest("li.task .mins-add"); if (ad && T && !T.work) { e.preventDefault(); e.stopPropagation(); addTime(5); return; }
     const m = e.target.closest("li.task .mins.live"); if (!m || !T || T.work) return;
     e.preventDefault(); e.stopPropagation(); if (T.finished) finish(true); else if (T.endsAt != null) pause(); else resume();
   }, true);

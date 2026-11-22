@@ -869,7 +869,7 @@ li.task .name, .dblk b { cursor: text; }
 .tdx-ln { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 600; color: color-mix(in srgb, var(--ink) 70%, transparent); cursor: pointer; }
 .tdx-ln input { width: 16px; height: 16px; accent-color: var(--ink); }
 .tdx-ln em { font-style: normal; font-weight: 500; opacity: .7; }
-li.task.tdopen > .lnk { display: none; }
+
 
 /* ===== work v3: proportions + pre-tasks ===== */
 #vWork .wcol, #vWork .wpcol { padding: 8px; gap: 6px; border-radius: 16px; }
@@ -1736,7 +1736,7 @@ li.qinl .qinl-n { flex: none; width: 64px; border: 1.5px solid var(--ink); borde
         x.onclick = (e) => { e.stopPropagation(); deleteTask(t); };
         li.appendChild(x);
       }
-      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
+      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdProps(li.querySelector(".tin"), t, key); }
       else if (tdOpen === t.id && !t.done) tdExpand(li, t, key);
     } else {
       li.innerHTML = `<div class="edit-row">
@@ -3913,7 +3913,6 @@ function renderMap() {
   function tdExpand(li, t, key) {
     li.classList.add("tdopen");
     const box = document.createElement("div"); box.className = "tin tdx tdx2";
-    tdLnBox(box, t, key);
     if (!isRoutine(key)) tdCheckBox(box, t);
     tdProps(box, t, key);
     li.appendChild(box);
@@ -3922,12 +3921,16 @@ function renderMap() {
   setInterval(() => {
     if (!T || T.work) return;
     const li = document.querySelector(`li.task[data-id="${T.id}"]`), m = li && li.querySelector(".go .mins"); if (!m) return;
+    const go = m.parentElement, ex = go.querySelector(".mins-add");
+    if (T.finished && !ex) { const a = document.createElement("button"); a.type = "button"; a.className = "mins mins-add"; a.textContent = "+5 мин"; a.title = "Добавить время"; go.insertBefore(a, m); }
+    else if (!T.finished && ex) ex.remove();
     if (T.finished) { m.classList.add("live"); m.classList.remove("paused"); const h = "Готово ✓"; if (m.dataset.h !== h) { m.dataset.h = h; m.textContent = h; m.title = "Время вышло: нажми, чтобы завершить"; } return; }
     const run = T.endsAt != null; m.classList.add("live"); m.classList.toggle("paused", !run);
     const h = `${run ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>' : (typeof I !== "undefined" ? I.play : "▶")}${tdFmt(remaining())}`;
     if (m.dataset.h !== h) { m.dataset.h = h; m.innerHTML = h; }
   }, 300);
   document.addEventListener("click", (e) => {
+    const ad = e.target.closest("li.task .mins-add"); if (ad && T && !T.work) { e.preventDefault(); e.stopPropagation(); addTime(5); return; }
     const m = e.target.closest("li.task .mins.live"); if (!m || !T || T.work) return;
     e.preventDefault(); e.stopPropagation(); if (T.finished) finish(true); else if (T.endsAt != null) pause(); else resume();
   }, true);

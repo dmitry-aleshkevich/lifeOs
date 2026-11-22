@@ -49,7 +49,7 @@
         x.onclick = (e) => { e.stopPropagation(); deleteTask(t); };
         li.appendChild(x);
       }
-      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdLnBox(li.querySelector(".tin"), t, key); tdProps(li.querySelector(".tin"), t, key); }
+      if (T && !T.work && T.id === t.id && tdHideRun !== t.id && (!tdOpen || tdOpen === t.id)) { tinAttach(li, t, key); tdProps(li.querySelector(".tin"), t, key); }
       else if (tdOpen === t.id && !t.done) tdExpand(li, t, key);
     } else {
       li.innerHTML = `<div class="edit-row">
