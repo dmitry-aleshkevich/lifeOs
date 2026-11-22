@@ -1169,6 +1169,19 @@ li.task.tdopen > .lnk { display: none; }
 }
 .sce-l .sce-b:not(.sce-x) { display: none !important; }
 
+/* ===== floating pill tab bar with center + ===== */
+#navPlus { display: none; }
+@media (max-width: 700px) {
+  nav.views { left: 12px !important; right: 12px !important; bottom: calc(10px + env(safe-area-inset-bottom)) !important; border-radius: 26px !important; border: 1px solid var(--line) !important; background: var(--surface) !important; box-shadow: 0 10px 30px rgba(0,0,0,.14) !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; padding: 4px !important; overflow: visible !important; }
+  nav.views button[data-v="today"] { order: 1; } nav.views button[data-v="tasks"] { order: 2; } #navPlus { order: 3; } nav.views button[data-v="work"] { order: 4; } nav.views .vmore { order: 5; }
+  #navPlus { display: flex; align-items: center; justify-content: center; align-self: center; justify-self: center; width: 60px; height: 60px; min-height: 0 !important; margin-top: -26px; padding: 0 !important; border-radius: 50% !important; background: #D85A30 !important; color: #fff !important; box-shadow: 0 8px 20px rgba(216,90,48,.4); }
+  #navPlus svg { width: 28px !important; height: 28px !important; background: none !important; padding: 0 !important; }
+  #navPlus:active { transform: scale(.94); }
+  #fab, #wFab { display: none !important; }
+  body.has-mini #mini, #mini { bottom: calc(92px + env(safe-area-inset-bottom)) !important; }
+  .wrap { padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important; }
+}
+
 /* timer */
 .timer { position: fixed; inset: 0; z-index: 20; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: space-between;
   padding-top: calc(env(safe-area-inset-top, 0px) + 16px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
@@ -1833,7 +1846,7 @@ li.task.tdopen > .lnk { display: none; }
       b.onclick = () => { const go = () => { view = id; lsSet(LS_VIEW, view); armedDel = null; saveUI(); render(); window.scrollTo({ top: 0 }); }; if (document.startViewTransition && id !== view && !matchMedia("(prefers-reduced-motion: reduce)").matches) document.startViewTransition(go); else go(); };
       b.dataset.v = id; nav.appendChild(b);
     });
-    const mb = document.createElement("button"); mb.className = "vmore"; mb.setAttribute("role", "tab"); mb.setAttribute("aria-selected", ["habits", "stats", "work", "map", "scen"].includes(view)); mb.setAttribute("aria-haspopup", "menu");
+    const mb = document.createElement("button"); mb.className = "vmore"; mb.setAttribute("role", "tab"); mb.setAttribute("aria-selected", ["habits", "stats", "map", "scen"].includes(view)); mb.setAttribute("aria-haspopup", "menu");
     mb.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg><span>Ещё</span>';
     mb.onclick = (e) => { e.stopPropagation(); let pop = document.querySelector(".vpop"); if (pop) { pop.remove(); return; } pop = document.createElement("div"); pop.className = "vpop"; pop.setAttribute("role", "menu");
       VIEWS.filter(([id]) => ["habits", "stats", "work", "map", "scen"].includes(id)).forEach(([id, label, icon]) => { const it = document.createElement("button"); it.setAttribute("role", "menuitem"); it.setAttribute("aria-current", id === view); it.innerHTML = icon + `<span>${label}</span>`; it.onclick = () => { pop.remove(); view = id; lsSet(LS_VIEW, view); saveUI(); render(); window.scrollTo({ top: 0 }); }; pop.appendChild(it); });
@@ -4636,6 +4649,14 @@ function renderMap() {
     let suppressLP = false; document.addEventListener("click", (e) => { if (suppressLP) { e.stopPropagation(); e.preventDefault(); suppressLP = false; } }, true);
   })();
 
+  function navPlusSync() {
+    const nv = document.getElementById("views"); if (!nv || document.getElementById("navPlus")) return;
+    const b = document.createElement("button"); b.id = "navPlus"; b.type = "button"; b.setAttribute("aria-label", "Добавить");
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    b.onclick = (e) => { e.stopPropagation(); if (view === "work") { const r = b.getBoundingClientRect(); wFabMenu(r.left + r.width / 2 + 100, r.top - 8); return; } qaOpen(view === "tasks" ? "backlog" : "today", { where: true, def: view === "tasks" ? "backlog" : "today" }); };
+    nv.appendChild(b);
+  }
+
   function renderHabits() {
     const el = $("vHabits"); el.innerHTML = "";
     const col = document.createElement("div"); col.className = "col"; col.style.maxWidth = "760px";
@@ -4760,7 +4781,7 @@ function renderMap() {
 
   function render() {
     const fe = document.activeElement, fid = fe && fe.id, pos = fe && fe.selectionStart;
-    renderHeader(); fabSync(); try { eveTick(); } catch {} document.querySelector(".wrap").classList.toggle("wide", view === "work" || view === "map" || view === "scen");
+    renderHeader(); fabSync(); try { navPlusSync(); } catch {} try { eveTick(); } catch {} document.querySelector(".wrap").classList.toggle("wide", view === "work" || view === "map" || view === "scen");
     if (view === "today") renderToday();
     else if (view === "tasks") renderTasks();
     else if (view === "habits") renderHabits();
