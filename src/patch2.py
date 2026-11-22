@@ -225,8 +225,10 @@ rep('mb.setAttribute("aria-selected", ["habits", "stats", "work", "map", "scen"]
 rep('  function renderHabits() {', open('three.js', encoding='utf8').read() + '\n  function renderHabits() {')
 rep('["tasks", "Дела", I.list]', '["tasks", "План", I.list]')
 rep('    head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };\n    page.appendChild(head);', '    head.querySelector(".td-gear").onclick = (e) => { e.stopPropagation(); tdPop = !tdPop; render(); };\n    page.appendChild(head);\n    if (!fMode) page.appendChild(tdTriSeg(todayMode));')
-rep('    const el = $("vTasks"); el.innerHTML = "";', '    const el = $("vTasks"); el.innerHTML = ""; el.appendChild(tdTriSeg("plan"));')
-rep('  wrap.appendChild(focusSeg());', '  { const x = document.createElement("button"); x.className = "fexit"; x.textContent = "← Выйти из фокуса"; x.onclick = () => fSetMode(false); wrap.appendChild(x); }')
+rep('    const el = $("vTasks"); el.innerHTML = "";', '    if (true) { renderPlanKB(); return; }\n    const el = $("vTasks"); el.innerHTML = "";')
+rep('  wrap.appendChild(focusSeg());', '  wrap.appendChild(tdTriSeg("focus"));')
 rep('    const rest = q.slice(1, 5);', '    const rest = q.slice(1, 3);')
+# ---- plan kanban ----
+rep('  function renderHabits() {', open('plankb.js', encoding='utf8').read() + '\n  function renderHabits() {')
 open('index.html', 'w', encoding='utf8').write(s)
 print("built", len(s))
