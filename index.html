@@ -3698,6 +3698,7 @@ function renderMap() {
     mk("Заметки для Claude", () => { tdPop = false; render(); notesOpen(); });
     mk("Экспорт всех данных", () => { tdPop = false; render(); exportAll(); }, "expAll");
     mk("Баг / правка", () => { tdPop = false; render(); bugOpen(); });
+    mk("Бета V2 →", () => { location.href = "v2/index.html"; }, "betaV2");
     if (window.lifeosLogout) mk("Выйти из аккаунта", () => window.lifeosLogout());
     p.appendChild(acts);
     return p;

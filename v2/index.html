@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>LifeOS v2 — бета</title>
+<style>
+  :root { --bg:#eef0f3; --surface:#fff; --ink:#1d1d1f; --muted:#6b7280; --line:#e3e6ea; --accent:#e1623d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0d0d0f; --surface:#17181b; --ink:#f2f3f5; --muted:#8b919b; --line:#26282d; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 18px calc(32px + env(safe-area-inset-bottom)); background:var(--bg); color:var(--ink);
+         font:16px/1.45 -apple-system, system-ui, sans-serif; max-width:720px; margin-inline:auto; }
+  h1 { font-size:28px; margin:0 0 2px; letter-spacing:-.02em; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:22px; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:16px 18px; margin-bottom:14px; }
+  .card h2 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:15px; }
+  td { padding:7px 0; border-bottom:1px solid var(--line); }
+  tr:last-child td { border-bottom:0; font-weight:800; }
+  td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+  button, a.btn { flex:1; min-width:150px; min-height:48px; display:flex; align-items:center; justify-content:center;
+    border:0; border-radius:14px; font:inherit; font-weight:800; font-size:15px; cursor:pointer; text-decoration:none;
+    background:var(--surface); color:var(--ink); border:1.5px solid var(--line); }
+  a.btn.primary { background:var(--ink); color:var(--bg); border-color:var(--ink); }
+  .note { font-size:13px; color:var(--muted); margin-top:14px; }
+  .err { color:var(--accent); font-weight:700; }
+  ul { margin:0; padding-left:18px; font-size:14px; color:var(--muted); }
+  li { padding:2px 0; }
+</style>
+</head>
+<body>
+<h1>LifeOS v2</h1>
+<div class="sub">Бета. Рабочая версия не затронута.</div>
+<div id="out"></div>
+<div class="row">
+  <a class="btn primary" href="../index.html">← Вернуться в v1</a>
+  <button id="again">Пересобрать из v1</button>
+</div>
+<p class="note">v2 читает данные v1 и держит свою копию в <code>lifeos.v2</code>.
+Что бы ни сломалось здесь, задачи в рабочей версии останутся целы.</p>
+
+<script>
+"use strict";
+const V1 = "lifeos.v1", V2 = "lifeos.v2";
+const read = (k) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch { return null; } };
+
+// one task, one shape — see ARCHITECTURE.md §3
+function task(src, over) {
+  return Object.assign({
+    id: String(src.id || Math.random().toString(36).slice(2)),
+    name: String(src.name || ""), note: String(src.note || ""), check: Array.isArray(src.check) ? src.check : [],
+    project: src.project || "", routine: "", kind: "personal",
+    where: src.where || "", ord: 0,
+    at: src.at || "", due: src.due || "", min: Number(src.min) || 0,
+    spent: Number(src.spent) || 0, sessions: Number(src.sessions) || 0, acc: Number(src.acc) || 0,
+    done: !!src.done, doneAt: Number(src.doneAt) || 0,
+    status: "", stage: "", waitUntil: src.waitUntil || "",
+    link: src.link || "", rel: src.rel || "",
+  }, over);
+}
+
+function migrate(v1) {
+  const out = [], add = (t) => { t.ord = out.length; out.push(t); };
+  (v1.tasks || []).forEach((t) => add(task(t, { where: t.where || "today" })));
+  ["morning", "evening"].forEach((k) => ((v1.routines || {})[k] || []).forEach((t) => add(task(t, { routine: k, where: "today" }))));
+  ((v1.work || {}).tasks || []).forEach((t) => add(task(t, {
+    kind: "work", status: t.status || "", stage: t.stage || "", where: "",
+    link: t.parent || "", rel: t.parent ? "post" : "",
+  })));
+  return { v: 2, migratedAt: Date.now(), projects: v1.projects || [], workProjects: (v1.work || {}).projects || [], tasks: out };
+}
+
+function render() {
+  const el = document.getElementById("out"), v1 = read(V1);
+  if (!v1) { el.innerHTML = `<div class="card"><h2>Данные</h2><p class="err">Данные v1 не найдены в этом браузере.</p>
+    <ul><li>Открой сначала рабочую версию и дождись загрузки задач.</li><li>Проверь, что это тот же браузер и тот же адрес сайта.</li></ul></div>`; return; }
+  const s = migrate(v1);
+  localStorage.setItem(V2, JSON.stringify(s));
+  const n = (f) => s.tasks.filter(f).length;
+  const rows = [
+    ["Личные задачи", n((t) => t.kind === "personal" && !t.routine)],
+    ["Утренняя рутина", n((t) => t.routine === "morning")],
+    ["Вечерняя рутина", n((t) => t.routine === "evening")],
+    ["Рабочие задачи", n((t) => t.kind === "work")],
+    ["С подзадачами (до/после)", n((t) => t.link)],
+    ["С временем начала", n((t) => t.at)],
+    ["Всего в одном хранилище", s.tasks.length],
+  ];
+  const src = (v1.tasks || []).length + (((v1.routines || {}).morning) || []).length
+    + (((v1.routines || {}).evening) || []).length + (((v1.work || {}).tasks) || []).length;
+  el.innerHTML = `<div class="card"><h2>Миграция</h2><table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table></div>
+    <div class="card"><h2>Сохранность</h2><p id="chk" style="margin:0">${src === s.tasks.length
+      ? "Было " + src + " записей в трёх хранилищах, стало " + s.tasks.length + " в одном. Ничего не потеряно."
+      : '<span class="err">Было ' + src + ", стало " + s.tasks.length + ". Расхождение.</span>"}</p></div>
+    <div class="card"><h2>Дальше</h2><ul>
+      <li>Окружения: список, календарь, канбан</li><li>Общая карточка задачи во всех окружениях</li>
+      <li>Перенос задачи между окружениями</li></ul></div>`;
+}
+document.getElementById("again").onclick = render;
+render();
+</script>
+</body>
+</html>
