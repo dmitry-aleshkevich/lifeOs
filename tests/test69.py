@@ -19,21 +19,37 @@ with sync_playwright() as p:
     assert pg.is_visible("#betaV2"), "beta button missing"
     pg.locator("#betaV2").click(); pg.wait_for_timeout(900)
     assert "/v2/" in pg.url, pg.url
-    txt=pg.inner_text("body"); print(txt[:400].replace("\n"," | "))
-    assert "Ничего не потеряно" in txt, txt[:300]
+    txt=pg.inner_text("body"); print(txt[:200].replace("\n"," | "))
+    # all four environments render over the one store
+    for env in ("Список","Таймлайн","Канбан","Календарь"):
+        pg.locator(f"#envSeg button:has-text('{env}')").click(); pg.wait_for_timeout(250)
+        assert pg.locator(".card, .cal .day").count()>0, env
+    # the same card function serves both systems
+    pg.locator("#sysSeg button:has-text('Работа')").click(); pg.wait_for_timeout(300)
+    assert pg.locator(".card").count()>0
+    pg.locator("#sysSeg button:has-text('Дела')").click(); pg.wait_for_timeout(300)
+    pg.locator("#envSeg button:has-text('Список')").click(); pg.wait_for_timeout(300)
+    # "Фокус" is one property on the one card: it shows in every environment
+    assert pg.locator(".card .fx").count()>0, "focus toggle missing"
+    pg.locator(".card .fx").first.click(); pg.wait_for_timeout(300)
+    assert pg.evaluate("JSON.parse(localStorage.getItem('lifeos.v2')).tasks.some(t=>t.focus)")
+    for env in ("Таймлайн","Канбан","Календарь"):
+        pg.locator(f"#envSeg button:has-text('{env}')").click(); pg.wait_for_timeout(250)
+        assert pg.locator(".card .fx").count()>0, "focus missing in "+env
+    pg.locator("#envSeg button:has-text('Список')").click(); pg.wait_for_timeout(250)
     v2=pg.evaluate("JSON.parse(localStorage.getItem('lifeos.v2'))")
     names=[t["name"] for t in v2["tasks"]]; print(names)
     seeded=[n for n in names if n in ("Личная","Вторая","Душ","Кухня","Рабочая","Подзадача")]
     assert seeded==["Личная","Вторая","Душ","Кухня","Рабочая","Подзадача"], seeded
     byname={t["name"]:t for t in v2["tasks"]}
     assert byname["Душ"]["routine"]=="morning" and byname["Кухня"]["routine"]=="evening"
-    assert byname["Рабочая"]["kind"]=="work" and byname["Рабочая"]["status"]=="todo"
+    assert byname["Рабочая"]["type"]=="работа" and byname["Рабочая"]["status"]=="todo"
     assert byname["Подзадача"]["link"]=="w1" and byname["Подзадача"]["rel"]=="post"
     assert byname["Личная"]["at"]=="18:00"
     assert [t["ord"] for t in v2["tasks"]]==list(range(len(v2["tasks"]))), "ord must be sequential"
     # v1 data untouched
     assert pg.evaluate("localStorage.getItem('lifeos.v1')")==before, "v2 must not touch v1 data"
-    # back link returns to v1
-    pg.locator("a.btn.primary").click(); pg.wait_for_timeout(800)
+    # the V1 / Beta switch goes back
+    pg.locator(".vsw a").first.click(); pg.wait_for_timeout(800)
     assert "/v2/" not in pg.url and pg.locator("#vToday").count()==1
 print("ERRORS:",errs)

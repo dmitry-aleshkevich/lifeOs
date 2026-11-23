@@ -1213,3 +1213,9 @@ body.pk-nosel, body.pk-nosel * { user-select: none !important; -webkit-user-sele
 .qf-top .qf-m, .qf-top .qf-n, .qf-pop .qf-m, .qf-pop .qf-n { position: absolute; right: 6px; top: 6px; height: 30px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; }
 .qf-pop .qf-m, .qf-pop .qf-n { top: 10px; }
 .qf-top .qf-n, .qf-pop .qf-n { width: 72px; }
+
+/* version switch: v1 ⇄ beta */
+.vsw { display: inline-flex; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.vsw b, .vsw a { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; padding: 0 11px; border-radius: 999px; font-size: 11px; font-weight: 800; text-decoration: none; color: var(--muted); }
+.vsw b { background: var(--surface); color: var(--ink); }
+.vsw a:hover { color: var(--ink); }
