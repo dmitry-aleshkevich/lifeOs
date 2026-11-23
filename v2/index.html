@@ -6,100 +6,262 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>LifeOS v2 — бета</title>
 <style>
-  :root { --bg:#eef0f3; --surface:#fff; --ink:#1d1d1f; --muted:#6b7280; --line:#e3e6ea; --accent:#e1623d; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0d0d0f; --surface:#17181b; --ink:#f2f3f5; --muted:#8b919b; --line:#26282d; } }
-  * { box-sizing: border-box; }
-  body { margin:0; padding:24px 18px calc(32px + env(safe-area-inset-bottom)); background:var(--bg); color:var(--ink);
-         font:16px/1.45 -apple-system, system-ui, sans-serif; max-width:720px; margin-inline:auto; }
-  h1 { font-size:28px; margin:0 0 2px; letter-spacing:-.02em; }
-  .sub { color:var(--muted); font-size:14px; margin-bottom:22px; }
-  .card { background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:16px 18px; margin-bottom:14px; }
-  .card h2 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 12px; }
-  table { width:100%; border-collapse:collapse; font-size:15px; }
-  td { padding:7px 0; border-bottom:1px solid var(--line); }
-  tr:last-child td { border-bottom:0; font-weight:800; }
-  td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
-  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
-  button, a.btn { flex:1; min-width:150px; min-height:48px; display:flex; align-items:center; justify-content:center;
-    border:0; border-radius:14px; font:inherit; font-weight:800; font-size:15px; cursor:pointer; text-decoration:none;
-    background:var(--surface); color:var(--ink); border:1.5px solid var(--line); }
-  a.btn.primary { background:var(--ink); color:var(--bg); border-color:var(--ink); }
-  .note { font-size:13px; color:var(--muted); margin-top:14px; }
-  .err { color:var(--accent); font-weight:700; }
-  ul { margin:0; padding-left:18px; font-size:14px; color:var(--muted); }
-  li { padding:2px 0; }
+:root{--bg:#ECEEF2;--surface:#FFFFFF;--surface-2:#F5F6F9;--ink:#14161C;--muted:#6A7183;--line:#D9DDE6;
+ --accent:#FF5A1F;--done:#23A06A;
+ --pc-orange-bg:#FFE6D9;--pc-orange:#A8410F;--pc-red-bg:#FBE0DE;--pc-red:#A3261C;
+ --pc-yellow-bg:#FBF0CF;--pc-yellow:#7E5A00;--pc-violet-bg:#ECE5FC;--pc-violet:#5B3CC4;
+ --pc-blue-bg:#DFEAFC;--pc-blue:#1F5BB8;--pc-green-bg:#DCF1E3;--pc-green:#17693F;
+ --pc-aqua-bg:#D8F2F2;--pc-aqua:#0F6B6B;--pc-gray-bg:#E7E9EE;--pc-gray:#4B5263;}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1116;--surface:#191C24;--surface-2:#14171E;--ink:#EEF0F5;--muted:#8C93A5;--line:#272B36;
+ --accent:#FF6E35;--done:#36C383;
+ --pc-orange-bg:#3A2116;--pc-orange:#FF9F6E;--pc-red-bg:#3A1A18;--pc-red:#FF8F86;
+ --pc-yellow-bg:#352B12;--pc-yellow:#F2C14E;--pc-violet-bg:#2A2142;--pc-violet:#B9A3FF;
+ --pc-blue-bg:#172840;--pc-blue:#8DB8FF;--pc-green-bg:#13301F;--pc-green:#6FD49B;
+ --pc-aqua-bg:#11302F;--pc-aqua:#6ED6D3;--pc-gray-bg:#262A33;--pc-gray:#A9B0C0;color-scheme:dark;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,system-ui,sans-serif;
+ padding:16px 14px calc(28px + env(safe-area-inset-bottom));max-width:1180px;margin-inline:auto}
+h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+.seg{display:inline-flex;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:10px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:13px;
+ padding:8px 15px;border-radius:999px;cursor:pointer;min-height:38px}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.hint{color:var(--muted);font-size:12px;margin:0 0 12px}
+/* ---------- одна карточка ---------- */
+.card{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);
+ border-radius:16px;padding:10px 12px;margin-bottom:7px;min-height:56px}
+.card.done{opacity:.55}
+.card.done .nm{text-decoration:line-through}
+.ck{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
+.card.done .ck{background:var(--done);border-color:var(--done);color:#fff;font-size:13px;font-weight:900}
+.txt{flex:1;min-width:0}
+.nm{font-weight:700;font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.chip{font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.ckn,.subn{font-size:11px;font-weight:700;color:var(--muted)}
+.desc{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.at{font-size:13px;font-weight:700;color:var(--muted);flex:none}
+.mins{flex:none;display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--line);border-radius:999px;
+ padding:6px 12px;font-size:13px;font-weight:800;background:transparent;color:var(--ink);cursor:pointer}
+.mins.hot{background:var(--accent);border-color:var(--accent);color:#fff}
+.pc-orange{background:var(--pc-orange-bg);color:var(--pc-orange)}.pc-red{background:var(--pc-red-bg);color:var(--pc-red)}
+.pc-yellow{background:var(--pc-yellow-bg);color:var(--pc-yellow)}.pc-violet{background:var(--pc-violet-bg);color:var(--pc-violet)}
+.pc-blue{background:var(--pc-blue-bg);color:var(--pc-blue)}.pc-green{background:var(--pc-green-bg);color:var(--pc-green)}
+.pc-aqua{background:var(--pc-aqua-bg);color:var(--pc-aqua)}.pc-gray{background:var(--pc-gray-bg);color:var(--pc-gray)}
+/* ---------- окружения ---------- */
+.ghead{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px;display:flex;justify-content:space-between}
+.tl{position:relative;padding-left:52px}
+.tl .hr{position:relative;height:56px;border-top:1px solid var(--line)}
+.tl .hr span{position:absolute;z-index:4;left:-52px;top:-9px;font-size:11px;font-weight:800;color:var(--muted);width:44px;text-align:right}
+.tl .slot{position:absolute;left:0;right:0}
+.tl .slot .card{height:100%;margin:0;align-items:flex-start}
+.tl .slot .card .txt{align-self:center}
+.tl .now{position:absolute;left:-6px;right:0;height:2px;background:var(--accent);z-index:3}
+.tl .now::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.kb{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+.kb .col{flex:0 0 268px;scroll-snap-align:start;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:10px}
+.kb .col h3{margin:2px 4px 10px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:flex;justify-content:space-between}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px 0}
+.cal .day{min-height:76px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:5px 6px;font-size:11px}
+.cal .day.out{opacity:.35}
+.cal .day.today{border-color:var(--accent);border-width:2px}
+.cal .n{font-weight:800;color:var(--muted);display:block;margin-bottom:3px}
+.cal .ev{background:var(--surface-2);border-radius:7px;padding:3px 5px;margin-bottom:3px;font-weight:700;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.empty{color:var(--muted);font-size:13px;padding:10px 2px}
+.foot{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap}
+.foot a,.foot button{flex:1;min-width:150px;min-height:46px;display:flex;align-items:center;justify-content:center;
+ border:1.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);
+ font:inherit;font-weight:800;font-size:14px;text-decoration:none;cursor:pointer}
+.note{font-size:12px;color:var(--muted);margin-top:14px}
 </style>
 </head>
 <body>
 <h1>LifeOS v2</h1>
-<div class="sub">Бета. Рабочая версия не затронута.</div>
-<div id="out"></div>
-<div class="row">
-  <a class="btn primary" href="../index.html">← Вернуться в v1</a>
+<div class="sub">Превью. Рабочая версия не затронута.</div>
+<div class="bar">
+  <div class="seg" id="sysSeg"></div>
+  <div class="seg" id="envSeg"></div>
+  <div class="seg" id="grpSeg"></div>
+</div>
+<p class="hint" id="hint"></p>
+<div id="view"></div>
+<div class="foot">
+  <a href="../index.html">← Вернуться в v1</a>
   <button id="again">Пересобрать из v1</button>
 </div>
-<p class="note">v2 читает данные v1 и держит свою копию в <code>lifeos.v2</code>.
-Что бы ни сломалось здесь, задачи в рабочей версии останутся целы.</p>
+<p class="note">Это превью: видно, как одна и та же задача выглядит в четырёх окружениях.
+Перетаскивание и редактирование появятся следующими шагами. Данные читаются из v1, своя копия — в <code>lifeos.v2</code>.</p>
 
 <script>
 "use strict";
-const V1 = "lifeos.v1", V2 = "lifeos.v2";
-const read = (k) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : null; } catch { return null; } };
+const V1="lifeos.v1", V2="lifeos.v2";
+const read=(k)=>{try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch{return null}};
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=null)n.textContent=x;return n};
+const esc=(s)=>String(s==null?"":s);
 
-// one task, one shape — see ARCHITECTURE.md §3
-function task(src, over) {
+/* ---------- база: одна задача, одна форма (ARCHITECTURE.md §4) ---------- */
+function task(src,over){
   return Object.assign({
-    id: String(src.id || Math.random().toString(36).slice(2)),
-    name: String(src.name || ""), note: String(src.note || ""), check: Array.isArray(src.check) ? src.check : [],
-    project: src.project || "", routine: "", kind: "personal",
-    where: src.where || "", ord: 0,
-    at: src.at || "", due: src.due || "", min: Number(src.min) || 0,
-    spent: Number(src.spent) || 0, sessions: Number(src.sessions) || 0, acc: Number(src.acc) || 0,
-    done: !!src.done, doneAt: Number(src.doneAt) || 0,
-    status: "", stage: "", waitUntil: src.waitUntil || "",
-    link: src.link || "", rel: src.rel || "",
-  }, over);
+    id:String(src.id||Math.random().toString(36).slice(2)),
+    name:String(src.name||""), desc:String(src.note||src.desc||""),
+    check:Array.isArray(src.check)?src.check:[],
+    type:"дела", project:src.project||"", routine:"",
+    where:src.where||"", ord:0,
+    at:src.at||"", due:src.due||"", min:Number(src.min)||0,
+    spent:+src.spent||0, sessions:+src.sessions||0, acc:+src.acc||0,
+    done:!!src.done, doneAt:+src.doneAt||0,
+    status:"", stage:"", waitUntil:src.waitUntil||"",
+    link:src.link||"", rel:src.rel||"",
+  },over);
+}
+function migrate(v1){
+  const out=[], add=(t)=>{t.ord=out.length;out.push(t)};
+  (v1.tasks||[]).forEach((t)=>add(task(t,{type:"дела",where:t.where||"today"})));
+  ["morning","evening"].forEach((k)=>((v1.routines||{})[k]||[]).forEach((t)=>add(task(t,{type:"дела",routine:k,where:"today"}))));
+  ((v1.work||{}).tasks||[]).forEach((t)=>add(task(t,{type:"работа",status:t.status||"",stage:t.stage||"",
+    where:"",link:t.parent||"",rel:t.parent?"post":""})));
+  const pj=(v1.projects||[]).map((p)=>({id:p.id,name:p.name,color:p.color||"gray",type:p.kind==="work"?"работа":"дела"}))
+    .concat(((v1.work||{}).projects||[]).map((p)=>({id:p.id,name:p.name,color:p.color||"gray",type:"работа"})));
+  return {v:2,migratedAt:Date.now(),projects:pj,tasks:out};
 }
 
-function migrate(v1) {
-  const out = [], add = (t) => { t.ord = out.length; out.push(t); };
-  (v1.tasks || []).forEach((t) => add(task(t, { where: t.where || "today" })));
-  ["morning", "evening"].forEach((k) => ((v1.routines || {})[k] || []).forEach((t) => add(task(t, { routine: k, where: "today" }))));
-  ((v1.work || {}).tasks || []).forEach((t) => add(task(t, {
-    kind: "work", status: t.status || "", stage: t.stage || "", where: "",
-    link: t.parent || "", rel: t.parent ? "post" : "",
-  })));
-  return { v: 2, migratedAt: Date.now(), projects: v1.projects || [], workProjects: (v1.work || {}).projects || [], tasks: out };
+let S=null;
+const UI={sys:"дела",env:"list",grp:"where"};
+const COLS={
+  where:[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"]],
+  status:[["","Не начато"],["todo","В работу"],["doing","В работе"],["wait","Жду"],["done","Готово"]],
+};
+const proj=(id)=>S.projects.find((p)=>p.id===id)||null;
+const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
+
+/* ---------- одна карточка на все окружения ---------- */
+function card(t,opt={}){
+  const li=el("div","card"+(t.done?" done":""));
+  const ck=el("button","ck",t.done?"✓":"");ck.setAttribute("aria-label","Отметить");
+  ck.onclick=()=>{t.done=!t.done;save();render()};
+  li.appendChild(ck);
+  const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
+  const meta=el("div","meta"); const p=proj(t.project);
+  if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
+  if(t.check&&t.check.length)meta.appendChild(el("span","ckn",t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓"));
+  const kids=S.tasks.filter((x)=>x.link===t.id).length;
+  if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
+  if(t.desc)meta.appendChild(el("span","desc",t.desc));
+  if(meta.children.length)txt.appendChild(meta);
+  li.appendChild(txt);
+  if(t.at&&!opt.noAt)li.appendChild(el("span","at",t.at));
+  if(t.min)li.appendChild(el("span","mins"+(opt.hot?" hot":""),"▶ "+t.min+" мин"));
+  return li;
 }
 
-function render() {
-  const el = document.getElementById("out"), v1 = read(V1);
-  if (!v1) { el.innerHTML = `<div class="card"><h2>Данные</h2><p class="err">Данные v1 не найдены в этом браузере.</p>
-    <ul><li>Открой сначала рабочую версию и дождись загрузки задач.</li><li>Проверь, что это тот же браузер и тот же адрес сайта.</li></ul></div>`; return; }
-  const s = migrate(v1);
-  localStorage.setItem(V2, JSON.stringify(s));
-  const n = (f) => s.tasks.filter(f).length;
-  const rows = [
-    ["Личные задачи", n((t) => t.kind === "personal" && !t.routine)],
-    ["Утренняя рутина", n((t) => t.routine === "morning")],
-    ["Вечерняя рутина", n((t) => t.routine === "evening")],
-    ["Рабочие задачи", n((t) => t.kind === "work")],
-    ["С подзадачами (до/после)", n((t) => t.link)],
-    ["С временем начала", n((t) => t.at)],
-    ["Всего в одном хранилище", s.tasks.length],
-  ];
-  const src = (v1.tasks || []).length + (((v1.routines || {}).morning) || []).length
-    + (((v1.routines || {}).evening) || []).length + (((v1.work || {}).tasks) || []).length;
-  el.innerHTML = `<div class="card"><h2>Миграция</h2><table>${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join("")}</table></div>
-    <div class="card"><h2>Сохранность</h2><p id="chk" style="margin:0">${src === s.tasks.length
-      ? "Было " + src + " записей в трёх хранилищах, стало " + s.tasks.length + " в одном. Ничего не потеряно."
-      : '<span class="err">Было ' + src + ", стало " + s.tasks.length + ". Расхождение.</span>"}</p></div>
-    <div class="card"><h2>Дальше</h2><ul>
-      <li>Окружения: список, календарь, канбан</li><li>Общая карточка задачи во всех окружениях</li>
-      <li>Перенос задачи между окружениями</li></ul></div>`;
+/* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
+const ENVS={
+  list:{name:"Список",render(host){
+    const groups=[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"],["","Без места"]];
+    let any=false;
+    groups.forEach(([k,label])=>{
+      const items=mine().filter((t)=>!t.link&&(t.where||"")===k);
+      if(!items.length)return; any=true;
+      const h=el("div","ghead");h.appendChild(el("span",null,label));
+      h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
+      host.appendChild(h);
+      items.forEach((t)=>{host.appendChild(card(t));
+        S.tasks.filter((x)=>x.link===t.id).forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)})});
+    });
+    if(!any)host.appendChild(el("div","empty","В этой системе пока нет задач."));
+  }},
+  timeline:{name:"Таймлайн",render(host){
+    const H0=8,H1=23,PX=56;
+    const withAt=mine().filter((t)=>t.at),none=mine().filter((t)=>!t.at);
+    const wrap=el("div","tl");
+    for(let h=H0;h<=H1;h++){const r=el("div","hr");r.appendChild(el("span",null,String(h).padStart(2,"0")+":00"));wrap.appendChild(r)}
+    const now=new Date(),nm=now.getHours()+now.getMinutes()/60;
+    if(nm>=H0&&nm<=H1){const n=el("div","now");n.style.top=((nm-H0)*PX)+"px";wrap.appendChild(n)}
+    withAt.forEach((t)=>{const [hh,mm]=t.at.split(":").map(Number);const top=(hh+mm/60-H0)*PX;
+      if(top<0)return;const s=el("div","slot");s.style.top=top+"px";
+      s.style.height=Math.max(50,(t.min||30)/60*PX)+"px";
+      s.appendChild(card(t,{noAt:true}));wrap.appendChild(s)});
+    wrap.style.height=((H1-H0+1)*PX)+"px";
+    host.appendChild(wrap);
+    const h=el("div","ghead");h.appendChild(el("span",null,"Без времени"));h.appendChild(el("span",null,String(none.length)));
+    host.appendChild(h);
+    if(!none.length)host.appendChild(el("div","empty","Пусто — у всех задач есть время."));
+    none.forEach((t)=>host.appendChild(card(t)));
+  }},
+  kanban:{name:"Канбан",render(host){
+    const kb=el("div","kb");
+    let cols;
+    if(UI.grp==="project"){
+      cols=S.projects.filter((p)=>p.type===UI.sys).map((p)=>[p.id,p.name]);
+      cols.push(["","Без проекта"]);
+    } else cols=COLS[UI.grp].slice();
+    cols.forEach(([k,label])=>{
+      const items=mine().filter((t)=>(t[UI.grp]||"")===k);
+      const c=el("div","col");const h=el("h3");h.appendChild(el("span",null,label));h.appendChild(el("span",null,String(items.length)));
+      c.appendChild(h);
+      if(!items.length)c.appendChild(el("div","empty","—"));
+      items.forEach((t)=>c.appendChild(card(t,{noProject:UI.grp==="project"})));
+      kb.appendChild(c);
+    });
+    host.appendChild(kb);
+  }},
+  calendar:{name:"Календарь",render(host){
+    const withDue=mine().filter((t)=>t.due),none=mine().filter((t)=>!t.due);
+    const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+    const first=new Date(y,m,1),shift=(first.getDay()+6)%7,days=new Date(y,m+1,0).getDate();
+    const iso=(d)=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    const g=el("div","cal");
+    ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach((d)=>g.appendChild(el("div","dow",d)));
+    for(let i=0;i<shift;i++)g.appendChild(el("div","day out"));
+    for(let d=1;d<=days;d++){
+      const date=new Date(y,m,d),key=iso(date);
+      const cell=el("div","day"+(key===iso(now)?" today":""));
+      cell.appendChild(el("span","n",String(d)));
+      withDue.filter((t)=>t.due===key).forEach((t)=>cell.appendChild(el("div","ev",t.name)));
+      g.appendChild(cell);
+    }
+    host.appendChild(g);
+    const h=el("div","ghead");h.appendChild(el("span",null,"Без даты"));h.appendChild(el("span",null,String(none.length)));
+    host.appendChild(h);
+    none.slice(0,8).forEach((t)=>host.appendChild(card(t)));
+    if(none.length>8)host.appendChild(el("div","empty","…и ещё "+(none.length-8)));
+  }},
+};
+const HINTS={
+  list:"Ручной порядок внутри группы. Перенос меняет «куда положена» и позицию.",
+  timeline:"Раскладка по времени начала. Задачи без времени лежат под сеткой — их можно будет перетащить на час.",
+  kanban:"Колонки — это значения одного свойства. Перенос между колонками записывает его.",
+  calendar:"Раскладка по дате задачи. Без даты — список под календарём.",
+};
+
+function seg(host,items,cur,pick){
+  host.innerHTML="";
+  items.forEach(([k,label])=>{const b=el("button",null,label);b.setAttribute("aria-pressed",k===cur);b.onclick=()=>pick(k);host.appendChild(b)});
 }
-document.getElementById("again").onclick = render;
-render();
+function save(){try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
+function render(){
+  seg(document.getElementById("sysSeg"),[["дела","Дела"],["работа","Работа"]],UI.sys,(k)=>{UI.sys=k;render()});
+  seg(document.getElementById("envSeg"),Object.keys(ENVS).map((k)=>[k,ENVS[k].name]),UI.env,(k)=>{UI.env=k;render()});
+  const gs=document.getElementById("grpSeg");
+  if(UI.env==="kanban")seg(gs,[["where","по дням"],["status","по статусу"],["project","по проектам"]],UI.grp,(k)=>{UI.grp=k;render()});
+  else gs.innerHTML="";
+  document.getElementById("hint").textContent=HINTS[UI.env];
+  const v=document.getElementById("view");v.innerHTML="";
+  ENVS[UI.env].render(v);
+}
+function boot(){
+  const v1=read(V1);
+  if(!v1){document.getElementById("view").innerHTML=
+    '<div class="empty">Данные v1 не найдены в этом браузере. Открой сначала рабочую версию и дождись загрузки задач.</div>';return}
+  S=migrate(v1);save();render();
+}
+document.getElementById("again").onclick=boot;
+boot();
 </script>
 </body>
 </html>
