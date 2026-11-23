@@ -33,6 +33,10 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .card{display:flex;align-items:center;gap:10px;min-width:0;background:var(--surface);border:1px solid var(--line);
  border-radius:16px;padding:10px 12px;margin-bottom:7px;min-height:56px}
 .card.done{opacity:.55}
+.card.v{flex-direction:column;align-items:stretch;gap:7px;padding:11px 12px}
+.card.v .top{display:flex;align-items:flex-start;gap:9px;min-width:0}
+.card.v .nm{white-space:normal;overflow:visible;line-height:1.25}
+.card.v .row2{display:flex;align-items:center;gap:8px;justify-content:flex-end}
 .card.done .nm{text-decoration:line-through}
 .ck{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
 .card.done .ck{background:var(--done);border-color:var(--done);color:#fff;font-size:13px;font-weight:900}
@@ -62,7 +66,7 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .tl .now{position:absolute;left:-6px;right:0;height:2px;background:var(--accent);z-index:3}
 .tl .now::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .kb{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
-.kb .col{flex:0 0 268px;min-width:0;scroll-snap-align:start;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:10px}
+.kb .col{flex:0 0 272px;min-width:0;scroll-snap-align:start;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:10px}
 .kb .col h3{margin:2px 4px 10px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);display:flex;justify-content:space-between}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal .dow{font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px 0}
@@ -151,6 +155,15 @@ function card(t,opt={}){
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
   if(t.desc)meta.appendChild(el("span","desc",t.desc));
   if(meta.children.length)txt.appendChild(meta);
+  if(opt.v){
+    li.classList.add("v");
+    const top=el("div","top");top.appendChild(li.firstChild);top.appendChild(txt);li.appendChild(top);
+    const r2=el("div","row2");
+    if(t.at&&!opt.noAt)r2.appendChild(el("span","at",t.at));
+    if(t.min)r2.appendChild(el("span","mins"+(opt.hot?" hot":""),"▶ "+t.min+" мин"));
+    if(r2.children.length)li.appendChild(r2);
+    return li;
+  }
   li.appendChild(txt);
   if(t.at&&!opt.noAt)li.appendChild(el("span","at",t.at));
   if(t.min)li.appendChild(el("span","mins"+(opt.hot?" hot":""),"▶ "+t.min+" мин"));
@@ -200,7 +213,7 @@ const ENVS={
         const c=el("div","col");const hh=el("h3");hh.appendChild(el("span",null,title));hh.appendChild(el("span",null,String(items.length)));
         c.appendChild(hh);
         if(!items.length)c.appendChild(el("div","empty","—"));
-        items.forEach((t)=>c.appendChild(card(t,{noProject:prop==="project"})));
+        items.forEach((t)=>c.appendChild(card(t,{v:true,noProject:prop==="project"})));
         kb.appendChild(c);
       });
       host.appendChild(kb);
