@@ -86,8 +86,7 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 <div class="bar">
   <div class="seg" id="sysSeg"></div>
   <div class="seg" id="envSeg"></div>
-  <div class="seg" id="grpSeg"></div>
-</div>
+  </div>
 <p class="hint" id="hint"></p>
 <div id="view"></div>
 <div class="foot">
@@ -115,7 +114,7 @@ function task(src,over){
     at:src.at||"", due:src.due||"", min:Number(src.min)||0,
     spent:+src.spent||0, sessions:+src.sessions||0, acc:+src.acc||0,
     done:!!src.done, doneAt:+src.doneAt||0,
-    status:"", stage:"", waitUntil:src.waitUntil||"",
+    status:src.done?"done":"", stage:"", waitUntil:src.waitUntil||"",
     link:src.link||"", rel:src.rel||"",
   },over);
 }
@@ -131,9 +130,8 @@ function migrate(v1){
 }
 
 let S=null;
-const UI={sys:"дела",env:"list",grp:"where"};
+const UI={sys:"дела",env:"list"};
 const COLS={
-  where:[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"]],
   status:[["","Не начато"],["todo","В работу"],["doing","В работе"],["wait","Жду"],["done","Готово"]],
 };
 const proj=(id)=>S.projects.find((p)=>p.id===id)||null;
@@ -194,21 +192,23 @@ const ENVS={
     none.forEach((t)=>host.appendChild(card(t)));
   }},
   kanban:{name:"Канбан",render(host){
-    const kb=el("div","kb");
-    let cols;
-    if(UI.grp==="project"){
-      cols=S.projects.filter((p)=>p.type===UI.sys).map((p)=>[p.id,p.name]);
-      cols.push(["","Без проекта"]);
-    } else cols=COLS[UI.grp].slice();
-    cols.forEach(([k,label])=>{
-      const items=mine().filter((t)=>(t[UI.grp]||"")===k);
-      const c=el("div","col");const h=el("h3");h.appendChild(el("span",null,label));h.appendChild(el("span",null,String(items.length)));
-      c.appendChild(h);
-      if(!items.length)c.appendChild(el("div","empty","—"));
-      items.forEach((t)=>c.appendChild(card(t,{noProject:UI.grp==="project"})));
-      kb.appendChild(c);
-    });
-    host.appendChild(kb);
+    const board=(label,cols,prop)=>{
+      const h=el("div","ghead");h.appendChild(el("span",null,label));host.appendChild(h);
+      const kb=el("div","kb");
+      cols.forEach(([k,title])=>{
+        const items=mine().filter((t)=>(t[prop]||"")===k);
+        const c=el("div","col");const hh=el("h3");hh.appendChild(el("span",null,title));hh.appendChild(el("span",null,String(items.length)));
+        c.appendChild(hh);
+        if(!items.length)c.appendChild(el("div","empty","—"));
+        items.forEach((t)=>c.appendChild(card(t,{noProject:prop==="project"})));
+        kb.appendChild(c);
+      });
+      host.appendChild(kb);
+    };
+    board("По статусу",COLS.status,"status");
+    const pcols=S.projects.filter((p)=>p.type===UI.sys).map((p)=>[p.id,p.name]);
+    pcols.push(["","Без проекта"]);
+    board("По проектам",pcols,"project");
   }},
   calendar:{name:"Календарь",render(host){
     const withDue=mine().filter((t)=>t.due),none=mine().filter((t)=>!t.due);
@@ -235,7 +235,7 @@ const ENVS={
 const HINTS={
   list:"Ручной порядок внутри группы. Перенос меняет «куда положена» и позицию.",
   timeline:"Раскладка по времени начала. Задачи без времени лежат под сеткой — их можно будет перетащить на час.",
-  kanban:"Колонки — это значения одного свойства. Перенос между колонками записывает его.",
+  kanban:"Две доски над одними задачами: по статусу и по проектам. Перенос между колонками записывает это свойство.",
   calendar:"Раскладка по дате задачи. Без даты — список под календарём.",
 };
 
@@ -247,9 +247,6 @@ function save(){try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
 function render(){
   seg(document.getElementById("sysSeg"),[["дела","Дела"],["работа","Работа"]],UI.sys,(k)=>{UI.sys=k;render()});
   seg(document.getElementById("envSeg"),Object.keys(ENVS).map((k)=>[k,ENVS[k].name]),UI.env,(k)=>{UI.env=k;render()});
-  const gs=document.getElementById("grpSeg");
-  if(UI.env==="kanban")seg(gs,[["where","по дням"],["status","по статусу"],["project","по проектам"]],UI.grp,(k)=>{UI.grp=k;render()});
-  else gs.innerHTML="";
   document.getElementById("hint").textContent=HINTS[UI.env];
   const v=document.getElementById("view");v.innerHTML="";
   ENVS[UI.env].render(v);
