@@ -91,7 +91,7 @@
   // open/running states, checklist and property icons are added inside renderRow;
   // here: checklist counter and linked pre/post "+" decorations.
   function taskCard(t, key) {
-    const li = renderRow(t, key); if (!isRoutine(key)) li.classList.add("tcard");
+    const li = renderRow(t, key); li.classList.add("tcard");
     if (t.check && t.check.length) { const nm = li.querySelector(".name"); if (nm) nm.insertAdjacentHTML("beforeend", `<span class="tdckn">${t.check.filter((c) => c.done).length}/${t.check.length} ✓</span>`); }
     if (!isRoutine(key) && !editing) lnDecor(li, t);
     return li;
