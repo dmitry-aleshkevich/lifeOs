@@ -19,8 +19,8 @@ with sync_playwright() as p:
     # иконки: три кнопки без текста
     assert pg.locator("#fab button").count()==3 and all(t.strip()=="" for t in pg.locator("#fab button").all_text_contents())
     # экспорт общий, очистка через минуту (ускоряем: сдвиг метки)
-    pg.click('#fab button[data-kind="bug"]');pg.fill("#fbpop .fbta","жук");pg.click("#fbpop .fbtn") if False else pg.click("#fbpop .chipb:has-text('Добавить')");pg.click("#fbpop .fbx")
-    pg.click('#fab button[data-kind="note"]');pg.fill("#fbpop .fbta","идея");pg.click("#fbpop .chipb:has-text('Добавить')");pg.click("#fbpop .fbx")
+    pg.click('#fab button[data-kind="bug"]');pg.fill('.fbpop[data-kind="bug"] .fbta',"жук");pg.click('.fbpop[data-kind="bug"] .chipb:has-text("Добавить")');pg.click('.fbpop[data-kind="bug"] .fbx')
+    pg.click('#fab button[data-kind="note"]');pg.fill('.fbpop[data-kind="note"] .fbta',"идея");pg.click('.fbpop[data-kind="note"] .chipb:has-text("Добавить")');pg.click('.fbpop[data-kind="note"] .fbx')
     pg.click('#fab button[data-kind="exp"]');pg.wait_for_timeout(300)
     clip=pg.evaluate("navigator.clipboard.readText()");assert "жук" in clip and "идея" in clip
     assert pg.evaluate("FBL.bug.length")==1 and pg.evaluate("localStorage.getItem('lifeos.v2.fbexp')")

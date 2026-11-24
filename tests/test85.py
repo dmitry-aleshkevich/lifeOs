@@ -41,13 +41,13 @@ with sync_playwright() as p:
     assert set(T(pg))=={"a","b"}, set(T(pg))
     pg.keyboard.press("Control+z"); pg.wait_for_timeout(200); assert set(T(pg))=={"a","b","c","d"}
     # Баг: окошко, добавление, экспорт с журналом действий
-    pg.click('#fab button[data-kind="bug"]'); assert pg.locator("#fbpop").count()==1
-    pg.fill("#fbpop .fbta","кривая кнопка"); pg.click("#fbpop .fbex"); pg.wait_for_timeout(200)
+    pg.click('#fab button[data-kind="bug"]'); assert pg.locator('.fbpop[data-kind="bug"]').count()==1
+    pg.fill('.fbpop[data-kind="bug"] .fbta',"кривая кнопка"); pg.click('.fbpop[data-kind="bug"] .fbex'); pg.wait_for_timeout(200)
     txt=pg.evaluate("navigator.clipboard.readText()")
     assert "Баги LifeOS v2 (1)" in txt and "кривая кнопка" in txt and "Действия:" in txt and "удалено выбранных" in txt, txt
-    assert "Скопировано" in pg.locator("#fbpop .fbst").text_content()
+    assert "Скопировано" in pg.locator('.fbpop[data-kind="bug"] .fbst').text_content()
     # Заметка: свой список, без журнала
-    pg.click('#fab button[data-kind="note"]'); pg.fill("#fbpop .fbta","идея про шаблоны"); pg.click("#fbpop .fbex"); pg.wait_for_timeout(200)
+    pg.click('#fab button[data-kind="note"]'); pg.fill('.fbpop[data-kind="note"] .fbta',"идея про шаблоны"); pg.click('.fbpop[data-kind="note"] .fbex'); pg.wait_for_timeout(200)
     txt=pg.evaluate("navigator.clipboard.readText()")
     assert "Заметки по LifeOS v2 (1)" in txt and "идея про шаблоны" in txt and "Действия:" not in txt and "кривая" not in txt, txt
     assert not errs,errs
