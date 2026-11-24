@@ -78,7 +78,8 @@ body.drag .card .plus{opacity:1}
 .gcount{position:absolute;right:-8px;top:-8px;min-width:22px;height:22px;border-radius:11px;background:var(--accent);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px}
 .selbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:70;display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 12px;box-shadow:0 8px 28px rgba(0,0,0,.25);font-weight:800;font-size:13px}
 .fab{position:fixed;right:0;top:45%;z-index:60;display:flex;flex-direction:column;gap:8px}
-.fab button{width:84px;text-align:left;border:1px solid var(--line);border-right:0;background:var(--surface);color:var(--ink);font:inherit;font-weight:800;font-size:12px;padding:9px 10px;border-radius:12px 0 0 12px;cursor:pointer;opacity:.85}
+.fab button{width:40px;height:38px;display:grid;place-items:center;text-align:center;border:1px solid var(--line);border-right:0;background:var(--surface);color:var(--ink);font:inherit;font-weight:800;font-size:12px;padding:0;border-radius:12px 0 0 12px;cursor:pointer;opacity:.85}
+.fab button.ok{background:var(--ink);color:var(--surface);opacity:1}
 .fab button:hover{opacity:1}
 .fbpop{position:fixed;right:96px;top:70px;z-index:80;width:340px;max-height:80vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 36px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px}
 .fbh{display:flex;justify-content:space-between;align-items:center}.fbx{border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer}
@@ -279,7 +280,8 @@ function migrate(v1){
 }
 
 let S=null;
-const UI={sys:"дела",env:"list"};
+const UI=(()=>{const u={sys:"дела",env:"list"},r=read("lifeos.v2.ui")||{};
+  if(r.sys==="дела"||r.sys==="работа")u.sys=r.sys;if(["list","kanban","timeline","calendar"].includes(r.env))u.env=r.env;return u})();
 const COLS={
   status:[["","Не начато"],["todo","В работу"],["doing","В работе"],["wait","Жду"],["done","Готово"]],
 };
@@ -495,8 +497,8 @@ function selBar(){
   const c=el("button","chipb","Снять");c.type="button";c.onclick=()=>{SEL.clear();render()};
   b.append(d,c)}
 /* ---------- журнал последних действий и ошибок (для «Баг») ---------- */
-const ALOG=[],ERRS=[];
-function logA(x){const d=new Date(),z=(n)=>String(n).padStart(2,"0");ALOG.push(z(d.getHours())+":"+z(d.getMinutes())+":"+z(d.getSeconds())+" "+x);if(ALOG.length>40)ALOG.shift()}
+const ALOG=(read("lifeos.v2.alog")||[]).slice(-40),ERRS=[];
+function logA(x){const d=new Date(),z=(n)=>String(n).padStart(2,"0");ALOG.push(z(d.getHours())+":"+z(d.getMinutes())+":"+z(d.getSeconds())+" "+x);if(ALOG.length>40)ALOG.shift();try{localStorage.setItem("lifeos.v2.alog",JSON.stringify(ALOG))}catch{}}
 addEventListener("error",(e)=>{ERRS.push((e.message||"ошибка")+(e.lineno?" (строка "+e.lineno+")":""));if(ERRS.length>5)ERRS.shift()});
 addEventListener("unhandledrejection",(e)=>{ERRS.push("promise: "+((e.reason&&e.reason.message)||e.reason));if(ERRS.length>5)ERRS.shift()});
 const nmq=(t)=>"«"+String(t&&t.name||"").slice(0,40)+"»";
@@ -960,8 +962,9 @@ function eveningBanner(host){
   b.onclick=()=>{S.day.evening=true;save();render()};host.appendChild(b)}
 function render(){
   if(S)dayRoll();
+  try{localStorage.setItem("lifeos.v2.ui",JSON.stringify({sys:UI.sys,env:UI.env}))}catch{}
   seg(document.getElementById("sysSeg"),[["дела","Дела"],["работа","Работа"]],UI.sys,(k)=>{logA("система: "+k);UI.sys=k;render()});
-  seg(document.getElementById("envSeg"),Object.keys(ENVS).map((k)=>[k,ENVS[k].name]),UI.env,(k)=>{logA("окружение: "+ENVS[k].name);UI.env=k;render()});
+  seg(document.getElementById("envSeg"),["list","kanban","timeline","calendar"].map((k)=>[k,ENVS[k].name]),UI.env,(k)=>{logA("окружение: "+ENVS[k].name);UI.env=k;render()});
   document.getElementById("hint").textContent=HINTS[UI.env];
   paintFocusBtn();
   const v=document.getElementById("view");v.innerHTML="";
@@ -1001,19 +1004,41 @@ function fbOpen(kind){
   cl.onclick=()=>{if(!FBL[kind].length)return;if(!cl.dataset.arm){cl.dataset.arm=1;cl.textContent="Точно очистить?";setTimeout(()=>{cl.textContent="Очистить";delete cl.dataset.arm},2500);return}FBL[kind]=[];fbSave(kind);list();cl.textContent="Очистить";delete cl.dataset.arm};
   ["keydown","keyup","keypress"].forEach((ev)=>p.addEventListener(ev,(e)=>{e.stopPropagation();if(ev==="keydown"&&e.key==="Escape")fbClose()}));
   list();document.body.appendChild(p);setTimeout(()=>ta.focus(),0)}
+/* общий экспорт: баги + заметки одним сообщением; через минуту выгруженное очищается */
+const fbSweep=(ts)=>{["bug","note"].forEach((k)=>{FBL[k]=FBL[k].filter((b)=>b.at>ts);fbSave(k)});try{localStorage.removeItem("lifeos.v2.fbexp")}catch{};
+  const p=document.getElementById("fbpop");if(p){const k=p.dataset.kind;fbClose();fbOpen(k)}};
+function fbArm(ts){const left=Math.max(0,ts+60000-Date.now());setTimeout(()=>fbSweep(ts),left)}
+function fbExportAll(btn){
+  const m=["bug","note"].map(fbMessage).filter(Boolean).join("\n\n");
+  const flash=(t)=>{btn.title=t;btn.classList.add("ok");setTimeout(()=>{btn.classList.remove("ok");btn.title="Экспорт: баги и заметки в буфер"},1500)};
+  if(!m){flash("Пока пусто");return}
+  const ts=Date.now();
+  const done=()=>{try{localStorage.setItem("lifeos.v2.fbexp",String(ts))}catch{};fbArm(ts);flash("Скопировано; список очистится через минуту")};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(m).then(done,()=>flash("Не удалось скопировать"));else flash("Буфер недоступен")}
 (function(){const f=el("div","fab");f.id="fab";
-  [["bug","Баг"],["note","Заметка"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.kind=k;b.onclick=()=>fbOpen(k);f.appendChild(b)});
-  document.body.appendChild(f)})();
+  const IC={bug:'<path d="M8 8a4 4 0 0 1 8 0v1H8zM6 10h12v4a6 6 0 0 1-12 0zM3 12h3M18 12h3M4 18l3-2M20 18l-3-2M5 6l3 2M19 6l-3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    note:'<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+    exp:'<path d="M9 4h9v12H9zM6 8H5v12h10v-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'};
+  [["bug","Баг"],["note","Заметка"],["exp","Экспорт: баги и заметки в буфер"]].forEach(([k,l])=>{const b=el("button",null);b.type="button";b.dataset.kind=k;b.title=l;b.setAttribute("aria-label",l);
+    b.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">'+IC[k]+'</svg>';
+    b.onclick=()=>k==="exp"?fbExportAll(b):fbOpen(k);f.appendChild(b)});
+  document.body.appendChild(f);
+  const ts=Number(localStorage.getItem("lifeos.v2.fbexp"))||0;if(ts)fbArm(ts)})();
 function boot(){
   const v1=read(V1);
   if(!v1){document.getElementById("view").innerHTML=
     '<div class="empty">Данные v1 не найдены в этом браузере. Открой сначала рабочую версию и дождись загрузки задач.</div>';return}
-  S=migrate(v1);save();render();
+  S=migrate(v1);S.seedMorning=true;save();render();
 }
+function seedMorning(){
+  if(S.seedMorning)return;S.seedMorning=true;
+  if(S.tasks.some((t)=>t.routine==="morning")){save();return}
+  [["Душ 🚿",10],["Почистить зубы 🪥",0],["Выпить воды 💧",0],["Одеться 👕",0],["Заварить чай 🫖",5],["Лёд на лицо 🥶",2],["Зарядка 🏋️",15],["Приготовить завтрак 🍳",15],["Позавтракать 🍳",20],["Выход из дома 💼",0]]
+    .forEach(([n,m],i)=>{const t=task({name:n,min:m},{routine:"morning",where:"today"});t.ord=i+1;S.tasks.push(t)});save()}
 function start(){
   initFocusBtn();
   const v2=read(V2);
-  if(v2&&v2.v===2&&Array.isArray(v2.tasks)){S=v2;S.tasks.forEach((t)=>{if(t.tm===undefined)t.tm=null});render();return}
+  if(v2&&v2.v===2&&Array.isArray(v2.tasks)){S=v2;S.tasks.forEach((t)=>{if(t.tm===undefined)t.tm=null});seedMorning();render();return}
   boot();
 }
 document.getElementById("again").onclick=()=>{if(confirm("Пересобрать из v1? Таймеры и фокус беты сбросятся."))boot()};
