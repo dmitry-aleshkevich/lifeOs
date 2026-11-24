@@ -75,6 +75,12 @@ body.drag .card .plus{opacity:1}
 .dtbtn.set{opacity:1}
 .dtbtn:hover{background:var(--surface-2)}
 .dtbox{flex-wrap:wrap;gap:6px;align-items:center}
+@media (max-width:480px){
+ .seg button{padding:8px 10px;font-size:12.5px}
+ #envSeg{display:flex;width:100%;box-sizing:border-box}#envSeg button{flex:1 1 auto;padding:8px 4px}
+ .kb .col{flex:0 0 min(84vw,320px);min-width:min(84vw,320px)}
+}
+.card.v .nm{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
 .chipb.danger{margin-left:auto;color:var(--pc-red);border-color:var(--pc-red-bg)}
 .cl{display:flex;flex-direction:column;gap:6px}
 .cli{display:flex;gap:8px;align-items:center}.cli .clt{flex:1}
@@ -217,8 +223,7 @@ body.drag .card .plus{opacity:1}
 <div class="foot">
   <button id="again">Пересобрать из v1</button>
 </div>
-<p class="note">Это превью: видно, как одна и та же задача выглядит в четырёх окружениях.
-Перетаскивание появится следующим шагом. Данные берутся из v1 один раз, дальше бета живёт в своей копии <code>lifeos.v2</code>.</p>
+<p class="note">Бета: данные берутся из v1 один раз, дальше живут в своей копии <code>lifeos.v2</code> на этом устройстве.</p>
 
 <script>
 "use strict";
@@ -741,7 +746,7 @@ const ENVS={
     let any=false;
     groups.forEach(([k,label])=>{
       const items=mine().filter((t)=>!t.link&&(t.where||"")===k);
-      if(!items.length)return; any=true;
+      if(!items.length&&k==="")return; any=true;   /* четыре основные группы видны всегда — в пустую можно бросать */
       const h=el("div","ghead");h.dataset.where=k;h.appendChild(el("span",null,label));
       h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
       host.appendChild(h);
