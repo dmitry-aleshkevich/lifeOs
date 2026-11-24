@@ -209,6 +209,16 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .kid .kn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kid.done .kn{text-decoration:line-through;color:var(--muted)}
 .kid .ck{width:18px;height:18px;font-size:11px;flex:none}
+.pbtn{padding:0 11px;display:grid;place-items:center}
+.ppop{position:fixed;left:50%;top:90px;transform:translateX(-50%);z-index:90;width:360px;max-height:78vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
+.ppop .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-weight:800}
+.ppop .ph button{border:0;background:none;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;margin-left:8px}
+.prow{display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:10px;user-select:none;-webkit-user-select:none}
+.prow.drag{background:var(--surface-2);box-shadow:0 4px 14px rgba(0,0,0,.2);position:relative;z-index:2}
+.prow .pg{cursor:grab;color:var(--muted);letter-spacing:-3px;font-weight:800;padding:2px 4px;touch-action:none}
+.prow .pn{flex:1;min-width:0;padding:5px 11px;border-radius:9px;font-weight:700;background:color-mix(in srgb,var(--pc-gray-bg) 100%,var(--surface));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pe{border:0;background:none;color:var(--ink);cursor:pointer;padding:4px;display:grid;place-items:center}
+.prow.off .pn,.prow.off .pe{opacity:.4}
 .kb .col h3.pdrag{cursor:grab;user-select:none;-webkit-user-select:none}
 .pdrag .grip{color:var(--muted);margin-right:6px;letter-spacing:-3px;font-weight:800;opacity:.7}
 .pdrag:hover .grip{opacity:1}
@@ -241,6 +251,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
   <div class="seg" id="sysSeg"></div>
   <div class="seg" id="envSeg"></div>
   <button class="fbtn" id="fbtn" type="button" hidden>🔥 Фокус</button>
+  <button class="fbtn pbtn" id="pbtn" type="button" title="Проекты: порядок и видимость" aria-label="Проекты"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
 <p class="hint" id="hint"></p>
 <div id="view"></div>
@@ -898,7 +909,7 @@ const ENVS={
         const h=c.querySelector("h3");h.classList.add("pdrag");h.dataset.pid=c.dataset.key;{const g=el("span","grip","⋮⋮");g.setAttribute("aria-hidden","true");h.prepend(g)}wireColDrag(h,c,kb)});
     };
     board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
-    const pcols=S.projects.filter((p)=>p.type===UI.sys&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
+    const pcols=S.projects.filter((p)=>p.type===UI.sys&&!p.hidden&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
     board("Проекты","project",pcols,inProj,(k)=>({project:k,where:""}));
   }},
@@ -1028,6 +1039,43 @@ function fbExportAll(btn){
     b.onclick=()=>k==="exp"?fbExportAll(b):fbOpen(k);f.appendChild(b)});
   document.body.appendChild(f);
   const ts=Number(localStorage.getItem("lifeos.v2.fbexp"))||0;if(ts)fbArm(ts)})();
+/* ---------- окно «Проекты»: порядок и видимость (скрыть = блок и его задачи в архив) ---------- */
+const projList=()=>S.projects.filter((p)=>p.type===UI.sys&&(UI.sys==="работа"||!/^работа$/i.test(p.name)));
+function projHide(p,on){p.hidden=!!on;
+  S.tasks.forEach((t)=>{if(t.project!==p.id)return;
+    if(on){if(!t.archived){t.archived=true;t.pHid=true}}else if(t.pHid){t.archived=false;t.pHid=false}})}
+function projReorder(ids){const list=projList(),slots=list.map((p)=>S.projects.indexOf(p));
+  ids.forEach((id,i)=>{S.projects[slots[i]]=list.find((p)=>p.id===id)})}
+function projClose(){const p=document.getElementById("ppop");if(p)p.remove()}
+function projOpen(){
+  if(document.getElementById("ppop")){projClose();return}
+  const pop=el("div","ppop");pop.id="ppop";
+  const h=el("div","ph");h.appendChild(el("span",null,"Проекты · "+(UI.sys==="дела"?"Дела":"Работа")));
+  const hb=el("span");const hide=el("button",null,"Скрыть все"),show=el("button",null,"Показать все"),x=el("button",null,"×");
+  [hide,show,x].forEach((b)=>b.type="button");x.setAttribute("aria-label","Закрыть");x.onclick=projClose;
+  hb.append(hide,show,x);h.appendChild(hb);pop.appendChild(h);
+  const ul=el("div","plist");pop.appendChild(ul);
+  const draw=()=>{ul.innerHTML="";projList().forEach((p)=>{
+    const r=el("div","prow"+(p.hidden?" off":""));r.dataset.pid=p.id;
+    const g=el("span","pg","⋮⋮");g.setAttribute("aria-hidden","true");
+    const n=el("span","pn",p.name);n.style.background="var(--pc-"+(p.color||"gray")+"-bg)";
+    const e=el("button","pe");e.type="button";e.title=p.hidden?"Показать":"Скрыть";e.setAttribute("aria-label",e.title);
+    e.innerHTML=p.hidden?'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 3l18 18M10.6 6.2A9.6 9.6 0 0 1 12 6c5 0 8.5 4.5 9.5 6a14 14 0 0 1-3 3.4M6.3 7.6C4.3 9 3 11 2.5 12c1 1.5 4.5 6 9.5 6 1.4 0 2.7-.4 3.8-.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+      :'<svg viewBox="0 0 24 24" width="20" height="20"><path d="M2.5 12C3.5 10.5 7 6 12 6s8.5 4.5 9.5 6c-1 1.5-4.5 6-9.5 6S3.5 13.5 2.5 12z" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>';
+    e.onclick=()=>{pushUndo();projHide(p,!p.hidden);logA("проект "+(p.hidden?"скрыт":"показан")+": "+p.name);save();draw();render()};
+    r.append(g,n,e);ul.appendChild(r);
+    g.addEventListener("pointerdown",(ev)=>{if(ev.button!==0)return;ev.preventDefault();r.classList.add("drag");let moved=false;
+      const mv=(m)=>{const rows=[...ul.children].filter((c)=>c!==r);let before=null;
+        for(const c of rows){const b=c.getBoundingClientRect();if(m.clientY<b.top+b.height/2){before=c;break}}
+        const cur=r.nextSibling;if(before!==cur){ul.insertBefore(r,before);moved=true}};
+      const up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);removeEventListener("pointercancel",up);r.classList.remove("drag");
+        if(moved){pushUndo();projReorder([...ul.children].map((c)=>c.dataset.pid));logA("порядок проектов изменён");save();render()}};
+      addEventListener("pointermove",mv);addEventListener("pointerup",up);addEventListener("pointercancel",up)})})};
+  const all=(on)=>{pushUndo();projList().forEach((p)=>projHide(p,on));save();draw();render()};
+  hide.onclick=()=>all(true);show.onclick=()=>all(false);
+  ["keydown","keyup","keypress"].forEach((ev)=>pop.addEventListener(ev,(e)=>{e.stopPropagation();if(ev==="keydown"&&e.key==="Escape")projClose()}));
+  draw();document.body.appendChild(pop)}
+document.getElementById("pbtn").onclick=projOpen;
 function boot(){
   const v1=read(V1);
   if(!v1){document.getElementById("view").innerHTML=
