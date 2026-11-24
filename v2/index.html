@@ -269,6 +269,7 @@ function cardBase(t,opt={}){
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
+    if(!(t.min||(t.check&&t.check.length)||(t.at&&!opt.noAt)))return li;
     const r2=el("div","row2");
     r2.appendChild(el("span","pmeta",(t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":"")
       +(t.check&&t.check.length?(t.min?"  ·  ":"")+t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"")));
@@ -432,9 +433,10 @@ document.addEventListener("keydown",(e)=>{
 function note(text){const o=document.getElementById("note2");if(o)o.remove();
   const n=el("div","toast",text);n.id="note2";document.body.appendChild(n);setTimeout(()=>n.remove(),3500)}
 function delTask(t){pushUndo();S.tasks=S.tasks.filter((x)=>x!==t&&x.link!==t.id);if(UI.open===t.id)UI.open=null;save();render()}
-function editName(span,t){
+function editName(span,t,isNew){
   const inp=el("input","nmi");inp.type="text";inp.value=t.name;span.replaceWith(inp);inp.focus();inp.select();
   let done=false;const fin=(ok)=>{if(done)return;done=true;const v=inp.value.trim();
+    if(isNew&&(!ok||!v||v===t.name)){S.tasks=S.tasks.filter((x)=>x!==t);undo.pop();save();render();return}
     if(ok&&v&&v!==t.name){pushUndo();t.name=v;save()}render()};
   inp.onkeydown=(e)=>{if(e.key==="Enter")fin(true);else if(e.key==="Escape"){e.stopPropagation();fin(false)}};
   inp.onblur=()=>fin(true);inp.onclick=(e)=>e.stopPropagation()}
@@ -732,7 +734,7 @@ const ENVS={
           const add=el("button","add","+ Задача");
           add.onclick=()=>{pushUndo();const t=task({name:"Новая задача",min:0},Object.assign({type:UI.sys,ord:S.tasks.length},addOpts(k)));
             S.tasks.push(t);save();render();
-            const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t)};
+            const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
           c.appendChild(add)}
         kb.appendChild(c);
       });
