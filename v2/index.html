@@ -158,6 +158,7 @@ body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .card.kid2{margin-left:26px;position:relative}
 .card.kid2::before{content:"";position:absolute;left:-14px;top:-12px;bottom:50%;width:12px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;pointer-events:none}
 .card>.fold{position:absolute;left:50%;margin-left:24px;bottom:-11px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:12px;line-height:1;padding:0;cursor:pointer;z-index:2}
+.card>.plus.arr{opacity:1;pointer-events:auto;font-size:12px}
 .card.stack{margin-bottom:8px;box-shadow:0 5px 0 -1px var(--surface-2),0 6px 0 -1px var(--line)}
 .kids{display:flex;flex-direction:column;gap:4px;margin-left:8px;padding-left:8px;border-left:2px solid var(--line)}
 .kid{display:flex;align-items:center;gap:6px;font-size:13px}
@@ -449,8 +450,10 @@ function subBox(t){
   w.append(si,pl);setTimeout(()=>si.focus(),0);return w}
 function addSub(t,rel,txt,dur,start){
   const q=parseQuick(txt);if(!q.name)return;pushUndo();
-  const s=task({name:q.name,at:q.at,min:q.min||dur||0},{type:t.type,where:t.where,status:t.type==="работа"?(t.status||"todo"):"",project:t.project,link:t.id,rel,ord:S.tasks.length});
-  S.tasks.push(s);UI.sub={id:t.id,rel,dur:0,txt:""};save();if(start)startT(s);render()}
+  const par=t.link?byId(t.link)||t:t,krel=t.link?t.rel:rel;
+  const s2=task({name:q.name,at:q.at,min:q.min||dur||0},{type:par.type,where:par.where,status:par.type==="работа"?(par.status||"todo"):"",project:par.project,link:par.id,rel:krel,ord:S.tasks.length});
+  if(t.link){const ix=S.tasks.indexOf(t);S.tasks.splice(rel==="post"?ix+1:ix,0,s2)}else S.tasks.push(s2);
+  UI.sub={id:t.id,rel,dur:0,txt:""};save();if(start)startT(s2);render()}
 function panel(t){
   const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
   const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
@@ -519,12 +522,15 @@ function card(t,opt={}){
   const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{e.stopPropagation();editName(nm,t)};
   li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;UI.open=UI.open===t.id?null:t.id;UI.sub=null;render()});
   li.dataset.cid=t.id;if(t.link)li.dataset.sub="1";
-  if(!t.link&&!t.done&&!opt.noAt){
+  if(!t.done&&!opt.noAt){
+    const kidsOf=t.link?[]:S.tasks.filter((x)=>x.link===t.id);
     [["pre","pl-top","Добавить задачу перед этой"],["post","pl-bot","Добавить задачу после этой"]].forEach(([rel,cls,tt])=>{
-      const b=el("button","plus "+cls,"+");b.type="button";b.title=tt;b.setAttribute("aria-label",tt);
-      b.onclick=(e)=>{e.stopPropagation();UI.sub={id:t.id,rel,dur:0,txt:""};render()};li.appendChild(b)})}
-  if(!t.link&&S.tasks.some((x)=>x.link===t.id)){const fb=el("button","fold",FOLD.has(t.id)?"⌄":"⌃");fb.type="button";fb.title=FOLD.has(t.id)?"Показать пред/подзадачи":"Скрыть пред/подзадачи";
-    fb.setAttribute("aria-label",fb.title);fb.onclick=(e)=>{e.stopPropagation();if(FOLD.has(t.id))FOLD.delete(t.id);else FOLD.add(t.id);saveFold();render()};li.appendChild(fb)}
+      const has=kidsOf.some((k2)=>(k2.rel==="pre")===(rel==="pre")),key=rel+":"+t.id;
+      const b=el("button","plus "+cls+(has?" arr":""),has?((rel==="pre")===FOLD.has(key)?"⌃":"⌄"):"+");b.type="button";
+      b.title=has?(FOLD.has(key)?"Показать":"Скрыть")+(rel==="pre"?" предзадачи":" подзадачи"):tt;b.setAttribute("aria-label",b.title);
+      b.onclick=(e)=>{e.stopPropagation();
+        if(has){if(FOLD.has(key))FOLD.delete(key);else FOLD.add(key);saveFold();render()}
+        else{UI.sub={id:t.id,rel,dur:0,txt:""};render()}};li.appendChild(b)})}
   if(UI.sub&&UI.sub.id===t.id)li.appendChild(subBox(t));
   const x=el("button","x","✕");x.type="button";x.title="Удалить";x.setAttribute("aria-label","Удалить");x.onclick=(e)=>{e.stopPropagation();delTask(t)};li.appendChild(x);
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
@@ -636,10 +642,11 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
 const FOLD=new Set(read("lifeos.v2.fold")||[]);
 const saveFold=()=>{try{localStorage.setItem("lifeos.v2.fold",JSON.stringify([...FOLD]))}catch{}};
 function rowWithKids(host,t,o={}){
-  const kids=S.tasks.filter((x)=>x.link===t.id),folded=kids.length&&FOLD.has(t.id)&&UI.open!==t.id;
+  const kids=S.tasks.filter((x)=>x.link===t.id);
   const sub=(k2)=>{const c=card(k2,o);c.classList.add("kid2");host.appendChild(c)};
-  if(folded){const c=card(t,o);c.classList.add("stack");host.appendChild(c);return}
-  kids.filter((k2)=>k2.rel==="pre").forEach(sub);host.appendChild(card(t,o));kids.filter((k2)=>k2.rel!=="pre").forEach(sub)}
+  if(!FOLD.has("pre:"+t.id))kids.filter((k2)=>k2.rel==="pre").forEach(sub);
+  const c=card(t,o);if(FOLD.has("post:"+t.id)&&kids.some((k2)=>k2.rel!=="pre"))c.classList.add("stack");host.appendChild(c);
+  if(!FOLD.has("post:"+t.id))kids.filter((k2)=>k2.rel!=="pre").forEach(sub)}
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
 const ENVS={
   list:{name:"Список",render(host){

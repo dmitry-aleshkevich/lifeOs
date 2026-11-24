@@ -30,13 +30,26 @@ with sync_playwright() as p:
     assert P(pg)[:2]==["p2","p1"], P(pg)
     # сворачивание пред/подзадач за родителя
     pg.locator('.col[data-board="status"] .card[data-cid="w1"]').hover()
-    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .fold').click(force=True); pg.wait_for_timeout(200)
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .pl-bot').click(force=True); pg.wait_for_timeout(200)
     assert pg.locator('.card[data-sub="1"]').count()==0 and pg.locator('.card.stack').count()>=1
-    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .fold').click(force=True); pg.wait_for_timeout(200)
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .pl-bot').click(force=True); pg.wait_for_timeout(200)
     assert pg.locator('.card[data-sub="1"]').count()>=1
     pg.click("#envSeg button:has-text('Список')"); pg.wait_for_timeout(300)
     assert pg.locator('.card[data-sub="1"]').count()==1
-    pg.locator('.card[data-cid="w1"] > .fold').click(force=True); pg.wait_for_timeout(200)
+    pg.locator('.card[data-cid="w1"] > .pl-bot').click(force=True); pg.wait_for_timeout(200)
     assert pg.locator('.card[data-sub="1"]').count()==0
+    # у подзадачи свои плюсы: добавить ниже неё
+    pg.locator('.card[data-cid="w1"] > .pl-bot').click(force=True) if pg.locator('.card[data-sub="1"]').count()==0 else None
+    k=pg.locator('.col[data-board="status"] .card[data-sub="1"]').first
+    pg.click("#envSeg button:has-text('Канбан')"); pg.wait_for_timeout(300)
+    k=pg.locator('.col[data-board="status"] .card[data-sub="1"]').first; k.hover(); k.locator(".pl-bot").click(force=True)
+    pg.fill(".sub-new","Ещё одна"); pg.press(".sub-new","Enter"); pg.wait_for_timeout(200)
+    assert pg.locator('.col[data-board="status"] .card[data-sub="1"]').count()==2
+    # предзадача (одиночная) скрывается верхней стрелкой
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"]').hover(); pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .pl-top').click(force=True)
+    pg.fill(".sub-new","Перед"); pg.press(".sub-new","Enter"); pg.wait_for_timeout(200)
+    assert pg.locator('.col[data-board="status"] .card[data-sub="1"]').count()==3
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .pl-top').click(force=True); pg.wait_for_timeout(200)
+    assert pg.locator('.col[data-board="status"] .card[data-sub="1"]').count()==2
     assert not errs, errs
 print("ERRORS: []")
