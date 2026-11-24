@@ -62,6 +62,14 @@ body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .panel input[type=number]{width:70px}
 .chipb{border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-weight:800;font-size:12px;background:transparent;color:var(--ink);cursor:pointer}
 .chipb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cktag{border:0;background:transparent;font:inherit;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;padding:1px 6px;border-radius:8px}
+.cktag:hover,.cktag.on{background:var(--surface-2);color:var(--ink)}
+.card>.cklist{flex:0 0 100%;display:flex;flex-direction:column;gap:4px;padding-top:6px;border-top:1px solid var(--line)}
+.ckrow{display:flex;align-items:center;gap:8px;font-size:13px}.ckrow.done span{text-decoration:line-through;color:var(--muted)}
+body.drag .card .plus{opacity:1}
+.plus.dropplus{background:var(--accent)!important;color:#fff!important;transform:scale(1.35)}
+.card.stackt{margin-top:12px;box-shadow:0 -7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 -13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface))}
+.card.stack.stackt{box-shadow:0 7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface)),0 -7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 -13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface))}
 .pfoot{display:flex;align-items:center;justify-content:space-between}
 .dtbtn{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:3px 6px;border-radius:8px;cursor:pointer;opacity:.7}
 .dtbtn.set{opacity:1}
@@ -255,6 +263,14 @@ const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 
 /* ---------- одна карточка на все окружения ---------- */
 /* общие кусочки карточки: считаются один раз, окружение только выбирает, где их поставить */
+const CKS=new Set(read("lifeos.v2.ckshow")||[]);
+const saveCks=()=>{try{localStorage.setItem("lifeos.v2.ckshow",JSON.stringify([...CKS]))}catch{}};
+function ckTag(t){const b=el("button","cktag"+(CKS.has(t.id)?" on":""),checkTxt(t));b.type="button";b.title=CKS.has(t.id)?"Скрыть чек-лист":"Показать чек-лист";
+  b.onclick=(e)=>{e.stopPropagation();if(CKS.has(t.id))CKS.delete(t.id);else CKS.add(t.id);saveCks();render()};return b}
+function ckList(t){const w=el("div","cklist");
+  t.check.forEach((c)=>{const r=el("div","ckrow"+(c.done?" done":""));const cb=el("input");cb.type="checkbox";cb.checked=!!c.done;
+    cb.onclick=(e)=>e.stopPropagation();cb.onchange=()=>{pushUndo();c.done=cb.checked;save();render()};
+    r.append(cb,el("span",null,c.text||c.t||c.name||""));w.appendChild(r)});return w}
 const checkTxt=(t)=>t.check&&t.check.length?t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"";
 const atSpan=()=>null; /* время живёт в подвале раскрытой карточки; на таймлайне его показывает сама позиция */
 function pillBtn(t,cls,title){const pl=el("button","mins"+cls,"");pl.type="button";if(title)pl.title=title;pl.dataset.tid=t.id;wirePill(pl,t);return pl}
@@ -266,7 +282,7 @@ function cardBase(t,opt={}){
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
-  if(checkTxt(t)&&!opt.v)meta.appendChild(el("span","ckn",checkTxt(t)));
+  if(checkTxt(t)&&!opt.v)meta.appendChild(ckTag(t));
   const kids=S.tasks.filter((x)=>x.link===t.id).length;
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
   if(t.desc)meta.appendChild(el("span","desc",t.desc));
@@ -280,8 +296,8 @@ function cardBase(t,opt={}){
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
     if(!(t.min||checkTxt(t)||atSpan(t,opt)))return li;
     const r2=el("div","row2");
-    r2.appendChild(el("span","pmeta",(t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":"")
-      +(checkTxt(t)?(t.min?"  ·  ":"")+checkTxt(t):"")));
+    r2.appendChild(el("span","pmeta",t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":""));
+    if(checkTxt(t))r2.appendChild(ckTag(t));
     const right=el("div","r2r");
     {const a=atSpan(t,opt);if(a)right.appendChild(a)}
     r2.appendChild(right);
@@ -565,6 +581,7 @@ function card(t,opt={}){
         else{UI.sub={id:t.id,rel,dur:0,txt:""};render()}};li.appendChild(b)})}
   if(UI.sub&&UI.sub.id===t.id)li.appendChild(subBox(t));
   const x=el("button","x","✕");x.type="button";x.title="Удалить";x.setAttribute("aria-label","Удалить");x.onclick=(e)=>{e.stopPropagation();delTask(t)};li.appendChild(x);
+  if(CKS.has(t.id)&&t.check&&t.check.length&&UI.open!==t.id)li.appendChild(ckList(t));
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}
 
@@ -594,7 +611,7 @@ function clearColumn(k){pushUndo();
   save();render()}
 function dropKanban(d){
   const t=d.t,col=d.tgt.col,board=col.dataset.board,key=col.dataset.key,work=t.type==="работа";
-  pushUndo();S.tasks=S.tasks.filter((x)=>x!==t);
+  pushUndo();S.tasks=S.tasks.filter((x)=>x!==t);t.link="";t.rel="";
   if(board==="status"){
     if(key==="done"){if(!t.done)markDone(t)}
     else{if(t.done)t.done=false;
@@ -611,9 +628,28 @@ function dragStart(){const d=DR;d.active=true;d.li.classList.add("dragging");doc
   const g=d.li.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";g.querySelectorAll(".panel,.plus,.x").forEach((n)=>n.remove());document.body.appendChild(g);d.ghost=g;
   const ln=el("div","dropline");ln.hidden=true;document.body.appendChild(ln);d.line=ln;
   const loop=()=>{if(!DR||!DR.active)return;if(DR.y<70)scrollBy(0,-14);else if(DR.y>innerHeight-70)scrollBy(0,14);dragMove();requestAnimationFrame(loop)};requestAnimationFrame(loop)}
+function plusAt(d){
+  document.querySelectorAll(".plus.dropplus").forEach((b)=>b.classList.remove("dropplus"));
+  for(const b of document.querySelectorAll("#view .card .plus")){
+    const c=b.closest(".card");if(c===d.li||!c.dataset.cid)continue;
+    const r=b.getBoundingClientRect();if(!r.width)continue;
+    if(d.x>=r.left-8&&d.x<=r.right+8&&d.y>=r.top-8&&d.y<=r.bottom+8){b.classList.add("dropplus");return {b,c,rel:b.classList.contains("pl-top")?"pre":"post"}}}
+  return null}
+/* бросили задачу на чужой «+» — она становится его подзадачей (до/после) */
+function adopt(t,card,rel){
+  const o=byId(card.dataset.cid);if(!o||o===t)return false;
+  const par=o.link?byId(o.link)||o:o;if(par===t)return false;
+  const krel=o.link?o.rel:rel;
+  pushUndo();S.tasks=S.tasks.filter((x)=>x!==t);
+  S.tasks.filter((x)=>x.link===t.id).forEach((k2)=>{k2.link=par.id});
+  Object.assign(t,{link:par.id,rel:krel,type:par.type,where:par.where,project:par.project,status:par.type==="работа"?(par.status||"todo"):""});
+  if(t.done)t.done=false;
+  if(o.link)S.tasks.splice(S.tasks.indexOf(o)+(rel==="post"?1:0),0,t);else S.tasks.push(t);
+  FOLD.delete(rel+":"+par.id);saveFold();save();render();return true}
 function dragMove(){const d=DR;if(!d||!d.active)return;
   d.ghost.style.left=(d.x-d.dx)+"px";d.ghost.style.top=(d.y-d.dy)+"px";
   const view=document.getElementById("view");
+  {const pl=plusAt(d);if(pl){d.tgt={plus:pl};d.line.hidden=true;document.querySelectorAll(".dropcol").forEach((c)=>c.classList.remove("dropcol"));return}}
   if(UI.env==="kanban"){
     const cols=[...view.querySelectorAll(".col[data-board]")];let col=null;
     for(const c of cols){const r=c.getBoundingClientRect();if(d.x>=r.left&&d.x<=r.right&&d.y>=r.top&&d.y<=r.bottom){col=c;break}}
@@ -641,9 +677,11 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
   d.li.classList.remove("dragging");document.body.classList.remove("drag");d.ghost.remove();d.line.remove();
   swallow=true;setTimeout(()=>{swallow=false},60);
   document.querySelectorAll(".dropcol").forEach((c)=>c.classList.remove("dropcol"));
+  document.querySelectorAll(".plus.dropplus").forEach((b)=>b.classList.remove("dropplus"));
   if(cancel||!d.tgt)return;
+  if(d.tgt.plus){adopt(d.t,d.tgt.plus.c,d.tgt.plus.rel);return}
   if(d.tgt.kanban){dropKanban(d);return}
-  const t=d.t,n=d.tgt.n;pushUndo();
+  const t=d.t,n=d.tgt.n;pushUndo();t.link="";t.rel="";
   S.tasks=S.tasks.filter((x)=>x!==t);let idx;
   if(d.tgt.head){const w=n.dataset.where;t.where=w;const first=S.tasks.findIndex((x)=>x.type===t.type&&!x.link&&(x.where||"")===w);idx=first>=0?first:S.tasks.length}
   else{const o=byId(n.dataset.cid);if(!o){S.tasks.push(t);save();render();return}
@@ -655,7 +693,7 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
   const view=document.getElementById("view");
   view.addEventListener("pointerdown",(e)=>{
     if((UI.env!=="list"&&UI.env!=="kanban")||(e.pointerType==="mouse"&&e.button!==0))return;
-    const li=e.target.closest(".card[data-cid]");if(!li||li.dataset.sub)return;
+    const li=e.target.closest(".card[data-cid]");if(!li)return;
     if(e.target.closest("button,input,textarea,select,.panel"))return;
     const t=byId(li.dataset.cid);if(!t)return;
     DR={t,li,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,active:false,touch:e.pointerType!=="mouse",timer:null,tgt:null};
@@ -677,7 +715,8 @@ function rowWithKids(host,t,o={}){
   const kids=S.tasks.filter((x)=>x.link===t.id);
   const sub=(k2)=>{const c=card(k2,o);c.classList.add("kid2");if(k2.rel==="pre")c.classList.add("kpre");host.appendChild(c)};
   if(!FOLD.has("pre:"+t.id))kids.filter((k2)=>k2.rel==="pre").forEach(sub);
-  const c=card(t,o);if(FOLD.has("post:"+t.id)&&kids.some((k2)=>k2.rel!=="pre"))c.classList.add("stack");host.appendChild(c);
+  const c=card(t,o);if(FOLD.has("post:"+t.id)&&kids.some((k2)=>k2.rel!=="pre"))c.classList.add("stack");
+  if(FOLD.has("pre:"+t.id)&&kids.some((k2)=>k2.rel==="pre"))c.classList.add("stackt");host.appendChild(c);
   if(!FOLD.has("post:"+t.id))kids.filter((k2)=>k2.rel!=="pre").forEach(sub)}
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
 const ENVS={
