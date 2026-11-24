@@ -29,13 +29,12 @@ with sync_playwright() as p:
     assert pg.locator(".card").count()>0
     pg.locator("#sysSeg button:has-text('Дела')").click(); pg.wait_for_timeout(300)
     pg.locator("#envSeg button:has-text('Список')").click(); pg.wait_for_timeout(300)
-    # "Фокус" is one property on the one card: it shows in every environment
-    assert pg.locator(".card .fx").count()>0, "focus toggle missing"
-    pg.locator(".card .fx").first.click(); pg.wait_for_timeout(300)
-    assert pg.evaluate("JSON.parse(localStorage.getItem('lifeos.v2')).tasks.some(t=>t.focus)")
+    # "Фокус" больше не свойство карточки: это фильтр над списком (кнопка только в окружении «Список»)
+    assert pg.locator(".card .fx").count()==0, "старый значок фокуса остался"
+    assert pg.is_visible("#fbtn"), "кнопка Фокус не видна в Списке"
     for env in ("Таймлайн","Канбан","Календарь"):
         pg.locator(f"#envSeg button:has-text('{env}')").click(); pg.wait_for_timeout(250)
-        assert pg.locator(".card .fx").count()>0, "focus missing in "+env
+        assert not pg.is_visible("#fbtn"), "кнопка Фокус видна в "+env
     pg.locator("#envSeg button:has-text('Список')").click(); pg.wait_for_timeout(250)
     v2=pg.evaluate("JSON.parse(localStorage.getItem('lifeos.v2'))")
     names=[t["name"] for t in v2["tasks"]]; print(names)

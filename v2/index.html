@@ -53,12 +53,28 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .ckn,.subn{font-size:11px;font-weight:700;color:var(--muted)}
 .desc{min-width:0;max-width:100%;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .at{font-size:13px;font-weight:700;color:var(--muted);flex:none}
-.fx{flex:none;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:transparent;
- color:var(--muted);font-size:13px;line-height:1;cursor:pointer;padding:0}
-.fx.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .mins{flex:none;display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--line);border-radius:999px;
  padding:6px 12px;font-size:13px;font-weight:800;background:transparent;color:var(--ink);cursor:pointer}
 .mins.hot{background:var(--accent);border-color:var(--accent);color:#fff}
+.mins,.play{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;font-variant-numeric:tabular-nums}
+.mins.run{background:var(--accent);border-color:var(--accent);color:#fff}
+.mins.pause{border-style:dashed}
+.mins.over{background:var(--pc-red-bg);border-color:var(--pc-red);color:var(--pc-red)}
+.play.run{background:var(--accent);border-color:var(--accent);color:#fff}
+.play.over{background:var(--pc-red-bg);border-color:var(--pc-red);color:var(--pc-red)}
+.fbtn{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:800;font-size:13px;
+ padding:8px 15px;border-radius:999px;cursor:pointer;min-height:38px;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.fbtn[hidden]{display:none}
+.fbtn.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.pop{position:fixed;z-index:50;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+ box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px;min-width:176px}
+.pop button{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--ink);font:inherit;
+ font-weight:700;font-size:14px;padding:10px 12px;border-radius:9px;cursor:pointer;white-space:pre}
+.pop button:hover{background:var(--surface-2)}
+.pop hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom));z-index:60;
+ background:var(--ink);color:var(--bg);border-radius:14px;padding:10px 14px;font-weight:700;font-size:14px;display:flex;gap:12px;align-items:center}
+.toast button{border:0;background:transparent;color:var(--accent);font:inherit;font-weight:800;cursor:pointer}
 .pc-orange{background:var(--pc-orange-bg);color:var(--pc-orange)}.pc-red{background:var(--pc-red-bg);color:var(--pc-red)}
 .pc-yellow{background:var(--pc-yellow-bg);color:var(--pc-yellow)}.pc-violet{background:var(--pc-violet-bg);color:var(--pc-violet)}
 .pc-blue{background:var(--pc-blue-bg);color:var(--pc-blue)}.pc-green{background:var(--pc-green-bg);color:var(--pc-green)}
@@ -117,6 +133,7 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 <div class="bar">
   <div class="seg" id="sysSeg"></div>
   <div class="seg" id="envSeg"></div>
+  <button class="fbtn" id="fbtn" type="button" hidden>🔥 Фокус</button>
   </div>
 <p class="hint" id="hint"></p>
 <div id="view"></div>
@@ -124,7 +141,7 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
   <button id="again">Пересобрать из v1</button>
 </div>
 <p class="note">Это превью: видно, как одна и та же задача выглядит в четырёх окружениях.
-Перетаскивание и редактирование появятся следующими шагами. Данные читаются из v1, своя копия — в <code>lifeos.v2</code>.</p>
+Перетаскивание и редактирование появятся следующими шагами. Данные берутся из v1 один раз, дальше бета живёт в своей копии <code>lifeos.v2</code>.</p>
 
 <script>
 "use strict";
@@ -143,7 +160,7 @@ function task(src,over){
     where:src.where||"", ord:0,
     at:src.at||"", due:src.due||"", min:Number(src.min)||0,
     spent:+src.spent||0, sessions:+src.sessions||0, acc:+src.acc||0,
-    done:!!src.done, doneAt:+src.doneAt||0, focus:!!src.focus,
+    done:!!src.done, doneAt:+src.doneAt||0, tm:null,
     status:src.done?"done":"", stage:"", waitUntil:src.waitUntil||"",
     link:src.link||"", rel:src.rel||"",
   },over);
@@ -171,7 +188,7 @@ const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 function card(t,opt={}){
   const li=el("div","card"+(t.done?" done":""));
   const ck=el("button","ck",t.done?"✓":"");ck.setAttribute("aria-label","Отметить");
-  ck.onclick=()=>{t.done=!t.done;save();render()};
+  ck.onclick=()=>{if(t.done){t.done=false;save();render()}else complete(t)};
   li.appendChild(ck);
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
@@ -181,36 +198,145 @@ function card(t,opt={}){
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
   if(t.desc)meta.appendChild(el("span","desc",t.desc));
   if(meta.children.length)txt.appendChild(meta);
-  const fx=el("button","fx"+(t.focus?" on":""),"◎");
-  fx.title="Фокус";fx.setAttribute("aria-pressed",!!t.focus);
-  fx.onclick=(e)=>{e.stopPropagation();t.focus=!t.focus;save();render()};
   if(opt.v){
     li.classList.add("v");
     const top=el("div","top");top.appendChild(li.firstChild);top.appendChild(txt);
-    if(t.min){const pl=el("button","play","▶");pl.title="Запустить";top.appendChild(pl)}
+    if(!t.done&&(t.min||t.tm)){const pl=el("button","play","▶");pl.type="button";pl.title="Таймер";pl.dataset.tid=t.id;wirePill(pl,t);top.appendChild(pl)}
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
-      i.style.width=Math.min(100,Math.round((t.spent/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
+      i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
     const r2=el("div","row2");
-    r2.appendChild(el("span","pmeta",(t.min?Math.round(t.spent/60000)+" из "+t.min+" мин":"")
+    r2.appendChild(el("span","pmeta",(t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":"")
       +(t.check&&t.check.length?(t.min?"  ·  ":"")+t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"")));
     const right=el("div","r2r");
     if(t.at&&!opt.noAt)right.appendChild(el("span","at",t.at));
-    right.appendChild(fx);
     r2.appendChild(right);
     li.appendChild(r2);
     return li;
   }
   li.appendChild(txt);
   if(t.at&&!opt.noAt)li.appendChild(el("span","at",t.at));
-  li.appendChild(fx);
-  if(t.min)li.appendChild(el("span","mins"+(opt.hot?" hot":""),"▶ "+t.min+" мин"));
+  if(t.done){if(t.min)li.appendChild(el("span","mins",Math.max(1,Math.round((t.spent||0)/60000))+" из "+t.min+" мин"))}
+  else{const pl=el("button","mins"+(opt.hot?" hot":""),"");pl.type="button";pl.dataset.tid=t.id;wirePill(pl,t);li.appendChild(pl)}
   return li;
 }
+
+/* ---------- таймер: один бегущий, остальные замораживаются ---------- */
+const NOW=()=>Date.now()+(window.__off||0);
+const mmss=(ms)=>{ms=Math.max(0,Math.ceil(ms/1000));return Math.floor(ms/60)+":"+String(ms%60).padStart(2,"0")};
+const byId=(id)=>S.tasks.find((t)=>t.id===id);
+const leftOf=(t)=>!t.tm?null:(t.tm.run?t.tm.end-NOW():t.tm.left);
+const spentOf=(t)=>t.done?(t.spent||0):(t.acc||0)+(t.tm&&t.tm.run?NOW()-t.tm.seg:0);
+let AC=null;
+function audio(){try{if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C()}if(AC&&AC.state==="suspended")AC.resume()}catch{}}
+function ring(){window.__rings=(window.__rings||0)+1;
+  try{audio();if(!AC)return;const t0=AC.currentTime;
+    for(let i=0;i<6;i++){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=i%2?660:880;
+      g.gain.setValueAtTime(0.0001,t0+i*0.5);g.gain.exponentialRampToValueAtTime(0.35,t0+i*0.5+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+i*0.5+0.4);
+      o.connect(g);g.connect(AC.destination);o.start(t0+i*0.5);o.stop(t0+i*0.5+0.45)}}catch{}}
+function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);m.run=false}
+function startT(t){audio();
+  S.tasks.forEach((x)=>{if(x!==t&&x.tm&&x.tm.run)pauseT(x)});
+  if(!t.tm){const sw=!t.min;t.tm={run:true,sw,end:NOW()+(sw?0:t.min*60000),left:0,seg:NOW(),rang:false}}
+  else if(!t.tm.run){t.tm.run=true;t.tm.end=NOW()+t.tm.left;t.tm.seg=NOW()}
+  save();tick()}
+function toggleT(t){if(t.tm&&t.tm.run)pauseT(t);else startT(t);save();tick()}
+function addT(t,min){const add=min*60000;
+  if(!t.tm){t.min=(t.min||0)+min;save();render();return}
+  if(t.tm.sw)return;
+  const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;save();tick()}
+function complete(t){
+  if(t.tm){if(t.tm.run)pauseT(t);t.tm=null}
+  t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";
+  save();render();
+  if(F.on)nextInFocus(t)}
+function pillText(t){
+  const m=t.tm;if(!m)return "▶ "+(t.min?t.min+" мин":"старт");
+  const l=leftOf(t);
+  if(m.sw)return (m.run?"⏸ ":"▶ ")+mmss(-l);
+  return (m.run?"⏸ ":"▶ ")+(l<0?"+"+mmss(-l):mmss(l))}
+function paintPill(b,t){
+  const m=t.tm,l=leftOf(t),over=!!m&&!m.sw&&l<0;
+  b.classList.toggle("run",!!m&&m.run&&!over);b.classList.toggle("over",over);b.classList.toggle("pause",!!m&&!m.run);
+  b.textContent=b.classList.contains("play")?(m&&m.run?"⏸":"▶"):pillText(t)}
+function tick(){
+  S.tasks.forEach((t)=>{const m=t.tm;if(m&&m.run&&!m.sw&&!m.rang&&m.end-NOW()<=0){m.rang=true;save();ring()}});
+  document.querySelectorAll("[data-tid]").forEach((b)=>{const t=byId(b.dataset.tid);if(t&&!t.done)paintPill(b,t)})}
+setInterval(()=>{if(S)tick()},500);
+document.addEventListener("visibilitychange",()=>{if(S&&document.visibilityState==="visible")tick()});
+
+/* ---------- всплывающее меню: ПКМ или долгое нажатие ---------- */
+function closePop(){document.querySelectorAll(".pop").forEach((n)=>n.remove())}
+function popup(x,y,items){closePop();
+  const p=el("div","pop");
+  items.forEach((it)=>{if(it==="-"){p.appendChild(el("hr"));return}
+    const b=el("button",null,it[0]);b.type="button";b.onclick=(e)=>{e.stopPropagation();closePop();it[1]()};p.appendChild(b)});
+  document.body.appendChild(p);
+  const w=p.offsetWidth,h=p.offsetHeight;
+  p.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+"px";p.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+"px"}
+document.addEventListener("click",closePop);
+function onMenu(node,open){
+  let tm=null,fired=false,sx=0,sy=0;
+  node.addEventListener("contextmenu",(e)=>{e.preventDefault();open(e.clientX,e.clientY)});
+  node.addEventListener("touchstart",(e)=>{fired=false;const p=e.touches[0];sx=p.clientX;sy=p.clientY;
+    tm=setTimeout(()=>{fired=true;open(sx,sy)},500)},{passive:true});
+  const stop=()=>clearTimeout(tm);
+  node.addEventListener("touchmove",stop,{passive:true});node.addEventListener("touchcancel",stop);
+  node.addEventListener("touchend",(e)=>{stop();if(fired)e.preventDefault()});
+  node.addEventListener("click",(e)=>{if(fired){e.stopImmediatePropagation();e.preventDefault();fired=false}},true)}
+function wirePill(b,t){
+  b.onclick=(e)=>{e.stopPropagation();toggleT(t)};
+  onMenu(b,(x,y)=>{
+    const items=[];
+    if(t.tm)items.push([t.tm.run?"⏸ Пауза":"▶ Продолжить",()=>toggleT(t)],"-");
+    if(!(t.tm&&t.tm.sw))[1,5,10,15].forEach((m)=>items.push(["+ "+m+" мин",()=>addT(t,m)]));
+    items.push("-",["✓ Готово",()=>complete(t)]);
+    popup(x,y,items)});
+  paintPill(b,t)}
+
+/* ---------- фокус: запоминающий фильтр над «Сегодня» (Дела) / ToDo (Работа) ---------- */
+const FK="lifeos.v2.focus";
+const PRESETS=[["n3","Первые 3",{n:3}],["n5","Первые 5",{n:5}],["m30","30 мин",{m:30}],["m60","1 час",{m:60}],["m90","1,5 часа",{m:90}],["m120","2 часа",{m:120}]];
+const dayISO=()=>{const d=new Date(NOW());return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+let F=Object.assign({on:false,preset:"n3",day:"",ids:{}},read(FK)||{});
+const saveF=()=>{try{localStorage.setItem(FK,JSON.stringify(F))}catch{}};
+function candidates(sys){
+  return S.tasks.filter((t)=>t.type===sys&&!t.link&&!t.done&&(sys==="дела"?(t.where||"")==="today":t.status==="todo"))}
+function focusCompute(sys){
+  const pr=PRESETS.find((p)=>p[0]===F.preset)[2],c=candidates(sys),out=[];
+  if(pr.n)c.slice(0,pr.n).forEach((t)=>out.push(t.id));
+  else{let sum=0;for(const t of c){if(sum+(t.min||0)>pr.m)break;sum+=t.min||0;out.push(t.id)}}
+  F.ids[sys]=out;F.day=dayISO();saveF()}
+function focusEnsure(sys){if(F.on&&(F.day!==dayISO()||!F.ids[sys]))focusCompute(sys)}
+function closeToast(){const o=document.getElementById("toast");if(o){clearTimeout(o._t);o.remove()}}
+function nextInFocus(done){
+  const ids=F.ids[done.type]||[],n=ids.map(byId).find((x)=>x&&!x.done&&x.min>0);
+  if(!n)return;
+  closeToast();const tz=el("div","toast");tz.id="toast";tz.appendChild(el("span",null,"Следующая: "+n.name+" — старт через 3 с"));
+  const c=el("button",null,"Отмена");c.onclick=()=>{clearTimeout(tz._t);tz.remove()};tz.appendChild(c);
+  tz._t=setTimeout(()=>{tz.remove();startT(n);render()},3000);document.body.appendChild(tz)}
+function paintFocusBtn(){
+  const b=document.getElementById("fbtn");b.hidden=UI.env!=="list";
+  const pr=PRESETS.find((p)=>p[0]===F.preset);
+  b.classList.toggle("on",F.on);b.setAttribute("aria-pressed",F.on);
+  b.textContent="🔥 Фокус"+(F.on?" · "+pr[1].toLowerCase():"")}
+function initFocusBtn(){const b=document.getElementById("fbtn");let fired=false;
+  b.onclick=()=>{if(fired){fired=false;return}F.on=!F.on;if(F.on)focusCompute(UI.sys);saveF();render()};
+  onMenu(b,(x,y)=>{fired=true;setTimeout(()=>{fired=false},400);
+    const items=PRESETS.map(([k,l])=>[(F.preset===k?"✓ ":"    ")+l,()=>{F.preset=k;F.on=true;focusCompute(UI.sys);render()}]);
+    items.push("-",["⟳ Обновить набор",()=>{F.on=true;focusCompute(UI.sys);render()}]);
+    if(F.on)items.push(["Выключить фокус",()=>{F.on=false;saveF();render()}]);
+    popup(x,y,items)})}
 
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
 const ENVS={
   list:{name:"Список",render(host){
+    if(F.on){focusEnsure(UI.sys);
+      const items=(F.ids[UI.sys]||[]).map(byId).filter(Boolean);
+      const h=el("div","ghead");h.appendChild(el("span",null,"Фокус"));
+      h.appendChild(el("span",null,items.length+" · "+items.reduce((a,t)=>a+(t.done?0:t.min),0)+" мин"));host.appendChild(h);
+      if(!items.length)host.appendChild(el("div","empty","Нет задач под этот фильтр. ПКМ на «Фокус» — выбрать другой."));
+      items.forEach((t)=>host.appendChild(card(t)));return}
     const groups=[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"],["","Без места"]];
     let any=false;
     groups.forEach(([k,label])=>{
@@ -308,6 +434,7 @@ function render(){
   seg(document.getElementById("sysSeg"),[["дела","Дела"],["работа","Работа"]],UI.sys,(k)=>{UI.sys=k;render()});
   seg(document.getElementById("envSeg"),Object.keys(ENVS).map((k)=>[k,ENVS[k].name]),UI.env,(k)=>{UI.env=k;render()});
   document.getElementById("hint").textContent=HINTS[UI.env];
+  paintFocusBtn();
   const v=document.getElementById("view");v.innerHTML="";
   ENVS[UI.env].render(v);
 }
@@ -317,8 +444,14 @@ function boot(){
     '<div class="empty">Данные v1 не найдены в этом браузере. Открой сначала рабочую версию и дождись загрузки задач.</div>';return}
   S=migrate(v1);save();render();
 }
-document.getElementById("again").onclick=boot;
-boot();
+function start(){
+  initFocusBtn();
+  const v2=read(V2);
+  if(v2&&v2.v===2&&Array.isArray(v2.tasks)){S=v2;S.tasks.forEach((t)=>{if(t.tm===undefined)t.tm=null});render();return}
+  boot();
+}
+document.getElementById("again").onclick=()=>{if(confirm("Пересобрать из v1? Таймеры и фокус беты сбросятся."))boot()};
+start();
 </script>
 </body>
 </html>
