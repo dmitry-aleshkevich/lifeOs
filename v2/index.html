@@ -249,6 +249,10 @@ const proj=(id)=>{const p=S.projects.find((x)=>x.id===id)||null;return p&&p.type
 const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 
 /* ---------- одна карточка на все окружения ---------- */
+/* общие кусочки карточки: считаются один раз, окружение только выбирает, где их поставить */
+const checkTxt=(t)=>t.check&&t.check.length?t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"";
+const atSpan=(t,opt)=>t.at&&!opt.noAt?el("span","at",t.at):null;
+function pillBtn(t,cls,title){const pl=el("button","mins"+cls,"");pl.type="button";if(title)pl.title=title;pl.dataset.tid=t.id;wirePill(pl,t);return pl}
 function cardBase(t,opt={}){
   const li=el("div","card"+(t.done?" done":""));
   const ck=el("button","ck",t.done?"✓":"");ck.setAttribute("aria-label","Отметить");
@@ -257,7 +261,7 @@ function cardBase(t,opt={}){
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
-  if(t.check&&t.check.length&&!opt.v)meta.appendChild(el("span","ckn",t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓"));
+  if(checkTxt(t)&&!opt.v)meta.appendChild(el("span","ckn",checkTxt(t)));
   const kids=S.tasks.filter((x)=>x.link===t.id).length;
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
   if(t.desc)meta.appendChild(el("span","desc",t.desc));
@@ -265,25 +269,25 @@ function cardBase(t,opt={}){
   if(opt.v){
     li.classList.add("v");
     const top=el("div","top");top.appendChild(li.firstChild);top.appendChild(txt);
-    if(!t.done){const pl=el("button","mins kp","");pl.type="button";pl.title="Старт/пауза. ПКМ — время";pl.dataset.tid=t.id;wirePill(pl,t);top.appendChild(pl)}
+    if(!t.done)top.appendChild(pillBtn(t," kp","Старт/пауза. ПКМ — время"));
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
-    if(!(t.min||(t.check&&t.check.length)||(t.at&&!opt.noAt)))return li;
+    if(!(t.min||checkTxt(t)||atSpan(t,opt)))return li;
     const r2=el("div","row2");
     r2.appendChild(el("span","pmeta",(t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":"")
-      +(t.check&&t.check.length?(t.min?"  ·  ":"")+t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"")));
+      +(checkTxt(t)?(t.min?"  ·  ":"")+checkTxt(t):"")));
     const right=el("div","r2r");
-    if(t.at&&!opt.noAt)right.appendChild(el("span","at",t.at));
+    {const a=atSpan(t,opt);if(a)right.appendChild(a)}
     r2.appendChild(right);
     li.appendChild(r2);
     return li;
   }
   li.appendChild(txt);
-  if(t.at&&!opt.noAt)li.appendChild(el("span","at",t.at));
+  {const a=atSpan(t,opt);if(a)li.appendChild(a)}
   if(t.done){const sp=t.spent||0;
     if(sp>0||t.min){const c=el("span","mins done-t"+(t.min&&sp>t.min*60000?" late":" early"),fmtSpent(sp));li.appendChild(c)}}
-  else{const pl=el("button","mins"+(opt.hot?" hot":""),"");pl.type="button";pl.dataset.tid=t.id;wirePill(pl,t);li.appendChild(pl)}
+  else li.appendChild(pillBtn(t,opt.hot?" hot":""));
   return li;
 }
 
@@ -455,10 +459,10 @@ function subBox(t){
     popup(x,y,it)});
   w.append(si,pl);setTimeout(()=>si.focus(),0);return w}
 function addSub(t,rel,txt,dur,start){
-  const q=parseQuick(txt);if(!q.name)return;pushUndo();
+  const q=parseQuick(txt);if(!q.name)return;
   const par=t.link?byId(t.link)||t:t,krel=t.link?t.rel:rel;
-  const s2=task({name:q.name,at:q.at,min:q.min||dur||0},{type:par.type,where:par.where,status:par.type==="работа"?(par.status||"todo"):"",project:par.project,link:par.id,rel:krel,ord:S.tasks.length});
-  if(t.link){const ix=S.tasks.indexOf(t);S.tasks.splice(rel==="post"?ix+1:ix,0,s2)}else S.tasks.push(s2);
+  const ix=t.link?S.tasks.indexOf(t)+(rel==="post"?1:0):undefined;
+  const s2=makeTask({name:q.name,at:q.at,min:q.min||dur||0},{type:par.type,where:par.where,status:par.type==="работа"?(par.status||"todo"):"",project:par.project,link:par.id,rel:krel},ix);
   UI.sub={id:t.id,rel,dur:0,txt:""};save();if(start)startT(s2);render()}
 function panel(t){
   const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
@@ -489,6 +493,13 @@ function panel(t){
   p.appendChild(r3);
   return p}
 
+/* ---------- единственное место, где рождается задача ---------- */
+function makeTask(f,ctx,at){
+  const name=String(f.name||"").trim();if(!name)return null;
+  pushUndo();
+  const t=task(Object.assign({},f,{name}),Object.assign({type:UI.sys,ord:S.tasks.length},ctx));
+  if(at==="top")S.tasks.unshift(t);else if(typeof at==="number")S.tasks.splice(at,0,t);else S.tasks.push(t);
+  save();return t}
 /* ---------- быстрый ввод новой задачи ---------- */
 UI.qa={top:{txt:"",dur:0},bottom:{txt:"",dur:0}};
 function parseQuick(txt){
@@ -499,10 +510,8 @@ function parseQuick(txt){
   return {name:name.replace(/\s+/g," ").trim(),at,min,pid}}
 function addQuick(pos,start){
   const st=UI.qa[pos],q=parseQuick(st.txt);if(!q.name)return null;
-  pushUndo();
-  const t=task({name:q.name,at:q.at,min:q.min||st.dur||0,project:q.pid},
-    {type:UI.sys,where:UI.sys==="дела"?"today":"",status:UI.sys==="работа"?"todo":"",ord:S.tasks.length});
-  if(pos==="top")S.tasks.unshift(t);else S.tasks.push(t);
+  const t=makeTask({name:q.name,at:q.at,min:q.min||st.dur||0,project:q.pid},
+    {where:UI.sys==="дела"?"today":"",status:UI.sys==="работа"?"todo":""},pos==="top"?"top":undefined);
   st.txt="";st.dur=0;UI.qaFocus=pos;save();
   if(start)startT(t);
   render();
@@ -680,17 +689,14 @@ const ENVS={
       const h=el("div","ghead");h.dataset.where=k;h.appendChild(el("span",null,label));
       h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
       host.appendChild(h);
-      items.forEach((t)=>{const kids=S.tasks.filter((x)=>x.link===t.id);
-        kids.filter((k2)=>k2.rel==="pre").forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)});
-        host.appendChild(card(t));
-        kids.filter((k2)=>k2.rel!=="pre").forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)})});
+      items.forEach((t)=>rowWithKids(host,t))
     });
     if(!any)host.appendChild(el("div","empty","В этой системе пока нет задач."));
     host.appendChild(qaBox("bottom"));
   }},
   timeline:{name:"Таймлайн",render(host){
     const H0=8,H1=23,PX=56;
-    const withAt=mine().filter((t)=>t.at),none=mine().filter((t)=>!t.at);
+    const withAt=mine().filter((t)=>t.at),none=mine().filter((t)=>!t.at&&!t.link);
     const wrap=el("div","tl");
     for(let h=H0;h<=H1;h++){const r=el("div","hr");r.appendChild(el("span",null,String(h).padStart(2,"0")+":00"));wrap.appendChild(r)}
     const now=new Date(),nm=now.getHours()+now.getMinutes()/60;
@@ -704,7 +710,7 @@ const ENVS={
     const h=el("div","ghead");h.appendChild(el("span",null,"Без времени"));h.appendChild(el("span",null,String(none.length)));
     host.appendChild(h);
     if(!none.length)host.appendChild(el("div","empty","Пусто — у всех задач есть время."));
-    none.forEach((t)=>host.appendChild(card(t)));
+    none.forEach((t)=>rowWithKids(host,t));
   }},
   kanban:{name:"Канбан",render(host){
     const work=UI.sys==="работа";
@@ -732,8 +738,7 @@ const ENVS={
           rowWithKids(c,t,o)});
         if(!(id==="status"&&k==="done")){
           const add=el("button","add","+ Задача");
-          add.onclick=()=>{pushUndo();const t=task({name:"Новая задача",min:0},Object.assign({type:UI.sys,ord:S.tasks.length},addOpts(k)));
-            S.tasks.push(t);save();render();
+          add.onclick=()=>{const t=makeTask({name:"Новая задача",min:0},addOpts(k));render();
             const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
           c.appendChild(add)}
         kb.appendChild(c);
