@@ -234,7 +234,15 @@ body.lock .bar,body.lock .hint,body.lock .foot,body.lock .note{display:none}.qr{
 .col.pdrop{outline:2px dashed var(--accent)}
 .play{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:transparent;
  color:var(--ink);font-size:12px;line-height:1;cursor:pointer;padding:0}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.calbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}.calbar .caltitle{font-size:17px;min-width:150px;text-align:center}.calbar .calmode{margin:0 0 0 auto}
+.calwrap{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:14px;align-items:start}@media(max-width:860px){.calwrap{grid-template-columns:1fr}}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal .dh{display:flex;justify-content:space-between;align-items:center}.cal .dadd{border:0;background:transparent;color:var(--muted);font-weight:800;font-size:14px;cursor:pointer;opacity:0;padding:0 4px}.cal .day:hover .dadd,.cal .dadd:focus{opacity:1}@media(hover:none){.cal .dadd{opacity:.5}}
+.cal .day{position:relative;display:flex;flex-direction:column;gap:3px}.cal.week .day{min-height:340px}
+.cal .day .card{padding:4px 6px;min-height:0;font-size:11px;gap:5px}.cal .day .card .mins,.cal .day .card .plus,.cal .day .card .x,.cal .day .card .meta{display:none}.cal .day .card .ck{width:16px;height:16px;min-width:16px;font-size:10px}
+.cal .day .card.open{position:absolute;z-index:30;left:0;top:22px;width:300px;max-width:90vw;box-shadow:0 8px 28px rgba(0,0,0,.25);font-size:14px}.cal .day .card.open .mins,.cal .day .card.open .meta{display:flex}
+.cal .day.dropcol,.store.dropcol{outline:2px dashed var(--accent);outline-offset:-2px}
+.store{min-height:120px}.store .card{margin-bottom:6px}
 .cal .dow{font-size:11px;font-weight:800;color:var(--muted);text-align:center;padding:4px 0}
 .cal .day{min-height:76px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:5px 6px;font-size:11px}
 .cal .day.out{opacity:.35}
@@ -2212,7 +2220,7 @@ function panel(t){
   if(UI.dt===t.id){
     const bx=el("div","dtbox row");
     bx.appendChild(el("span","plb","Дата"));
-    const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.onchange=()=>{t.due=dt.value;save();render()};bx.appendChild(dt);
+    const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.onchange=()=>{dueSync(t,dt.value);save();render()};bx.appendChild(dt);
     bx.appendChild(el("span","plb","Время"));
     const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.onchange=()=>{t.at=tm.value;save();render()};bx.appendChild(tm);
     if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};bx.appendChild(c)}
@@ -2352,6 +2360,10 @@ function dragMove(){const d=DR;if(!d||!d.active)return;
   d.ghost.style.left=(d.x-d.dx)+"px";d.ghost.style.top=(d.y-d.dy)+"px";
   const view=document.getElementById("view");
   {const pl=plusAt(d);if(pl){d.tgt={plus:pl};d.line.hidden=true;document.querySelectorAll(".dropcol").forEach((c)=>c.classList.remove("dropcol"));return}}
+  if(UI.env==="calendar"){
+    const zones=[...view.querySelectorAll(".day[data-date],.store")];let z=null;
+    for(const c of zones){const r=c.getBoundingClientRect();if(d.x>=r.left&&d.x<=r.right&&d.y>=r.top&&d.y<=r.bottom){z=c;break}}
+    zones.forEach((c)=>c.classList.toggle("dropcol",c===z));d.line.hidden=true;d.tgt=z?{cal:z}:null;return}
   if(UI.env==="kanban"){
     const cols=[...view.querySelectorAll(".col[data-board]")];let col=null;
     for(const c of cols){const r=c.getBoundingClientRect();if(d.x>=r.left&&d.x<=r.right&&d.y>=r.top&&d.y<=r.bottom){col=c;break}}
@@ -2384,6 +2396,7 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
   const G=d.group;BATCH=false;pushUndo();BATCH=true;
   try{
     if(d.tgt.plus)G.forEach((t)=>adopt(t,d.tgt.plus.c,d.tgt.plus.rel,true));
+    else if(d.tgt.cal){const z=d.tgt.cal;G.forEach((t)=>{logA("перенос "+nmq(t)+" → "+(z.dataset.date||"склад"));t.link="";t.rel="";dueSync(t,z.dataset.date||"")})}
     else{
       const n=d.tgt.n;let head=!!d.tgt.head,o=n&&!head?byId(n.dataset.cid):null,after=!!d.tgt.after;const w=n&&n.dataset?n.dataset.where:"";
       G.forEach((t)=>{
@@ -2395,7 +2408,7 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
 (function(){
   const view=document.getElementById("view");
   view.addEventListener("pointerdown",(e)=>{
-    if((UI.env!=="list"&&UI.env!=="kanban")||(e.pointerType==="mouse"&&e.button!==0))return;
+    if((UI.env!=="list"&&UI.env!=="kanban"&&UI.env!=="calendar")||(e.pointerType==="mouse"&&e.button!==0))return;
     const li=e.target.closest(".card[data-cid]");if(!li)return;
     if(e.target.closest("button,input,textarea,select,.panel"))return;
     const t=byId(li.dataset.cid);if(!t)return;
@@ -2443,6 +2456,12 @@ function rowWithKids(host,t,o={}){
   if(FOLD.has("pre:"+t.id)&&kids.some((k2)=>k2.rel==="pre"))c.classList.add("stackt");host.appendChild(c);
   if(!FOLD.has("post:"+t.id))kids.filter((k2)=>k2.rel!=="pre").forEach(sub)}
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
+/* дата сегодня/завтра кладёт «Дела»-задачу в группу «Сегодня»/«Завтра»; дальше — в «Дела» (backlog) */
+function dueCtx(key){const today=dayISO(),tm=dayOf(NOW()+864e5);
+  if(UI.sys!=="дела")return {};return key===today?{where:"today"}:key===tm?{where:"tomorrow"}:{where:"backlog"}}
+function dueSync(t,key){t.due=key;if(t.type!=="дела"||t.routine)return;
+  if(!key){return}
+  const w=key===dayISO()?"today":key===dayOf(NOW()+864e5)?"tomorrow":(t.where==="today"||t.where==="tomorrow"||!t.where?"backlog":t.where);t.where=w}
 const ENVS={
   list:{name:"Список",render(host){
     host.appendChild(qaBox("top"));
@@ -2535,32 +2554,54 @@ const ENVS={
     board("Проекты","project",pcols,inProj,(k)=>({project:k,where:""}));
   }},
   calendar:{name:"Календарь",render(host){
-    const withDue=mine().filter((t)=>t.due),none=mine().filter((t)=>!t.due);
-    const now=new Date(),y=now.getFullYear(),m=now.getMonth();
-    const first=new Date(y,m,1),shift=(first.getDay()+6)%7,days=new Date(y,m+1,0).getDate();
-    const iso=(d)=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-    const g=el("div","cal");
+    const C=UI.cal=UI.cal||Object.assign({mode:"month",a:""},read("lifeos.v2b.cal")||{});
+    const pad=(n)=>String(n).padStart(2,"0"),iso=(d)=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+    const today=dayISO(),pd=(k)=>{const [y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d)};
+    if(!C.a)C.a=today;
+    const A=pd(C.a),week=C.mode==="week",saveC=()=>{try{localStorage.setItem("lifeos.v2b.cal",JSON.stringify({mode:C.mode}))}catch{}};
+    let start,count;
+    if(week){start=new Date(A);start.setDate(A.getDate()-((A.getDay()+6)%7));count=7}
+    else{const first=new Date(A.getFullYear(),A.getMonth(),1),shift=(first.getDay()+6)%7,days=new Date(A.getFullYear(),A.getMonth()+1,0).getDate();
+      start=new Date(first);start.setDate(1-shift);count=Math.ceil((shift+days)/7)*7}
+    const MN=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+    const title=week?(()=>{const e=new Date(start);e.setDate(e.getDate()+6);return start.getDate()+" "+(start.getMonth()!==e.getMonth()?MN[start.getMonth()]+" ":"")+"– "+e.getDate()+" "+MN[e.getMonth()]})()
+      :["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"][A.getMonth()]+" "+A.getFullYear();
+    const bar=el("div","calbar");
+    const nav=(d)=>{const n=new Date(A);if(week)n.setDate(n.getDate()+7*d);else n.setMonth(n.getMonth()+d,1);C.a=iso(n);render()};
+    const prev=el("button","chipb","‹");prev.type="button";prev.id="calprev";prev.onclick=()=>nav(-1);
+    const next=el("button","chipb","›");next.type="button";next.id="calnext";next.onclick=()=>nav(1);
+    const tb=el("button","chipb","Сегодня");tb.type="button";tb.id="caltoday";tb.onclick=()=>{C.a=today;render()};
+    bar.append(prev,el("b","caltitle",title),next,tb);
+    const ms=el("div","seg calmode");[["month","Месяц"],["week","Неделя"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.mode=k;b.setAttribute("aria-pressed",C.mode===k);b.onclick=()=>{C.mode=k;saveC();render()};ms.appendChild(b)});
+    bar.appendChild(ms);host.appendChild(bar);
+    const wrap=el("div","calwrap"),left=el("div","calmain"),g=el("div","cal"+(week?" week":""));
     ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach((d)=>g.appendChild(el("div","dow",d)));
-    for(let i=0;i<shift;i++)g.appendChild(el("div","day out"));
-    for(let d=1;d<=days;d++){
-      const date=new Date(y,m,d),key=iso(date);
-      const cell=el("div","day"+(key===iso(now)?" today":""));
-      cell.appendChild(el("span","n",String(d)));
-      withDue.filter((t)=>t.due===key).forEach((t)=>cell.appendChild(el("div","ev",t.name)));
-      g.appendChild(cell);
-    }
-    host.appendChild(g);
-    const h=el("div","ghead");h.appendChild(el("span",null,"Без даты"));h.appendChild(el("span",null,String(none.length)));
-    host.appendChild(h);
-    none.slice(0,8).forEach((t)=>host.appendChild(card(t)));
-    if(none.length>8)host.appendChild(el("div","empty","…и ещё "+(none.length-8)));
+    const withDue=mine().filter((t)=>t.due&&!t.link&&!t.archived);
+    for(let i=0;i<count;i++){
+      const date=new Date(start);date.setDate(start.getDate()+i);const key=iso(date);
+      const cell=el("div","day"+(key===today?" today":"")+(!week&&date.getMonth()!==A.getMonth()?" out":""));cell.dataset.date=key;
+      const hd=el("div","dh");hd.appendChild(el("span","n",String(date.getDate())));
+      const ad=el("button","dadd","+");ad.type="button";ad.title="Новая задача на этот день";ad.setAttribute("aria-label","Новая задача на этот день");
+      ad.onclick=(e)=>{e.stopPropagation();const t=makeTask({name:"Новая задача",min:0,due:key},dueCtx(key));render();const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
+      hd.appendChild(ad);cell.appendChild(hd);
+      withDue.filter((t)=>t.due===key).forEach((t)=>cell.appendChild(card(t,{noAt:true,noProject:false})));
+      g.appendChild(cell)}
+    left.appendChild(g);wrap.appendChild(left);
+    const store=mine().filter((t)=>!t.due&&!t.link&&!t.done&&!t.archived);
+    const rank=(t)=>t.where==="today"?0:t.where==="tomorrow"?1:2;
+    store.sort((x,y)=>rank(x)-rank(y));
+    const side=el("div","store");side.dataset.store="1";
+    const h=el("div","ghead");h.appendChild(el("span",null,"Склад"));h.appendChild(el("span",null,String(store.length)));side.appendChild(h);
+    if(!store.length)side.appendChild(el("div","empty","Все задачи с датой."));
+    store.forEach((t)=>side.appendChild(card(t,{noAt:true})));
+    wrap.appendChild(side);host.appendChild(wrap);
   }},
 };
 const HINTS={
   list:"Нажми на карточку — раскроется; на название — правка текста. Сверху и снизу поле «Новая задача».",
   timeline:"Раскладка по времени начала. Задачи без времени лежат под сеткой — их можно будет перетащить на час.",
   kanban:"Сверху доска статусов, снизу проекты. Задача — как тикет: перетащил в статус — она на доске, вернул в проект — ушла с неё.",
-  calendar:"Раскладка по дате задачи. Без даты — список под календарём.",
+  calendar:"Месяц или неделя. Справа склад — задачи без даты: перетащи на день. «+» на дне — новая задача.",
 };
 
 function seg(host,items,cur,pick){
