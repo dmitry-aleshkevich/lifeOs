@@ -28,5 +28,15 @@ with sync_playwright() as p:
     pg.mouse.move(a["x"]+10,a["y"]+a["height"]/2); pg.mouse.down(); pg.mouse.move(a["x"]+30,a["y"]+a["height"]/2,steps=4)
     pg.mouse.move(t["x"]+t["width"]/2,a["y"]+a["height"]/2,steps=10); pg.mouse.up(); pg.wait_for_timeout(300)
     assert P(pg)[:2]==["p2","p1"], P(pg)
+    # сворачивание пред/подзадач за родителя
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"]').hover()
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .fold').click(force=True); pg.wait_for_timeout(200)
+    assert pg.locator('.card[data-sub="1"]').count()==0 and pg.locator('.card.stack').count()>=1
+    pg.locator('.col[data-board="status"] .card[data-cid="w1"] > .fold').click(force=True); pg.wait_for_timeout(200)
+    assert pg.locator('.card[data-sub="1"]').count()>=1
+    pg.click("#envSeg button:has-text('Список')"); pg.wait_for_timeout(300)
+    assert pg.locator('.card[data-sub="1"]').count()==1
+    pg.locator('.card[data-cid="w1"] > .fold').click(force=True); pg.wait_for_timeout(200)
+    assert pg.locator('.card[data-sub="1"]').count()==0
     assert not errs, errs
 print("ERRORS: []")
