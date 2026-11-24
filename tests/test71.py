@@ -30,7 +30,7 @@ with sync_playwright() as p:
     pg.locator(".panel .cli input[type=checkbox]").first.check(); pg.wait_for_timeout(200)
     assert T(pg,"a")["check"][0]["done"] is True
     # подзадача «после»
-    pg.click('.panel .chipb[data-rel="post"]'); pg.fill(".panel .sub-new","Подзадача"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    pg.click('.card.open .pl-bot'); pg.fill(".card .sub-new","Подзадача"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
     assert any(t["link"]=="a" and t["rel"]=="post" for t in S(pg))
     # правка названия кликом по тексту
     pg.locator('.card.open .nm').first.click(); pg.fill(".nmi","Задача А2"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
@@ -48,7 +48,9 @@ with sync_playwright() as p:
     pg.fill('.qa[data-pos="bottom"] input',"Секундомер"); pg.click('.qa[data-pos="bottom"] .qp'); pg.wait_for_timeout(700)
     sw=[x for x in S(pg) if x["name"]=="Секундомер"][0]; assert sw["tm"] and sw["tm"]["sw"] and sw["tm"]["run"], sw
     pg.fill('.qa[data-pos="top"] input',"С отсчётом"); pg.click('.qa[data-pos="top"] .qp',button="right"); pg.click('.pop button:has-text("25 мин")')
-    pg.click('.qa[data-pos="top"] .qp'); pg.wait_for_timeout(700)
-    cd=[x for x in S(pg) if x["name"]=="С отсчётом"][0]; assert cd["min"]==25 and cd["tm"] and not cd["tm"]["sw"], cd
+    pg.wait_for_timeout(300)
+    cd=[x for x in S(pg) if x["name"]=="С отсчётом"][0]; assert cd["min"]==25 and not cd["tm"], cd   # выбор времени при введённом тексте сразу создаёт задачу
+    pg.locator('.mins[data-tid="%s"]'%cd["id"]).click(); pg.wait_for_timeout(600)
+    cd=[x for x in S(pg) if x["name"]=="С отсчётом"][0]; assert cd["tm"] and not cd["tm"]["sw"], cd
     b.close()
 print("ERRORS:",errs); sys.exit(1 if errs else 0)

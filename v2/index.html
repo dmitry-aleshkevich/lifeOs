@@ -47,6 +47,11 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
  color:var(--muted);font-size:10px;line-height:1;cursor:pointer;padding:0;opacity:0;transition:opacity .12s;z-index:2}
 @media (hover:hover){.card:hover>.x{opacity:1}}
 .panel{flex:0 0 100%;width:100%;border-top:1px solid var(--line);margin-top:6px;padding-top:10px;display:flex;flex-direction:column;gap:10px;cursor:default}
+.card.dragging{opacity:.3}
+.card.ghost{position:fixed;z-index:90;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.28);opacity:.95;margin:0}
+.dropline{position:fixed;height:3px;border-radius:2px;background:var(--accent);z-index:91;pointer-events:none}
+body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
+.card{-webkit-touch-callout:none}
 .panel .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .panel .plb{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:2px}
 .panel textarea{width:100%;min-height:58px;resize:vertical;font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
@@ -59,9 +64,17 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .cli{display:flex;gap:8px;align-items:center}.cli .clt{flex:1}
 .cli input[type=checkbox]{accent-color:var(--done);width:18px;height:18px}
 .cli.done .clt{text-decoration:line-through;color:var(--muted)}
-.subqa{margin:0;width:100%}
+.card>.plus{position:absolute;left:16px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
+ color:var(--muted);font-weight:900;font-size:14px;line-height:1;padding:0;cursor:pointer;opacity:0;pointer-events:none;z-index:2}
+.card>.pl-top{top:-11px}.card>.pl-bot{bottom:-11px}
+@media (hover:hover){.card:hover>.plus{opacity:1;pointer-events:auto}.card:hover{z-index:3}}
+.card.open>.plus{opacity:1;pointer-events:auto}
+.card.open{z-index:3}
+.card>.subqa{flex:0 0 100%;width:100%;margin:6px 0 0}
+.card>.subqa.pre{order:-1;margin:0 0 6px}
+.card>.panel{order:1}.card>.subqa.post{order:2}
 .cli .clx{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;padding:4px}
-.panel .cl-new,.panel .sub-new{width:100%}
+.panel .cl-new{width:100%}
 .qa{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
 .qa input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;padding:10px 12px;min-height:46px}
 .qa .qp{min-height:46px;padding:0 16px;font-size:14px}
@@ -86,6 +99,8 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
  padding:6px 12px;font-size:13px;font-weight:800;background:transparent;color:var(--ink);cursor:pointer}
 .mins.hot{background:var(--accent);border-color:var(--accent);color:#fff}
 .mins,.play{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;font-variant-numeric:tabular-nums}
+.mins.done-t.early{color:var(--pc-green);border-color:var(--pc-green-bg);background:var(--pc-green-bg)}
+.mins.done-t.late{color:var(--pc-red);border-color:var(--pc-red-bg);background:var(--pc-red-bg)}
 .mins.run{background:var(--accent);border-color:var(--accent);color:#fff}
 .mins.pause{border-style:dashed}
 .mins.over{background:var(--pc-red-bg);border-color:var(--pc-red);color:var(--pc-red)}
@@ -245,7 +260,8 @@ function cardBase(t,opt={}){
   }
   li.appendChild(txt);
   if(t.at&&!opt.noAt)li.appendChild(el("span","at",t.at));
-  if(t.done){if(t.min)li.appendChild(el("span","mins",Math.max(1,Math.round((t.spent||0)/60000))+" из "+t.min+" мин"))}
+  if(t.done){const sp=t.spent||0;
+    if(sp>0||t.min){const c=el("span","mins done-t"+(t.min&&sp>t.min*60000?" late":" early"),fmtSpent(sp)+(t.min?" из "+t.min+" мин":""));li.appendChild(c)}}
   else{const pl=el("button","mins"+(opt.hot?" hot":""),"");pl.type="button";pl.dataset.tid=t.id;wirePill(pl,t);li.appendChild(pl)}
   return li;
 }
@@ -286,6 +302,8 @@ function complete(t){
   t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";
   save();render();
   if(F.on)nextInFocus(t)}
+function fmtSpent(ms){const s=Math.round(ms/1000);if(s<60)return s+" с";
+  const m=Math.floor(s/60),r=s%60;if(m<60)return m+":"+String(r).padStart(2,"0")+" мин";return Math.floor(m/60)+" ч "+String(m%60).padStart(2,"0")+" мин"}
 function pillText(t){
   const m=t.tm;if(!m)return "▶ "+(t.min?t.min+" мин":"старт");
   const l=leftOf(t);
@@ -392,10 +410,24 @@ function editName(span,t){
     if(ok&&v&&v!==t.name){pushUndo();t.name=v;save()}render()};
   inp.onkeydown=(e)=>{if(e.key==="Enter")fin(true);else if(e.key==="Escape"){e.stopPropagation();fin(false)}};
   inp.onblur=()=>fin(true);inp.onclick=(e)=>e.stopPropagation()}
+function subBox(t){
+  const sb=UI.sub,w=el("div","qa subqa "+sb.rel);w.dataset.rel=sb.rel;
+  const si=el("input","sub-new");si.type="text";si.placeholder=(sb.rel==="pre"?"Перед этой: ":"После этой: ")+"новая задача";si.value=sb.txt||"";
+  si.oninput=()=>{sb.txt=si.value};
+  si.onkeydown=(e)=>{if(e.key==="Enter"&&si.value.trim())addSub(t,sb.rel,si.value.trim(),sb.dur,false);else if(e.key==="Escape"){e.stopPropagation();UI.sub=null;render()}};
+  const pl=el("button","mins qp","");pl.type="button";pl.title="Создать и запустить. ПКМ — длительность";
+  const paint=()=>{pl.textContent="▶"+(sb.dur?" "+sb.dur+" мин":"")};paint();
+  pl.onclick=()=>{if(!si.value.trim()){si.focus();return}addSub(t,sb.rel,si.value.trim(),sb.dur,true)};
+  const pick=(m)=>{sb.dur=m;paint();if(si.value.trim())addSub(t,sb.rel,si.value.trim(),m,false)};
+  onMenu(pl,(x,y)=>{
+    const it=[5,10,15,25,30,45,60].map((m)=>[(sb.dur===m?"✓ ":"    ")+m+" мин",()=>pick(m)]);
+    it.push("-",["Своё число…",()=>{const v=parseInt(prompt("Минут:","20"),10);if(v>0)pick(v)}],["Без времени (секундомер)",()=>pick(0)]);
+    popup(x,y,it)});
+  w.append(si,pl);setTimeout(()=>si.focus(),0);return w}
 function addSub(t,rel,txt,dur,start){
   const q=parseQuick(txt);if(!q.name)return;pushUndo();
   const s=task({name:q.name,at:q.at,min:q.min||dur||0},{type:t.type,where:t.where,status:t.type==="работа"?(t.status||"todo"):"",project:t.project,link:t.id,rel,ord:S.tasks.length});
-  S.tasks.push(s);UI.sub={id:t.id,rel,dur:0};save();if(start)startT(s);render()}
+  S.tasks.push(s);UI.sub={id:t.id,rel,dur:0,txt:""};save();if(start)startT(s);render()}
 function panel(t){
   const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
   const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
@@ -426,22 +458,7 @@ function panel(t){
   const nw=el("input","cl-new");nw.type="text";nw.placeholder="Новый пункт чек-листа";
   nw.onkeydown=(e)=>{if(e.key==="Enter"&&nw.value.trim()){pushUndo();t.check.push({text:nw.value.trim(),done:false});save();UI.focusNew=t.id;render()}};
   cl.appendChild(nw);p.appendChild(cl);
-  // подзадачи
   const r3=el("div","row");
-  if(UI.sub&&UI.sub.id===t.id){
-    const sb=UI.sub,w=el("div","qa subqa");
-    const si=el("input","sub-new");si.type="text";si.placeholder=(sb.rel==="pre"?"Перед: ":"После: ")+"новая подзадача";
-    si.onkeydown=(e)=>{if(e.key==="Enter"&&si.value.trim())addSub(t,sb.rel,si.value.trim(),sb.dur,false);else if(e.key==="Escape"){e.stopPropagation();UI.sub=null;render()}};
-    const pl=el("button","mins qp","");pl.type="button";pl.title="Создать и запустить. ПКМ — длительность";
-    const paint=()=>{pl.textContent="▶"+(sb.dur?" "+sb.dur+" мин":"")};paint();
-    pl.onclick=()=>{if(!si.value.trim()){si.focus();return}addSub(t,sb.rel,si.value.trim(),sb.dur,true)};
-    onMenu(pl,(x,y)=>{
-      const it=[5,10,15,25,30,45,60].map((m)=>[(sb.dur===m?"✓ ":"    ")+m+" мин",()=>{sb.dur=m;paint()}]);
-      it.push("-",["Своё число…",()=>{const v=parseInt(prompt("Минут:","20"),10);if(v>0){sb.dur=v;paint()}}],["Без времени (секундомер)",()=>{sb.dur=0;paint()}]);
-      popup(x,y,it)});
-    w.append(si,pl);r3.appendChild(w);setTimeout(()=>si.focus(),0)}
-  else{[["pre","+ до"],["post","+ после"]].forEach(([rel,l])=>{const b=el("button","chipb",l);b.type="button";b.dataset.rel=rel;
-    b.onclick=()=>{UI.sub={id:t.id,rel,dur:0};render()};r3.appendChild(b)})}
   const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
   return p}
@@ -474,8 +491,9 @@ function qaBox(pos){
   const paint=()=>{pl.textContent="▶"+(st.dur?" "+st.dur+" мин":"")};paint();
   pl.onclick=()=>{if(!st.txt.trim()){inp.focus();return}addQuick(pos,true)};
   onMenu(pl,(x,y)=>{
-    const it=[5,10,15,25,30,45,60].map((m)=>[(st.dur===m?"✓ ":"    ")+m+" мин",()=>{st.dur=m;paint()}]);
-    it.push("-",["Своё число…",()=>{const v=parseInt(prompt("Минут:","20"),10);if(v>0){st.dur=v;paint()}}],["Без времени (секундомер)",()=>{st.dur=0;paint()}]);
+    const pick=(m)=>{st.dur=m;paint();if(inp.value.trim()){st.txt=inp.value;addQuick(pos,false)}};
+    const it=[5,10,15,25,30,45,60].map((m)=>[(st.dur===m?"✓ ":"    ")+m+" мин",()=>pick(m)]);
+    it.push("-",["Своё число…",()=>{const v=parseInt(prompt("Минут:","20"),10);if(v>0)pick(v)}],["Без времени (секундомер)",()=>pick(0)]);
     popup(x,y,it)});
   w.append(inp,pl);return w}
 
@@ -483,9 +501,69 @@ function card(t,opt={}){
   const li=cardBase(t,opt);
   const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{e.stopPropagation();editName(nm,t)};
   li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;UI.open=UI.open===t.id?null:t.id;UI.sub=null;render()});
+  li.dataset.cid=t.id;if(t.link)li.dataset.sub="1";
+  if(!t.link&&!opt.v&&!opt.noAt){
+    [["pre","pl-top","Добавить задачу перед этой"],["post","pl-bot","Добавить задачу после этой"]].forEach(([rel,cls,tt])=>{
+      const b=el("button","plus "+cls,"+");b.type="button";b.title=tt;b.setAttribute("aria-label",tt);
+      b.onclick=(e)=>{e.stopPropagation();UI.sub={id:t.id,rel,dur:0,txt:""};render()};li.appendChild(b)})}
+  if(UI.sub&&UI.sub.id===t.id)li.appendChild(subBox(t));
   const x=el("button","x","✕");x.type="button";x.title="Удалить";x.setAttribute("aria-label","Удалить");x.onclick=(e)=>{e.stopPropagation();delTask(t)};li.appendChild(x);
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}
+
+/* ---------- перетаскивание порядка в «Списке» ---------- */
+let DR=null,swallow=false;
+document.addEventListener("click",(e)=>{if(swallow){e.stopPropagation();e.preventDefault();swallow=false}},true);
+function dragStart(){const d=DR;d.active=true;d.li.classList.add("dragging");document.body.classList.add("drag");
+  const r=d.li.getBoundingClientRect();d.dx=d.x-r.left;d.dy=d.y-r.top;
+  const g=d.li.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";g.querySelectorAll(".panel,.plus,.x").forEach((n)=>n.remove());document.body.appendChild(g);d.ghost=g;
+  const ln=el("div","dropline");ln.hidden=true;document.body.appendChild(ln);d.line=ln;
+  const loop=()=>{if(!DR||!DR.active)return;if(DR.y<70)scrollBy(0,-14);else if(DR.y>innerHeight-70)scrollBy(0,14);dragMove();requestAnimationFrame(loop)};requestAnimationFrame(loop)}
+function dragMove(){const d=DR;if(!d||!d.active)return;
+  d.ghost.style.left=(d.x-d.dx)+"px";d.ghost.style.top=(d.y-d.dy)+"px";
+  const view=document.getElementById("view");
+  const els=[...view.querySelectorAll(".card[data-cid]:not([data-sub]),.ghead[data-where]")].filter((n)=>n!==d.li);
+  let best=null,bd=1e9;
+  for(const n of els){const r=n.getBoundingClientRect();
+    if(d.y>=r.top&&d.y<=r.bottom){best=n;bd=0;break}
+    const dd=Math.min(Math.abs(d.y-r.top),Math.abs(d.y-r.bottom));if(dd<bd){bd=dd;best=n}}
+  if(!best){d.tgt=null;d.line.hidden=true;return}
+  const r=best.getBoundingClientRect(),isHead=best.classList.contains("ghead");
+  const after=isHead?true:d.y>r.top+r.height/2;
+  d.tgt={n:best,after,head:isHead};
+  d.line.hidden=false;d.line.style.left=r.left+"px";d.line.style.width=r.width+"px";d.line.style.top=(after?r.bottom+1:r.top-3)+"px"}
+function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null;if(!d.active)return;
+  d.li.classList.remove("dragging");document.body.classList.remove("drag");d.ghost.remove();d.line.remove();
+  swallow=true;setTimeout(()=>{swallow=false},60);
+  if(cancel||!d.tgt)return;
+  const t=d.t,n=d.tgt.n;pushUndo();
+  S.tasks=S.tasks.filter((x)=>x!==t);let idx;
+  if(d.tgt.head){const w=n.dataset.where;t.where=w;const first=S.tasks.findIndex((x)=>x.type===t.type&&!x.link&&(x.where||"")===w);idx=first>=0?first:S.tasks.length}
+  else{const o=byId(n.dataset.cid);if(!o){S.tasks.push(t);save();render();return}
+    t.where=o.where;idx=S.tasks.indexOf(o)+(d.tgt.after?1:0)}
+  S.tasks.splice(idx,0,t);
+  if(F.on&&F.ids[UI.sys]){F.ids[UI.sys].sort((a,b)=>S.tasks.indexOf(byId(a))-S.tasks.indexOf(byId(b)));saveF()}
+  save();render()}
+(function(){
+  const view=document.getElementById("view");
+  view.addEventListener("pointerdown",(e)=>{
+    if(UI.env!=="list"||(e.pointerType==="mouse"&&e.button!==0))return;
+    const li=e.target.closest(".card[data-cid]");if(!li||li.dataset.sub)return;
+    if(e.target.closest("button,input,textarea,select,.panel"))return;
+    const t=byId(li.dataset.cid);if(!t)return;
+    DR={t,li,sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,active:false,touch:e.pointerType!=="mouse",timer:null,tgt:null};
+    if(DR.touch)DR.timer=setTimeout(()=>{if(DR&&!DR.active)dragStart()},350)});
+  document.addEventListener("pointermove",(e)=>{
+    if(!DR)return;DR.x=e.clientX;DR.y=e.clientY;
+    if(!DR.active){const dd=Math.hypot(DR.x-DR.sx,DR.y-DR.sy);
+      if(DR.touch){if(dd>8){clearTimeout(DR.timer);DR=null}return}
+      if(dd>6)dragStart();else return}
+    dragMove()});
+  document.addEventListener("pointerup",(e)=>dragEnd(e,false));
+  document.addEventListener("pointercancel",(e)=>dragEnd(e,true));
+  document.addEventListener("touchmove",(e)=>{if(DR&&DR.active)e.preventDefault()},{passive:false});
+})();
+
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
 const ENVS={
   list:{name:"Список",render(host){
@@ -501,7 +579,7 @@ const ENVS={
     groups.forEach(([k,label])=>{
       const items=mine().filter((t)=>!t.link&&(t.where||"")===k);
       if(!items.length)return; any=true;
-      const h=el("div","ghead");h.appendChild(el("span",null,label));
+      const h=el("div","ghead");h.dataset.where=k;h.appendChild(el("span",null,label));
       h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
       host.appendChild(h);
       items.forEach((t)=>{const kids=S.tasks.filter((x)=>x.link===t.id);

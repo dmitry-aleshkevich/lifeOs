@@ -28,16 +28,16 @@ with sync_playwright() as p:
     pg.keyboard.press("Escape"); pg.mouse.click(5,880)
     # 3. подзадачи: кнопка времени справа, Enter — сразу следующая
     pg.locator('.card:has-text("Задача А")').first.locator(".txt").click(position=dict(x=300,y=10))
-    pg.click('.panel .chipb[data-rel="post"]'); assert pg.is_visible(".panel .subqa .qp")
-    pg.fill(".panel .sub-new","Раз"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
-    assert pg.is_visible(".panel .sub-new") and pg.evaluate("document.activeElement.className")=="sub-new", "поле не осталось для следующей"
-    pg.click(".panel .subqa .qp",button="right"); pg.click('.pop button:has-text("15 мин")')
-    pg.fill(".panel .sub-new","Два"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    pg.click('.card.open .pl-bot'); assert pg.is_visible(".card .subqa .qp")
+    pg.fill(".card .sub-new","Раз"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
+    assert pg.is_visible(".card .sub-new") and pg.evaluate("document.activeElement.className")=="sub-new", "поле не осталось для следующей"
+    pg.click(".card .subqa .qp",button="right"); pg.click('.pop button:has-text("15 мин")')
+    pg.fill(".card .sub-new","Два"); pg.keyboard.press("Enter"); pg.wait_for_timeout(300)
     subs=[t for t in S(pg) if t["link"]=="a"]; assert [x["name"] for x in subs]==["Раз","Два"] and subs[1]["min"]==15, subs
     # pre-подзадача тоже
-    pg.locator(".panel .sub-new").press("Escape"); pg.wait_for_timeout(200)
-    pg.click('.panel .chipb[data-rel="pre"]'); assert pg.is_visible(".panel .subqa .qp")
-    pg.locator(".panel .sub-new").press("Escape"); pg.wait_for_timeout(200); assert pg.locator(".panel").count()==1, "Esc в поле подзадачи закрыл карточку"
+    pg.locator(".card .sub-new").press("Escape"); pg.wait_for_timeout(200)
+    pg.click('.card.open .pl-top'); assert pg.is_visible(".card .subqa .qp")
+    pg.locator(".card .sub-new").press("Escape"); pg.wait_for_timeout(200); assert pg.locator(".panel").count()==1, "Esc в поле подзадачи закрыл карточку"
     # 5. чек-лист: отмеченный пункт серый, зачёркнутый, галочка зелёная
     pg.fill(".panel .cl-new","Пункт"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
     pg.locator(".panel .cli input[type=checkbox]").first.check(); pg.wait_for_timeout(200)
