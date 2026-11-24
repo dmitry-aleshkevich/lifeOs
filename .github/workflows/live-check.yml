@@ -1,0 +1,24 @@
+name: live-check
+# После пуша ждём деплой GitHub Pages и проверяем живой сайт, а не локальные файлы.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ждём деплой и проверяем страницы
+        run: |
+          base="https://dmitry-aleshkevich.github.io/lifeOs"
+          for i in $(seq 1 30); do
+            ok=1
+            for path in "/" "/v2/"; do
+              code=$(curl -s -o /tmp/p.html -w '%{http_code}' "$base$path?t=$(date +%s)")
+              [ "$code" = "200" ] && [ -s /tmp/p.html ] || ok=0
+            done
+            [ $ok = 1 ] && { echo "живой сайт отвечает"; exit 0; }
+            sleep 20
+          done
+          echo "живой сайт не ответил за 10 минут"; exit 1
