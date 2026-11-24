@@ -23,7 +23,7 @@ with sync_playwright() as p:
     assert T(pg,"a")["desc"]=="Купить молоко"
     pg.locator('.mins[data-tid="a"]').click(button="right"); pg.locator('.pop button:has-text("25 мин")').click(); pg.wait_for_timeout(200)
     assert T(pg,"a")["min"]==25 and "25 мин" in pg.locator('.mins[data-tid="a"]').inner_text()
-    pg.fill(".panel .ptime","09:30"); pg.locator(".panel .ptime").blur(); pg.wait_for_timeout(200); assert T(pg,"a")["at"]=="09:30"
+    pg.click(".panel .dtbtn"); pg.fill(".panel .ptime","09:30"); pg.locator(".panel .ptime").blur(); pg.wait_for_timeout(200); assert T(pg,"a")["at"]=="09:30"
     pg.fill(".panel .cl-new","Пункт 1"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
     pg.fill(".panel .cl-new","Пункт 2"); pg.keyboard.press("Enter"); pg.wait_for_timeout(200)
     assert len(T(pg,"a")["check"])==2

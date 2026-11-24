@@ -62,6 +62,11 @@ body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .panel input[type=number]{width:70px}
 .chipb{border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-weight:800;font-size:12px;background:transparent;color:var(--ink);cursor:pointer}
 .chipb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.pfoot{display:flex;align-items:center;justify-content:space-between}
+.dtbtn{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:3px 6px;border-radius:8px;cursor:pointer;opacity:.7}
+.dtbtn.set{opacity:1}
+.dtbtn:hover{background:var(--surface-2)}
+.dtbox{flex-wrap:wrap;gap:6px;align-items:center}
 .chipb.danger{margin-left:auto;color:var(--pc-red);border-color:var(--pc-red-bg)}
 .cl{display:flex;flex-direction:column;gap:6px}
 .cli{display:flex;gap:8px;align-items:center}.cli .clt{flex:1}
@@ -251,7 +256,7 @@ const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 /* ---------- одна карточка на все окружения ---------- */
 /* общие кусочки карточки: считаются один раз, окружение только выбирает, где их поставить */
 const checkTxt=(t)=>t.check&&t.check.length?t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"";
-const atSpan=(t,opt)=>t.at&&!opt.noAt?el("span","at",t.at):null;
+const atSpan=()=>null; /* время живёт в подвале раскрытой карточки; на таймлайне его показывает сама позиция */
 function pillBtn(t,cls,title){const pl=el("button","mins"+cls,"");pl.type="button";if(title)pl.title=title;pl.dataset.tid=t.id;wirePill(pl,t);return pl}
 function cardBase(t,opt={}){
   const li=el("div","card"+(t.done?" done":""));
@@ -357,10 +362,11 @@ function popup(x,y,items){closePop();
   p.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+"px";p.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+"px"}
 document.addEventListener("click",(e)=>{
   closePop();
+  if(UI.dt&&document.contains(e.target)&&!e.target.closest(".card")){UI.dt=null;render();return}
   if(UI.sub&&document.contains(e.target)&&!e.target.closest(".subqa,.plus,.pop,.toast")){UI.sub=null;render();return}
   if(!UI.open||!document.contains(e.target))return;
   if(e.target.closest(".card,.pop,.toast,.qa,.bar,.head,.foot"))return;
-  UI.open=null;UI.sub=null;render()});
+  UI.open=null;UI.sub=null;UI.dt=null;render()});
 function onMenu(node,open){
   let tm=null,fired=false,sx=0,sy=0;
   node.addEventListener("contextmenu",(e)=>{e.preventDefault();open(e.clientX,e.clientY)});
@@ -464,18 +470,18 @@ function addSub(t,rel,txt,dur,start){
   const ix=t.link?S.tasks.indexOf(t)+(rel==="post"?1:0):undefined;
   const s2=makeTask({name:q.name,at:q.at,min:q.min||dur||0},{type:par.type,where:par.where,status:par.type==="работа"?(par.status||"todo"):"",project:par.project,link:par.id,rel:krel},ix);
   UI.sub={id:t.id,rel,dur:0,txt:""};save();if(start)startT(s2);render()}
+function dateLabel(t){
+  const pad=(n)=>String(n).padStart(2,"0"),day=(d)=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  let d="";
+  if(t.due){const now=new Date(),tm=new Date(Date.now()+864e5);
+    if(t.due===day(now))d="сегодня";else if(t.due===day(tm))d="завтра";
+    else{const [y,m,dd]=t.due.split("-").map(Number);d=dd+" "+["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"][m-1]}}
+  return [d,t.at].filter(Boolean).join(" · ")}
 function panel(t){
   const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
   const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
   const ta=el("textarea","pdesc");ta.placeholder="Описание";ta.value=t.desc||"";
   ta.addEventListener("focus",pushUndo);ta.oninput=()=>{t.desc=ta.value;save()};ta.onchange=()=>render();p.appendChild(ta);
-  // время и дата
-  const r2=el("div","row");r2.appendChild(el("span","plb","Начало"));
-  const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.onchange=()=>{t.at=tm.value;save();render()};r2.appendChild(tm);
-  r2.appendChild(el("span","plb","Дата"));
-  const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.onchange=()=>{t.due=dt.value;save();render()};r2.appendChild(dt);
-  if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};r2.appendChild(c)}
-  p.appendChild(r2);
   // чек-лист
   t.check=t.check||[];
   const cl=el("div","cl");
@@ -488,9 +494,20 @@ function panel(t){
   const nw=el("input","cl-new");nw.type="text";nw.placeholder="Новый пункт чек-листа";
   nw.onkeydown=(e)=>{if(e.key==="Enter"&&nw.value.trim()){pushUndo();t.check.push({text:nw.value.trim(),done:false});save();UI.focusNew=t.id;render()}};
   cl.appendChild(nw);p.appendChild(cl);
-  const r3=el("div","row");
+  // подвал: слева дата и время (серым), справа «Удалить»
+  const r3=el("div","row pfoot");
+  const dtb=el("button","dtbtn"+((t.at||t.due)?" set":""),(t.at||t.due)?dateLabel(t):"📅");dtb.type="button";
+  dtb.title="Дата и время";dtb.onclick=()=>{UI.dt=UI.dt===t.id?null:t.id;render()};r3.appendChild(dtb);
   const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
+  if(UI.dt===t.id){
+    const bx=el("div","dtbox row");
+    bx.appendChild(el("span","plb","Дата"));
+    const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.onchange=()=>{t.due=dt.value;save();render()};bx.appendChild(dt);
+    bx.appendChild(el("span","plb","Время"));
+    const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.onchange=()=>{t.at=tm.value;save();render()};bx.appendChild(tm);
+    if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};bx.appendChild(c)}
+    p.appendChild(bx)}
   return p}
 
 /* ---------- единственное место, где рождается задача ---------- */
@@ -535,7 +552,7 @@ function qaBox(pos){
 function card(t,opt={}){
   const li=cardBase(t,opt);
   const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{e.stopPropagation();editName(nm,t)};
-  li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;UI.open=UI.open===t.id?null:t.id;UI.sub=null;render()});
+  li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;UI.open=UI.open===t.id?null:t.id;UI.sub=null;UI.dt=null;render()});
   li.dataset.cid=t.id;if(t.link)li.dataset.sub="1";
   if(!t.done&&!opt.noAt){
     const kidsOf=t.link?[]:S.tasks.filter((x)=>x.link===t.id);
