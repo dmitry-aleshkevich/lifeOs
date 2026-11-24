@@ -88,6 +88,8 @@ body.drag .card .plus{opacity:1}
 .fbls li i{font-size:11px;color:var(--muted);font-style:normal}.fbls li button{position:absolute;right:6px;top:4px;border:0;background:transparent;color:var(--muted);cursor:pointer}
 .fblog{font-size:11px;color:var(--muted)}.fblog pre{white-space:pre-wrap;margin:4px 0 0;font-size:11px}
 .fbf{display:flex;gap:8px;align-items:center}.fbex{font-weight:800}.fbst{font-size:12px;color:var(--muted)}
+.lasso{position:fixed;z-index:75;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);pointer-events:none;border-radius:6px}
+body.lassoing{user-select:none;-webkit-user-select:none}
 .pfoot{display:flex;align-items:center;justify-content:space-between}
 .dtbtn{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:3px 6px;border-radius:8px;cursor:pointer;opacity:.7}
 .dtbtn.set{opacity:1}
@@ -96,9 +98,8 @@ body.drag .card .plus{opacity:1}
 @media (max-width:480px){
  .seg button{padding:8px 10px;font-size:12.5px}
  #envSeg{display:flex;width:100%;box-sizing:border-box}#envSeg button{flex:1 1 auto;padding:8px 4px}
- .kb .col{flex:0 0 min(84vw,320px);min-width:min(84vw,320px)}
 }
-.card.v .nm{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+.card .nm{display:inline-block;max-width:100%;overflow-wrap:anywhere}
 .chipb.danger{margin-left:auto;color:var(--pc-red);border-color:var(--pc-red-bg)}
 .cl{display:flex;flex-direction:column;gap:6px}
 .cli{display:flex;gap:8px;align-items:center}.cli .clt{flex:1}
@@ -127,7 +128,7 @@ body.drag .card .plus{opacity:1}
 .card.done .nm{text-decoration:line-through}
 .ck{flex:none;width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
 .card.done .ck{background:var(--done);border-color:var(--done);color:#fff;font-size:13px;font-weight:900}
-.txt{flex:1;min-width:0}
+.txt{flex:1 1 0;min-width:0}
 .nm{font-weight:700;font-size:15px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .meta{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap;min-width:0}
 .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
@@ -175,8 +176,9 @@ body.drag .card .plus{opacity:1}
 .tl .now{position:absolute;left:-6px;right:0;height:2px;background:var(--accent);z-index:3}
 .tl .now::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
 .kb{display:flex;gap:10px;overflow-x:auto;padding:0 14px 6px;scroll-snap-type:x mandatory;width:100vw;margin-left:calc(50% - 50vw)}
-.kb .col{flex:0 0 272px;min-width:272px;scroll-snap-align:start;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:10px}
+.kb .col{flex:0 0 320px;min-width:320px;scroll-snap-align:start;background:var(--surface-2);border:1px solid var(--line);border-radius:18px;padding:10px}
 .kb .col{background:var(--cbg,var(--surface-2));border-color:var(--cln,var(--line))}
+@media (max-width:480px){.kb .col{flex:0 0 min(84vw,320px);min-width:min(84vw,320px)}}
 .kb .col h3{margin:2px 2px 10px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800}
 .kb .col h3 .tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
  text-transform:uppercase;letter-spacing:.04em;background:var(--ctag,var(--surface));color:var(--cink,var(--muted))}
@@ -620,10 +622,10 @@ function qaBox(pos){
 
 function card(t,opt={}){
   const li=cardBase(t,opt);
-  const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{e.stopPropagation();editName(nm,t)};
+  const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{if(e.metaKey||e.ctrlKey||e.shiftKey||SEL.size)return;e.stopPropagation();editName(nm,t)};
   if(SEL.has(t.id))li.classList.add("sel");
   li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;
-    LASTT=t.name;if(e.metaKey||e.ctrlKey){toggleSel(t);return}if(e.shiftKey){rangeSel(t);return}if(SEL.size)SEL.clear();UI.open=UI.open===t.id?null:t.id;UI.sub=null;UI.dt=null;render()});
+    LASTT=t.name;if(e.shiftKey&&SEL.size){rangeSel(t);return}if(e.metaKey||e.ctrlKey||e.shiftKey||SEL.size){toggleSel(t);return}UI.open=UI.open===t.id?null:t.id;UI.sub=null;UI.dt=null;render()});
   li.dataset.cid=t.id;if(t.link)li.dataset.sub="1";
   if(!t.done&&!opt.noAt){
     const kidsOf=t.link?[]:S.tasks.filter((x)=>x.link===t.id);
@@ -772,6 +774,26 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
   document.addEventListener("touchmove",(e)=>{if(DR&&DR.active)e.preventDefault()},{passive:false});
 })();
 
+(function(){
+  const view=document.getElementById("view");
+  view.addEventListener("contextmenu",(e)=>{const li=e.target.closest(".card[data-cid]");if(!li||!e.ctrlKey||e.target.closest(".mins"))return;
+    const t=byId(li.dataset.cid);if(t){e.preventDefault();toggleSel(t)}});
+  let L=null;
+  document.addEventListener("pointerdown",(e)=>{
+    if(e.pointerType!=="mouse"||e.button!==0||(UI.env!=="list"&&UI.env!=="kanban"))return;
+    if(e.target.closest(".card,button,input,textarea,select,.ghead,h3,.qa,.rhead,.evb,.panel,.radd,#fbpop,#fab,#selbar,.seg,.pop,details,label"))return;
+    L={x:e.clientX,y:e.clientY,on:false,base:(e.shiftKey||e.metaKey||e.ctrlKey)?new Set(SEL):new Set(),box:null}});
+  document.addEventListener("pointermove",(e)=>{
+    if(!L)return;
+    if(!L.on){if(Math.hypot(e.clientX-L.x,e.clientY-L.y)<6)return;L.on=true;document.body.classList.add("lassoing");L.box=el("div","lasso");document.body.appendChild(L.box)}
+    const x1=Math.min(L.x,e.clientX),y1=Math.min(L.y,e.clientY),x2=Math.max(L.x,e.clientX),y2=Math.max(L.y,e.clientY);
+    Object.assign(L.box.style,{left:x1+"px",top:y1+"px",width:(x2-x1)+"px",height:(y2-y1)+"px"});
+    SEL.clear();L.base.forEach((i)=>SEL.add(i));
+    view.querySelectorAll(".card[data-cid]").forEach((c)=>{const r=c.getBoundingClientRect(),hit=r.right>x1&&r.left<x2&&r.bottom>y1&&r.top<y2;
+      if(hit)SEL.add(c.dataset.cid);c.classList.toggle("sel",SEL.has(c.dataset.cid))})});
+  document.addEventListener("pointerup",()=>{
+    if(!L)return;const on=L.on;if(L.box)L.box.remove();document.body.classList.remove("lassoing");L=null;
+    if(on){swallow=true;setTimeout(()=>{swallow=false},60);logA("выделено рамкой: "+SEL.size);render()}else if(SEL.size){SEL.clear();render()}})})();
 const FOLD=new Set(read("lifeos.v2.fold")||[]);
 const saveFold=()=>{try{localStorage.setItem("lifeos.v2.fold",JSON.stringify([...FOLD]))}catch{}};
 function rowWithKids(host,t,o={}){

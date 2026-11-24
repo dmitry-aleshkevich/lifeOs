@@ -17,6 +17,17 @@ with sync_playwright() as p:
     card("d").click(modifiers=["Shift"],position=pos); assert pg.locator(".card.sel").count()==4
     card("b").click(modifiers=["Control"],position=pos); assert pg.locator(".card.sel").count()==3
     pg.keyboard.press("Escape"); assert pg.locator(".card.sel").count()==0 and pg.locator("#selbar").count()==0
+    # клик по названию с Ctrl выделяет (не правит); при выделении обычный клик тоже переключает
+    nm=lambda i: pg.locator(f'.card[data-cid="{i}"] .nm')
+    nm("a").click(modifiers=["Control"]); assert pg.locator(".nmi").count()==0 and pg.locator(".card.sel").count()==1
+    nm("b").click(); assert pg.locator(".card.sel").count()==2 and pg.locator(".nmi").count()==0
+    nm("b").click(); assert pg.locator(".card.sel").count()==1
+    pg.keyboard.press("Escape"); assert pg.locator(".card.sel").count()==0
+    # рамка мышью по пустому месту
+    ba=card("a").bounding_box(); bc=card("c").bounding_box()
+    pg.mouse.move(ba["x"]-6,ba["y"]-6); pg.mouse.down(); pg.mouse.move(ba["x"]+ba["width"]-40,bc["y"]+bc["height"]-6,steps=8); pg.mouse.up(); pg.wait_for_timeout(200)
+    assert {c for c in pg.locator(".card.sel").evaluate_all("els=>els.map(e=>e.dataset.cid)")}>={"a","b","c"}, pg.locator(".card.sel").count()
+    pg.keyboard.press("Escape")
     # перенос группой в «Завтра»
     card("a").click(modifiers=["Control"],position=pos); card("b").click(modifiers=["Control"],position=pos)
     s=card("a").bounding_box(); h=pg.locator('.ghead[data-where="tomorrow"]').bounding_box()
