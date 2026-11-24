@@ -155,6 +155,13 @@ body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .card.v .r2r{display:flex;align-items:center;gap:8px;flex:none}
 .card.v .pmeta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kp{flex:none;white-space:nowrap}
+.kids{display:flex;flex-direction:column;gap:4px;margin-left:8px;padding-left:8px;border-left:2px solid var(--line)}
+.kid{display:flex;align-items:center;gap:6px;font-size:13px}
+.kid .kn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kid.done .kn{text-decoration:line-through;color:var(--muted)}
+.kid .ck{width:18px;height:18px;font-size:11px;flex:none}
+.kb .col h3.pdrag{cursor:grab}
+.col.pdrop{outline:2px dashed var(--accent)}
 .play{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:transparent;
  color:var(--ink);font-size:12px;line-height:1;cursor:pointer;padding:0}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -253,6 +260,14 @@ function cardBase(t,opt={}){
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
+    const kids=S.tasks.filter((x)=>x.link===t.id);
+    if(kids.length){const kl=el("div","kids");
+      kids.forEach((k2)=>{const kr=el("div","kid"+(k2.done?" done":""));kr.dataset.kid=k2.id;
+        const kc=el("button","ck",k2.done?"✓":"");kc.type="button";kc.onclick=(e)=>{e.stopPropagation();pushUndo();if(k2.done){k2.done=false;save();render()}else complete(k2)};
+        kr.appendChild(kc);kr.appendChild(el("span","kn",k2.name));
+        if(!k2.done){const kp=el("button","mins kp","");kp.type="button";kp.dataset.tid=k2.id;wirePill(kp,k2);kr.appendChild(kp)}
+        kl.appendChild(kr)});
+      li.appendChild(kl)}
     const r2=el("div","row2");
     r2.appendChild(el("span","pmeta",(t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":"")
       +(t.check&&t.check.length?(t.min?"  ·  ":"")+t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"")));
@@ -336,6 +351,7 @@ function popup(x,y,items){closePop();
   p.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+"px";p.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+"px"}
 document.addEventListener("click",(e)=>{
   closePop();
+  if(UI.sub&&document.contains(e.target)&&!e.target.closest(".subqa,.plus,.pop,.toast")){UI.sub=null;render();return}
   if(!UI.open||!document.contains(e.target))return;
   if(e.target.closest(".card,.pop,.toast,.qa,.bar,.head,.foot"))return;
   UI.open=null;UI.sub=null;render()});
@@ -444,12 +460,6 @@ function panel(t){
   const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
   const ta=el("textarea","pdesc");ta.placeholder="Описание";ta.value=t.desc||"";
   ta.addEventListener("focus",pushUndo);ta.oninput=()=>{t.desc=ta.value;save()};ta.onchange=()=>render();p.appendChild(ta);
-  // длительность
-  const r1=el("div","row");r1.appendChild(el("span","plb","Длительность"));
-  [5,10,15,25,30,45,60].forEach((m)=>{const b=el("button","chipb"+(t.min===m?" on":""),String(m));b.type="button";b.dataset.min=m;
-    b.onclick=()=>{pushUndo();t.min=t.min===m?0:m;save();render()};r1.appendChild(b)});
-  const num=el("input","pnum");num.type="number";num.min="0";num.placeholder="мин";num.value=t.min||"";num.setAttribute("aria-label","Минут");
-  num.addEventListener("focus",pushUndo);num.onchange=()=>{t.min=Math.max(0,parseInt(num.value,10)||0);save();render()};r1.appendChild(num);p.appendChild(r1);
   // время и дата
   const r2=el("div","row");r2.appendChild(el("span","plb","Начало"));
   const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.onchange=()=>{t.at=tm.value;save();render()};r2.appendChild(tm);
@@ -522,11 +532,29 @@ function card(t,opt={}){
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}
 
+function wireColDrag(h,col,kb){
+  let st=null;
+  h.addEventListener("pointerdown",(e)=>{if(e.target.closest("button")||(e.pointerType==="mouse"&&e.button!==0))return;
+    st={x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=="mouse",tm:null,ok:e.pointerType==="mouse"};
+    if(st.touch)st.tm=setTimeout(()=>{if(st){st.ok=true;col.classList.add("pdrop")}},350)});
+  const cols=()=>[...kb.querySelectorAll(".col[data-board=project]")].filter((c)=>c.dataset.key);
+  const over=(x)=>{let t=null;cols().forEach((c)=>{const r=c.getBoundingClientRect();if(x>=r.left&&x<=r.right)t=c});return t};
+  window.addEventListener("pointermove",(e)=>{if(!st)return;
+    if(!st.on){if(Math.hypot(e.clientX-st.x,e.clientY-st.y)<6)return;if(!st.ok){clearTimeout(st.tm);st=null;return}st.on=true;col.classList.add("pdrop")}
+    e.preventDefault();cols().forEach((c)=>c.classList.toggle("pdrop",c===over(e.clientX)||c===col));
+    const t=over(e.clientX);cols().forEach((c)=>c.style.outline=c===t&&c!==col?"2px dashed var(--accent)":"")});
+  const end=(e)=>{if(!st)return;clearTimeout(st.tm);const on=st.on;st=null;cols().forEach((c)=>{c.classList.remove("pdrop");c.style.outline=""});
+    if(!on)return;swallow=true;setTimeout(()=>{swallow=false},50);
+    const t=over(e.clientX);if(!t||t===col)return;
+    const a=S.projects.findIndex((p)=>p.id===col.dataset.key),b=S.projects.findIndex((p)=>p.id===t.dataset.key);
+    if(a<0||b<0)return;pushUndo();const [m]=S.projects.splice(a,1);S.projects.splice(b,0,m);save();render()};
+  window.addEventListener("pointerup",end);window.addEventListener("pointercancel",()=>{if(st){clearTimeout(st.tm);st=null}})}
 function clearColumn(k){pushUndo();
   const work=UI.sys==="работа";
   S.tasks.forEach((t)=>{if(t.type!==UI.sys||t.link||t.archived)return;
     if(k==="done"){if(t.done)t.archived=true}
-    else if(work&&k==="todo"&&t.status==="todo"&&t.project)t.status=""});
+    else if(work&&k==="todo"&&t.status==="todo"&&t.project)t.status="";
+    else if(!work&&k==="today"&&t.where==="today"&&!t.done&&t.project)t.where=""});
   save();render()}
 function dropKanban(d){
   const t=d.t,col=d.tgt.col,board=col.dataset.board,key=col.dataset.key,work=t.type==="работа";
@@ -535,7 +563,7 @@ function dropKanban(d){
     if(key==="done"){if(!t.done)markDone(t)}
     else{if(t.done)t.done=false;
       if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else t.where=key}}
-  else{t.project=key;if(work){if(t.tm&&t.tm.run)pauseT(t);t.status="";t.done=false}}
+  else{t.project=key;if(t.tm&&t.tm.run)pauseT(t);t.done=false;if(work)t.status="";else t.where=""}
   const o=d.tgt.n?byId(d.tgt.n.dataset.cid):null;
   if(o)S.tasks.splice(S.tasks.indexOf(o)+(d.tgt.after?1:0),0,t);else S.tasks.push(t);
   save();render()}
@@ -671,7 +699,7 @@ const ENVS={
       :[["today","Сегодня","orange"],["tomorrow","Завтра","blue"],["backlog","Нужно делать","gray"],["wait","Жду","violet"],["done","Готово","green"]];
     const base=()=>mine().filter((t)=>!t.link&&!t.archived);
     const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:(!t.done&&(t.where||"")===k));
-    const inProj=(t,k)=>(t.project||"")===k&&(work?!t.status:!t.done);
+    const inProj=(t,k)=>(t.project||"")===k&&(work?!t.status:(!t.done&&!t.where));
     const board=(label,id,cols,pick,addOpts)=>{
       host.appendChild(el("div","ghead")).appendChild(el("span",null,label));
       const kb=el("div","kb");
@@ -683,7 +711,7 @@ const ENVS={
         c.style.setProperty("--ctag","var(--pc-"+col+"-bg)");
         c.style.setProperty("--cink","var(--pc-"+col+")");
         const h=el("h3");h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));
-        if(id==="status"&&((work&&k==="todo")||k==="done")){
+        if(id==="status"&&((work&&k==="todo")||(!work&&k==="today")||k==="done")){
           const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
           b.onclick=()=>clearColumn(k);h.appendChild(b)}
         c.appendChild(h);
@@ -697,11 +725,13 @@ const ENVS={
         kb.appendChild(c);
       });
       host.appendChild(kb);
+      if(id==="project")kb.querySelectorAll(".col[data-board=project]").forEach((c)=>{if(!c.dataset.key)return;
+        const h=c.querySelector("h3");h.classList.add("pdrag");h.dataset.pid=c.dataset.key;wireColDrag(h,c,kb)});
     };
     board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
     const pcols=S.projects.filter((p)=>p.type===UI.sys&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
-    board("Проекты","project",pcols,inProj,(k)=>({project:k}));
+    board("Проекты","project",pcols,inProj,(k)=>({project:k,where:""}));
   }},
   calendar:{name:"Календарь",render(host){
     const withDue=mine().filter((t)=>t.due),none=mine().filter((t)=>!t.due);

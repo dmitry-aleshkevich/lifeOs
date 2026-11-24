@@ -26,13 +26,13 @@ with sync_playwright() as p:
     assert any(x["name"]=="Достать деньги" and x["link"]==t["id"] for x in S(pg))
     # без времени: секундомер идёт на карточке
     pg.evaluate("window.__off=0")
-    pg.locator(f'.col[data-board="status"] .card[data-cid="{t["id"]}"] .kp').click(); pg.wait_for_timeout(100)
+    pg.locator(f'.col[data-board="status"] .card[data-cid="{t["id"]}"] > .top > .kp').click(); pg.wait_for_timeout(100)
     pg.evaluate("window.__off=65000"); pg.wait_for_timeout(700)
-    assert pg.locator(f'.col[data-board="status"] .card[data-cid="{t["id"]}"] .kp').inner_text().strip().startswith("⏸ 1:0"), pg.locator(f'.col[data-board="status"] .card[data-cid="{t["id"]}"] .kp').inner_text()
+    assert pg.locator(f'.col[data-board="status"] .card[data-cid="{t["id"]}"] > .top > .kp').inner_text().strip().startswith("⏸ 1:0"), pg.locator(f'.col[data-board="status"] .card[data-cid="{t["id"]}"] > .top > .kp').inner_text()
     # ПКМ на кнопке: выбор времени у незапущенной задачи — работа, таймер с обратным отсчётом
     pg.click("#sysSeg button:has-text('Работа')"); pg.wait_for_timeout(300)
-    k=pg.locator('.card[data-cid="w1"] .kp'); assert "2:00" in k.inner_text() or "2 мин" in k.inner_text()
+    k=pg.locator('.card[data-cid="w1"] > .top > .kp'); assert "2:00" in k.inner_text() or "2 мин" in k.inner_text()
     k.click(); pg.wait_for_timeout(100); pg.evaluate("window.__off+=70000"); pg.wait_for_timeout(700)
-    assert "0:50" in pg.locator('.card[data-cid="w1"] .kp').inner_text() or "0:5" in pg.locator('.card[data-cid="w1"] .kp').inner_text()
+    assert "0:50" in pg.locator('.card[data-cid="w1"] > .top > .kp').inner_text() or "0:5" in pg.locator('.card[data-cid="w1"] > .top > .kp').inner_text()
     assert not errs, errs
-print("OK test75")
+print("ERRORS: []")

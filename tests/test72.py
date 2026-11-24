@@ -17,7 +17,7 @@ with sync_playwright() as p:
     pg.mouse.click(5,880); pg.wait_for_timeout(200); assert pg.locator(".panel").count()==0, "не свернулась"
     # клик внутри панели не сворачивает
     pg.locator('.card:has-text("Задача А")').first.locator(".txt").click(position=dict(x=300,y=10))
-    pg.locator('.panel .chipb[data-min="25"]').click(); pg.wait_for_timeout(200); assert pg.locator(".panel").count()==1
+    pg.locator('.panel .pdesc').click(); pg.wait_for_timeout(200); assert pg.locator(".panel").count()==1
     # 2. ПКМ без таймера: настройка длительности; с таймером: добавление времени
     pg.mouse.click(5,880); pg.wait_for_timeout(200)
     pg.locator('.mins[data-tid="a"]').click(button="right")
