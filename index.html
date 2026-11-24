@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>LifeOS_v1</title>
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-512.png"><meta name="apple-mobile-web-app-title" content="LifeOS"><meta name="apple-mobile-web-app-capable" content="yes"><title>LifeOS_v1</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@500;600;700;800&display=swap">
@@ -1232,6 +1232,95 @@ body.pk-nosel, body.pk-nosel * { user-select: none !important; -webkit-user-sele
 .vsw a:hover { color: var(--ink); }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+#sbGate{position:fixed;inset:0;z-index:100;background:#eef0f3;display:flex;align-items:center;justify-content:center;font-family:Manrope,system-ui,sans-serif}
+#sbGate .sb{background:#fff;border-radius:18px;padding:28px;width:340px;box-shadow:0 18px 48px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:10px}
+#sbGate h2{margin:0 0 4px;font-size:22px}#sbGate p{margin:0;font-size:13px;color:#666}
+#sbGate input{height:42px;border:1px solid #ddd;border-radius:10px;padding:0 12px;font-size:15px}
+#sbGate button{height:42px;border-radius:10px;border:0;font-weight:800;font-size:14px;cursor:pointer;background:#1d1d1f;color:#fff}
+#sbGate button.sec{background:transparent;color:#1d1d1f;border:1px solid #ddd}
+#sbGate .err{color:#c0392b;font-size:13px;min-height:16px}
+</style>
+<script>
+(function () {
+  var URL_ = "https://grdmuoeqxdcovgmxahmv.supabase.co", KEY = "sb_publishable_tf9GYeFiGu3cw6hbDzs1Pg_i5EujOM4", T = "lifeos_docs";
+  var hadLocal = !!localStorage.getItem("lifeos.v1"), sb = window.supabase.createClient(URL_, KEY), uid = null, subs = [], chan = null;
+  function gate(html, bind) { var g = document.getElementById("sbGate"); if (!g) { g = document.createElement("div"); g.id = "sbGate"; document.body.appendChild(g); } g.innerHTML = '<div class="sb">' + html + "</div>"; bind(g); }
+  function closeGate() { var g = document.getElementById("sbGate"); if (g) g.remove(); }
+  function login() {
+    return new Promise(function (res) {
+      gate('<h2>LifeOS</h2><p>Войди тем же аккаунтом, что в Wanna smoke.</p><input type="email" placeholder="Почта" autocomplete="username"><input type="password" placeholder="Пароль" autocomplete="current-password"><div class="err"></div><button data-a="in">Войти</button><button class="sec" data-a="up">Создать аккаунт</button>', function (g) {
+        var e = g.querySelector("[type=email]"), p = g.querySelector("[type=password]"), er = g.querySelector(".err");
+        g.querySelectorAll("button").forEach(function (b) { b.onclick = async function () {
+          er.textContent = ""; var r = b.dataset.a === "in" ? await sb.auth.signInWithPassword({ email: e.value.trim(), password: p.value }) : await sb.auth.signUp({ email: e.value.trim(), password: p.value });
+          if (r.error) { er.textContent = r.error.message; return; } if (!r.data.session) { er.textContent = "Проверь почту для подтверждения"; return; } res(r.data.session.user.id); }; });
+        p.onkeydown = function (ev) { if (ev.key === "Enter") g.querySelector("[data-a=in]").click(); };
+      });
+    });
+  }
+  async function importStep() {
+    var r = await sb.from(T).select("id").eq("id", "os").maybeSingle();
+    if (r.data) return;
+    await new Promise(function (res) {
+      gate('<h2>Перенос данных</h2><p>В облаке пока пусто. Загрузи файл экспорта из старой версии LifeOS (Сегодня → настройки → «Экспорт всех данных»).</p><input type="file" accept=".json,application/json"><div class="err"></div><button class="sec" data-a="skip">Начать с нуля</button>', function (g) {
+        var er = g.querySelector(".err");
+        g.querySelector("[type=file]").onchange = async function (ev) {
+          try { var j = JSON.parse(await ev.target.files[0].text()); if (!j || !Array.isArray(j.docs)) throw 0;
+            var rows = j.docs.filter(function (d) { return d && d.id && d.data; }).map(function (d) { return { user_id: uid, id: String(d.id), data: d.data }; });
+            for (var i = 0; i < rows.length; i += 20) { var w = await sb.from(T).upsert(rows.slice(i, i + 20)); if (w.error) throw w.error; }
+            try { var os = j.docs.find(function (d) { return d.id === "os"; }); if (os) localStorage.setItem("lifeos.v1", JSON.stringify(os.data)); } catch (x) {}
+            location.reload();
+          } catch (x) { er.textContent = "Файл не подошёл" + (x && x.message ? ": " + x.message : ""); }
+        };
+        g.querySelector("[data-a=skip]").onclick = res;
+      });
+    });
+  }
+  var ready = (async function () {
+    if (!document.body) await new Promise(function (r) { document.addEventListener("DOMContentLoaded", r); });
+    var s = (await sb.auth.getSession()).data.session;
+    uid = s ? s.user.id : await login();
+    await importStep(); closeGate();
+    try { var c = (await sb.from(T).select("id,data").eq("id", "os").maybeSingle()).data, loc = JSON.parse(localStorage.getItem("lifeos.v1") || "null");
+      if (c && c.data && (!hadLocal || !loc || (Number(loc.updatedAt) || 0) < (Number(c.data.updatedAt) || 0)) && !sessionStorage.getItem("lifeosPulled")) { sessionStorage.setItem("lifeosPulled", "1"); localStorage.setItem("lifeos.v1", JSON.stringify(c.data)); location.reload(); return new Promise(function () {}); }
+      sessionStorage.removeItem("lifeosPulled"); } catch (x) {}
+    chan = sb.channel("lifeos-" + uid).on("postgres_changes", { event: "*", schema: "public", table: T, filter: "user_id=eq." + uid }, function (p) {
+      var row = p.new && p.new.id ? p.new : p.old; subs.forEach(function (f) { f(p.eventType, row); });
+    }).subscribe();
+    return uid;
+  })();
+  window.lifeosLogout = async function () { await sb.auth.signOut(); localStorage.removeItem("lifeos.v1"); location.reload(); };
+  function snapDoc(id, row) { return { id: id, exists: !!row, data: function () { return row ? row.data : undefined; }, metadata: { fromCache: false, hasPendingWrites: false } }; }
+  function docRef(id) {
+    return {
+      set: async function (d) { var r = await sb.from(T).upsert({ user_id: uid, id: id, data: d, updated_at: new Date().toISOString() }); if (r.error) throw r.error; },
+      delete: async function () { var r = await sb.from(T).delete().eq("id", id); if (r.error) throw r.error; },
+      onSnapshot: function (cb, err) {
+        sb.from(T).select("id,data").eq("id", id).maybeSingle().then(function (r) { if (r.error) { err && err(r.error); return; } cb(snapDoc(id, r.data)); });
+        subs.push(function (ev, row) { if (row && row.id === id && ev !== "DELETE") cb(snapDoc(id, row)); });
+        return function () {};
+      }
+    };
+  }
+  var col = {
+    doc: docRef,
+    onSnapshot: function (cb, err) {
+      var cache = new Map();
+      var emit = function (changes) { var docs = []; cache.forEach(function (row, id) { docs.push(snapDoc(id, row)); }); cb({ docs: docs, docChanges: function () { return changes; }, metadata: { fromCache: false, hasPendingWrites: false } }); };
+      sb.from(T).select("id,data").then(function (r) { if (r.error) { err && err(r.error); return; } (r.data || []).forEach(function (row) { cache.set(row.id, row); }); emit([]); });
+      subs.push(function (ev, row) { if (!row) return; if (ev === "DELETE") { cache.delete(row.id); emit([{ type: "removed", doc: snapDoc(row.id, null) }]); } else { cache.set(row.id, row); emit([]); } });
+      return function () {};
+    }
+  };
+  window.claude = { use: async function (name) {
+    if (name === "db") { await ready; return { collection: function () { return col; } }; }
+    if (name === "user") { await ready; return { id: async function () { return uid; } }; }
+    throw new Error("unavailable");
+  } };
+})();
+</script>
+
 </head>
 <body>
 <div class="wrap">
