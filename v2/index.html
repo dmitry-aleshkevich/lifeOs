@@ -48,6 +48,9 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 @media (hover:hover){.card:hover>.x{opacity:1}}
 .panel{flex:0 0 100%;width:100%;border-top:1px solid var(--line);margin-top:6px;padding-top:10px;display:flex;flex-direction:column;gap:10px;cursor:default}
 .card.dragging{opacity:.3}
+.col.dropcol{outline:2px dashed var(--accent);outline-offset:-2px}
+.kb .col h3 .clr{margin-left:auto;border:0;background:transparent;color:var(--cink,var(--muted));font:inherit;font-weight:800;font-size:11px;cursor:pointer;opacity:.8;padding:2px 4px}
+.kb .col h3 .clr:hover{opacity:1;text-decoration:underline}
 .card.ghost{position:fixed;z-index:90;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.28);opacity:.95;margin:0}
 .dropline{position:fixed;height:3px;border-radius:2px;background:var(--accent);z-index:91;pointer-events:none}
 body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
@@ -204,7 +207,7 @@ function task(src,over){
     where:src.where||"", ord:0,
     at:src.at||"", due:src.due||"", min:Number(src.min)||0,
     spent:+src.spent||0, sessions:+src.sessions||0, acc:+src.acc||0,
-    done:!!src.done, doneAt:+src.doneAt||0, tm:null,
+    done:!!src.done, doneAt:+src.doneAt||0, tm:null, archived:false,
     status:src.done?"done":"", stage:"", waitUntil:src.waitUntil||"",
     link:src.link||"", rel:src.rel||"",
   },over);
@@ -232,7 +235,7 @@ const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 function cardBase(t,opt={}){
   const li=el("div","card"+(t.done?" done":""));
   const ck=el("button","ck",t.done?"✓":"");ck.setAttribute("aria-label","Отметить");
-  ck.onclick=(e)=>{e.stopPropagation();pushUndo();if(t.done){t.done=false;save();render()}else complete(t)};
+  ck.onclick=(e)=>{e.stopPropagation();pushUndo();if(t.done){t.done=false;if(t.type==="работа")t.status="todo";save();render()}else complete(t)};
   li.appendChild(ck);
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
@@ -286,21 +289,23 @@ function beeps(){
     for(let i=0;i<6;i++){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=i%2?660:880;
       g.gain.setValueAtTime(0.0001,t0+i*0.5);g.gain.exponentialRampToValueAtTime(0.35,t0+i*0.5+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+i*0.5+0.4);
       o.connect(g);g.connect(AC.destination);o.start(t0+i*0.5);o.stop(t0+i*0.5+0.45)}}catch{}}
-function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);m.run=false}
+function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);m.run=false;if(t.type==="работа"&&t.status==="doing")t.status="wait"}
 function startT(t){audio();
   S.tasks.forEach((x)=>{if(x!==t&&x.tm&&x.tm.run)pauseT(x)});
   if(!t.tm){const sw=!t.min;t.tm={run:true,sw,end:NOW()+(sw?0:t.min*60000),left:0,seg:NOW(),rang:false}}
   else if(!t.tm.run){t.tm.run=true;t.tm.end=NOW()+t.tm.left;t.tm.seg=NOW()}
-  save();tick()}
-function toggleT(t){if(t.tm&&t.tm.run)pauseT(t);else startT(t);save();tick()}
+  if(t.type==="работа"&&!t.done)t.status="doing";
+  save();tick();if(t.type==="работа")render()}
+function toggleT(t){if(t.tm&&t.tm.run){pauseT(t);save();tick();if(t.type==="работа")render()}else startT(t)}
 function addT(t,min){const add=min*60000;
   if(!t.tm){t.min=(t.min||0)+min;save();render();return}
   if(t.tm.sw)return;
   const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;save();tick()}
-function complete(t){
+function markDone(t){
   if(t.tm){if(t.tm.run)pauseT(t);t.tm=null}
-  t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";
-  save();render();
+  t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done"}
+function complete(t){
+  markDone(t);save();render();
   if(F.on)nextInFocus(t)}
 function fmtSpent(ms){const s=Math.round(ms/1000);if(s<60)return s+" с";
   const m=Math.floor(s/60),r=s%60;if(m<60)return m+":"+String(r).padStart(2,"0")+" мин";return Math.floor(m/60)+" ч "+String(m%60).padStart(2,"0")+" мин"}
@@ -364,8 +369,13 @@ const PRESETS=[["n3","Первые 3",{n:3}],["n5","Первые 5",{n:5}],["m30
 const dayISO=()=>{const d=new Date(NOW());return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 let F=Object.assign({on:false,preset:"n3",day:"",ids:{}},read(FK)||{});
 const saveF=()=>{try{localStorage.setItem(FK,JSON.stringify(F))}catch{}};
+function workQueue(){
+  const w=S.tasks.filter((t)=>t.type==="работа"&&!t.link&&!t.done&&!t.archived);
+  const cur=w.filter((t)=>t.status==="doing"||(t.status==="wait"&&t.tm)),nxt=w.filter((t)=>t.status==="todo");
+  return {cur,nxt,all:cur.concat(nxt)}}
 function candidates(sys){
-  return S.tasks.filter((t)=>t.type===sys&&!t.link&&!t.done&&(sys==="дела"?(t.where||"")==="today":t.status==="todo"))}
+  if(sys==="работа")return workQueue().all;
+  return S.tasks.filter((t)=>t.type===sys&&!t.link&&!t.done&&(t.where||"")==="today")}
 function focusCompute(sys){
   const pr=PRESETS.find((p)=>p[0]===F.preset)[2],c=candidates(sys),out=[];
   if(pr.n)c.slice(0,pr.n).forEach((t)=>out.push(t.id));
@@ -511,6 +521,23 @@ function card(t,opt={}){
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}
 
+function clearColumn(k){pushUndo();
+  const work=UI.sys==="работа";
+  S.tasks.forEach((t)=>{if(t.type!==UI.sys||t.link||t.archived)return;
+    if(k==="done"){if(t.done)t.archived=true}
+    else if(work&&k==="todo"&&t.status==="todo"&&t.project)t.status=""});
+  save();render()}
+function dropKanban(d){
+  const t=d.t,col=d.tgt.col,board=col.dataset.board,key=col.dataset.key,work=t.type==="работа";
+  pushUndo();S.tasks=S.tasks.filter((x)=>x!==t);
+  if(board==="status"){
+    if(key==="done"){if(!t.done)markDone(t)}
+    else{if(t.done)t.done=false;
+      if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else t.where=key}}
+  else{t.project=key;if(work){if(t.tm&&t.tm.run)pauseT(t);t.status="";t.done=false}}
+  const o=d.tgt.n?byId(d.tgt.n.dataset.cid):null;
+  if(o)S.tasks.splice(S.tasks.indexOf(o)+(d.tgt.after?1:0),0,t);else S.tasks.push(t);
+  save();render()}
 /* ---------- перетаскивание порядка в «Списке» ---------- */
 let DR=null,swallow=false;
 document.addEventListener("click",(e)=>{if(swallow){e.stopPropagation();e.preventDefault();swallow=false}},true);
@@ -522,6 +549,19 @@ function dragStart(){const d=DR;d.active=true;d.li.classList.add("dragging");doc
 function dragMove(){const d=DR;if(!d||!d.active)return;
   d.ghost.style.left=(d.x-d.dx)+"px";d.ghost.style.top=(d.y-d.dy)+"px";
   const view=document.getElementById("view");
+  if(UI.env==="kanban"){
+    const cols=[...view.querySelectorAll(".col[data-board]")];let col=null;
+    for(const c of cols){const r=c.getBoundingClientRect();if(d.x>=r.left&&d.x<=r.right&&d.y>=r.top&&d.y<=r.bottom){col=c;break}}
+    cols.forEach((c)=>c.classList.toggle("dropcol",c===col));
+    if(!col){d.tgt=null;d.line.hidden=true;return}
+    let best=null,after=false;
+    for(const n of [...col.querySelectorAll(".card[data-cid]")].filter((n)=>n!==d.li)){
+      const r=n.getBoundingClientRect();if(d.y<r.top+r.height/2){best=n;after=false;break}best=n;after=true}
+    d.tgt={col,n:best,after,kanban:true};
+    const cr=col.getBoundingClientRect();d.line.hidden=false;
+    if(best){const r=best.getBoundingClientRect();d.line.style.left=r.left+"px";d.line.style.width=r.width+"px";d.line.style.top=(after?r.bottom+1:r.top-3)+"px"}
+    else{const h=col.querySelector("h3").getBoundingClientRect();d.line.style.left=(cr.left+10)+"px";d.line.style.width=(cr.width-20)+"px";d.line.style.top=(h.bottom+4)+"px"}
+    return}
   const els=[...view.querySelectorAll(".card[data-cid]:not([data-sub]),.ghead[data-where]")].filter((n)=>n!==d.li);
   let best=null,bd=1e9;
   for(const n of els){const r=n.getBoundingClientRect();
@@ -535,7 +575,9 @@ function dragMove(){const d=DR;if(!d||!d.active)return;
 function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null;if(!d.active)return;
   d.li.classList.remove("dragging");document.body.classList.remove("drag");d.ghost.remove();d.line.remove();
   swallow=true;setTimeout(()=>{swallow=false},60);
+  document.querySelectorAll(".dropcol").forEach((c)=>c.classList.remove("dropcol"));
   if(cancel||!d.tgt)return;
+  if(d.tgt.kanban){dropKanban(d);return}
   const t=d.t,n=d.tgt.n;pushUndo();
   S.tasks=S.tasks.filter((x)=>x!==t);let idx;
   if(d.tgt.head){const w=n.dataset.where;t.where=w;const first=S.tasks.findIndex((x)=>x.type===t.type&&!x.link&&(x.where||"")===w);idx=first>=0?first:S.tasks.length}
@@ -547,7 +589,7 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
 (function(){
   const view=document.getElementById("view");
   view.addEventListener("pointerdown",(e)=>{
-    if(UI.env!=="list"||(e.pointerType==="mouse"&&e.button!==0))return;
+    if((UI.env!=="list"&&UI.env!=="kanban")||(e.pointerType==="mouse"&&e.button!==0))return;
     const li=e.target.closest(".card[data-cid]");if(!li||li.dataset.sub)return;
     if(e.target.closest("button,input,textarea,select,.panel"))return;
     const t=byId(li.dataset.cid);if(!t)return;
@@ -564,6 +606,11 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
   document.addEventListener("touchmove",(e)=>{if(DR&&DR.active)e.preventDefault()},{passive:false});
 })();
 
+function rowWithKids(host,t){
+  const kids=S.tasks.filter((x)=>x.link===t.id);
+  kids.filter((k2)=>k2.rel==="pre").forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)});
+  host.appendChild(card(t));
+  kids.filter((k2)=>k2.rel!=="pre").forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)})}
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
 const ENVS={
   list:{name:"Список",render(host){
@@ -574,6 +621,15 @@ const ENVS={
       h.appendChild(el("span",null,items.length+" · "+items.reduce((a,t)=>a+(t.done?0:t.min),0)+" мин"));host.appendChild(h);
       if(!items.length)host.appendChild(el("div","empty","Нет задач под этот фильтр. ПКМ на «Фокус» — выбрать другой."));
       items.forEach((t)=>host.appendChild(card(t)));host.appendChild(qaBox("bottom"));return}
+    if(UI.sys==="работа"){
+      const q=workQueue();
+      [["Сейчас",q.cur],["Дальше",q.nxt]].forEach(([label,items])=>{
+        if(!items.length)return;
+        const h=el("div","ghead");h.appendChild(el("span",null,label));
+        h.appendChild(el("span",null,items.length+" · "+items.reduce((a,t)=>a+(t.done?0:t.min),0)+" мин"));host.appendChild(h);
+        items.forEach((t)=>rowWithKids(host,t))});
+      if(!q.all.length)host.appendChild(el("div","empty","Закинь задачи из проектов на канбан в «В работу» — они появятся здесь."));
+      host.appendChild(qaBox("bottom"));return}
     const groups=[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"],["","Без места"]];
     let any=false;
     groups.forEach(([k,label])=>{
@@ -609,32 +665,41 @@ const ENVS={
     none.forEach((t)=>host.appendChild(card(t)));
   }},
   kanban:{name:"Канбан",render(host){
-    const SC={"":"gray",todo:"blue",doing:"yellow",wait:"violet",done:"green"};
-    const board=(label,cols,prop)=>{
+    const work=UI.sys==="работа";
+    const STAT=work?[["todo","В работу","blue"],["doing","В процессе","yellow"],["wait","Жду","violet"],["done","Готово","green"]]
+      :[["today","Сегодня","orange"],["tomorrow","Завтра","blue"],["backlog","Нужно делать","gray"],["wait","Жду","violet"],["done","Готово","green"]];
+    const base=()=>mine().filter((t)=>!t.link&&!t.archived);
+    const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:(!t.done&&(t.where||"")===k));
+    const inProj=(t,k)=>(t.project||"")===k&&(work?!t.status:!t.done);
+    const board=(label,id,cols,pick,addOpts)=>{
       host.appendChild(el("div","ghead")).appendChild(el("span",null,label));
       const kb=el("div","kb");
       cols.forEach(([k,title,color])=>{
-        const items=mine().filter((t)=>(t[prop]||"")===k);
-        const c=el("div","col"),col=color||"gray";
+        const items=base().filter((t)=>pick(t,k));
+        const c=el("div","col"),col=color||"gray";c.dataset.board=id;c.dataset.key=k;
         c.style.setProperty("--cbg","color-mix(in srgb, var(--pc-"+col+"-bg) 55%, var(--surface-2))");
         c.style.setProperty("--cln","color-mix(in srgb, var(--pc-"+col+") 22%, var(--line))");
         c.style.setProperty("--ctag","var(--pc-"+col+"-bg)");
         c.style.setProperty("--cink","var(--pc-"+col+")");
         const h=el("h3");h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));
+        if(id==="status"&&((work&&k==="todo")||k==="done")){
+          const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
+          b.onclick=()=>clearColumn(k);h.appendChild(b)}
         c.appendChild(h);
-        items.forEach((t)=>c.appendChild(card(t,{v:true,noProject:prop==="project"})));
-        const add=el("button","add","+ Задача");
-        add.onclick=()=>{const t=task({name:"Новая задача",min:25},{type:UI.sys,[prop]:k,ord:S.tasks.length});
-          S.tasks.push(t);save();render()};
-        c.appendChild(add);
+        items.forEach((t)=>c.appendChild(card(t,{v:true,noProject:id==="project"})));
+        if(!(id==="status"&&k==="done")){
+          const add=el("button","add","+ Задача");
+          add.onclick=()=>{pushUndo();const t=task({name:"Новая задача",min:25},Object.assign({type:UI.sys,ord:S.tasks.length},addOpts(k)));
+            S.tasks.push(t);save();render()};
+          c.appendChild(add)}
         kb.appendChild(c);
       });
       host.appendChild(kb);
     };
-    board("По статусу",COLS.status.map(([k,t])=>[k,t,SC[k]]),"status");
+    board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
     const pcols=S.projects.filter((p)=>p.type===UI.sys).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
-    board("По проектам",pcols,"project");
+    board("Проекты","project",pcols,inProj,(k)=>({project:k}));
   }},
   calendar:{name:"Календарь",render(host){
     const withDue=mine().filter((t)=>t.due),none=mine().filter((t)=>!t.due);
@@ -661,7 +726,7 @@ const ENVS={
 const HINTS={
   list:"Нажми на карточку — раскроется; на название — правка текста. Сверху и снизу поле «Новая задача».",
   timeline:"Раскладка по времени начала. Задачи без времени лежат под сеткой — их можно будет перетащить на час.",
-  kanban:"Две доски над одними задачами: по статусу и по проектам. Перенос между колонками записывает это свойство.",
+  kanban:"Сверху доска статусов, снизу проекты. Задача — как тикет: перетащил в статус — она на доске, вернул в проект — ушла с неё.",
   calendar:"Раскладка по дате задачи. Без даты — список под календарём.",
 };
 
