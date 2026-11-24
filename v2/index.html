@@ -38,6 +38,32 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .card{display:flex;align-items:center;gap:10px;min-width:0;background:var(--surface);border:1px solid var(--line);
  border-radius:16px;padding:10px 12px;margin-bottom:7px;min-height:56px}
 .card.done{opacity:.55}
+.card{position:relative;flex-wrap:wrap}
+.card.v{flex-wrap:nowrap}
+.card .nm{display:inline-block;max-width:100%;cursor:text;vertical-align:top}
+.card .txt{cursor:pointer}
+.nmi{width:100%;font:inherit;font-weight:700;font-size:15px;color:var(--ink);background:var(--surface-2);border:1.5px solid var(--accent);border-radius:8px;padding:2px 6px}
+.card .x{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
+ color:var(--muted);font-size:10px;line-height:1;cursor:pointer;padding:0;opacity:0;transition:opacity .12s;z-index:2}
+@media (hover:hover){.card:hover>.x{opacity:1}}
+.panel{flex:0 0 100%;width:100%;border-top:1px solid var(--line);margin-top:6px;padding-top:10px;display:flex;flex-direction:column;gap:10px;cursor:default}
+.panel .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.panel .plb{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-right:2px}
+.panel textarea{width:100%;min-height:58px;resize:vertical;font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.panel input[type=number],.panel input[type=time],.panel input[type=date],.panel .clt,.panel .cl-new,.panel .sub-new{font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:0}
+.panel input[type=number]{width:70px}
+.chipb{border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-weight:800;font-size:12px;background:transparent;color:var(--ink);cursor:pointer}
+.chipb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chipb.danger{margin-left:auto;color:var(--pc-red);border-color:var(--pc-red-bg)}
+.cl{display:flex;flex-direction:column;gap:6px}
+.cli{display:flex;gap:8px;align-items:center}.cli .clt{flex:1}
+.cli .clx{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;padding:4px}
+.panel .cl-new,.panel .sub-new{width:100%}
+.qa{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
+.qa input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font:inherit;padding:10px 12px;min-height:46px}
+.qa .qp{min-height:46px;padding:0 16px;font-size:14px}
+.tl .slot:has(.card.open){z-index:6;height:auto!important}
+
 .card.v{flex-direction:column;align-items:stretch;gap:6px;padding:10px 11px}
 .card.v .top{display:flex;align-items:flex-start;gap:9px;min-width:0}
 .card.v .nm{white-space:normal;overflow:visible;line-height:1.25}
@@ -141,7 +167,7 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
   <button id="again">Пересобрать из v1</button>
 </div>
 <p class="note">Это превью: видно, как одна и та же задача выглядит в четырёх окружениях.
-Перетаскивание и редактирование появятся следующими шагами. Данные берутся из v1 один раз, дальше бета живёт в своей копии <code>lifeos.v2</code>.</p>
+Перетаскивание появится следующим шагом. Данные берутся из v1 один раз, дальше бета живёт в своей копии <code>lifeos.v2</code>.</p>
 
 <script>
 "use strict";
@@ -185,10 +211,10 @@ const proj=(id)=>S.projects.find((p)=>p.id===id)||null;
 const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 
 /* ---------- одна карточка на все окружения ---------- */
-function card(t,opt={}){
+function cardBase(t,opt={}){
   const li=el("div","card"+(t.done?" done":""));
   const ck=el("button","ck",t.done?"✓":"");ck.setAttribute("aria-label","Отметить");
-  ck.onclick=()=>{if(t.done){t.done=false;save();render()}else complete(t)};
+  ck.onclick=(e)=>{e.stopPropagation();pushUndo();if(t.done){t.done=false;save();render()}else complete(t)};
   li.appendChild(ck);
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
@@ -328,15 +354,119 @@ function initFocusBtn(){const b=document.getElementById("fbtn");let fired=false;
     if(F.on)items.push(["Выключить фокус",()=>{F.on=false;saveF();render()}]);
     popup(x,y,items)})}
 
+/* ---------- правка задачи: раскрытие, поля, чек-лист, подзадачи, удаление, отмена ---------- */
+const undo=[];
+const snap=()=>JSON.stringify(S.tasks);
+function pushUndo(){const j=snap();if(undo[undo.length-1]!==j){undo.push(j);if(undo.length>20)undo.shift()}}
+function undoNow(){const j=undo.pop();if(!j)return;S.tasks=JSON.parse(j);save();render()}
+document.addEventListener("keydown",(e)=>{
+  const tg=e.target,typing=tg&&(tg.tagName==="INPUT"||tg.tagName==="TEXTAREA"||tg.isContentEditable);
+  if((e.metaKey||e.ctrlKey)&&!e.shiftKey&&e.key.toLowerCase()==="z"&&!typing){e.preventDefault();undoNow()}
+  else if(e.key==="Escape"&&UI.open&&!document.querySelector(".pop")){UI.open=null;UI.sub=null;render()}});
+function note(text){const o=document.getElementById("note2");if(o)o.remove();
+  const n=el("div","toast",text);n.id="note2";document.body.appendChild(n);setTimeout(()=>n.remove(),3500)}
+function delTask(t){pushUndo();S.tasks=S.tasks.filter((x)=>x!==t&&x.link!==t.id);if(UI.open===t.id)UI.open=null;save();render()}
+function editName(span,t){
+  const inp=el("input","nmi");inp.type="text";inp.value=t.name;span.replaceWith(inp);inp.focus();inp.select();
+  let done=false;const fin=(ok)=>{if(done)return;done=true;const v=inp.value.trim();
+    if(ok&&v&&v!==t.name){pushUndo();t.name=v;save()}render()};
+  inp.onkeydown=(e)=>{if(e.key==="Enter")fin(true);else if(e.key==="Escape"){e.stopPropagation();fin(false)}};
+  inp.onblur=()=>fin(true);inp.onclick=(e)=>e.stopPropagation()}
+function addSub(t,rel,name){pushUndo();
+  const s=task({name},{type:t.type,where:t.where,status:t.type==="работа"?(t.status||"todo"):"",project:t.project,link:t.id,rel,ord:S.tasks.length});
+  S.tasks.push(s);UI.sub=null;save();render()}
+function panel(t){
+  const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
+  const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
+  const ta=el("textarea","pdesc");ta.placeholder="Описание";ta.value=t.desc||"";
+  ta.addEventListener("focus",pushUndo);ta.oninput=()=>{t.desc=ta.value;save()};ta.onchange=()=>render();p.appendChild(ta);
+  // длительность
+  const r1=el("div","row");r1.appendChild(el("span","plb","Длительность"));
+  [5,10,15,25,30,45,60].forEach((m)=>{const b=el("button","chipb"+(t.min===m?" on":""),String(m));b.type="button";b.dataset.min=m;
+    b.onclick=()=>{pushUndo();t.min=t.min===m?0:m;save();render()};r1.appendChild(b)});
+  const num=el("input","pnum");num.type="number";num.min="0";num.placeholder="мин";num.value=t.min||"";num.setAttribute("aria-label","Минут");
+  num.addEventListener("focus",pushUndo);num.onchange=()=>{t.min=Math.max(0,parseInt(num.value,10)||0);save();render()};r1.appendChild(num);p.appendChild(r1);
+  // время и дата
+  const r2=el("div","row");r2.appendChild(el("span","plb","Начало"));
+  const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.onchange=()=>{t.at=tm.value;save();render()};r2.appendChild(tm);
+  r2.appendChild(el("span","plb","Дата"));
+  const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.onchange=()=>{t.due=dt.value;save();render()};r2.appendChild(dt);
+  if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};r2.appendChild(c)}
+  p.appendChild(r2);
+  // чек-лист
+  t.check=t.check||[];
+  const cl=el("div","cl");
+  t.check.forEach((c,i)=>{const row=el("div","cli");
+    const cb=el("input");cb.type="checkbox";cb.checked=!!c.done;cb.onchange=()=>{pushUndo();c.done=cb.checked;save();render()};
+    const tx=el("input","clt");tx.type="text";tx.value=c.text||c.t||c.name||"";tx.addEventListener("focus",pushUndo);
+    tx.onchange=()=>{c.text=tx.value.trim();save();render()};
+    const x=el("button","clx","✕");x.type="button";x.setAttribute("aria-label","Удалить пункт");x.onclick=()=>{pushUndo();t.check.splice(i,1);save();render()};
+    row.append(cb,tx,x);cl.appendChild(row)});
+  const nw=el("input","cl-new");nw.type="text";nw.placeholder="Новый пункт чек-листа";
+  nw.onkeydown=(e)=>{if(e.key==="Enter"&&nw.value.trim()){pushUndo();t.check.push({text:nw.value.trim(),done:false});save();UI.focusNew=t.id;render()}};
+  cl.appendChild(nw);p.appendChild(cl);
+  // подзадачи
+  const r3=el("div","row");
+  if(UI.sub&&UI.sub.id===t.id){
+    const si=el("input","sub-new");si.type="text";si.placeholder=(UI.sub.rel==="pre"?"Перед: ":"После: ")+"название подзадачи";
+    si.onkeydown=(e)=>{if(e.key==="Enter"&&si.value.trim())addSub(t,UI.sub.rel,si.value.trim());else if(e.key==="Escape"){e.stopPropagation();UI.sub=null;render()}};
+    r3.appendChild(si);setTimeout(()=>si.focus(),0)}
+  else{[["pre","+ до"],["post","+ после"]].forEach(([rel,l])=>{const b=el("button","chipb",l);b.type="button";b.dataset.rel=rel;
+    b.onclick=()=>{UI.sub={id:t.id,rel};render()};r3.appendChild(b)})}
+  const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
+  p.appendChild(r3);
+  return p}
+
+/* ---------- быстрый ввод новой задачи ---------- */
+UI.qa={top:{txt:"",dur:0},bottom:{txt:"",dur:0}};
+function parseQuick(txt){
+  let name=txt,at="",min=0,pid="";
+  name=name.replace(/(^|\s)(\d{1,2}):(\d{2})(?=\s|$)/,(m,a,h,mi)=>{at=String(h).padStart(2,"0")+":"+mi;return a});
+  name=name.replace(/(^|\s)(\d+)\s*(мин|м|m|ч|h)(?=\s|$)/i,(m,a,n,u)=>{min=(+n)*(/^(ч|h)$/i.test(u)?60:1);return a});
+  name=name.replace(/(^|\s)#(\S+)/,(m,a,w)=>{const pj=S.projects.find((x)=>x.type===UI.sys&&x.name.toLowerCase().startsWith(w.toLowerCase()));if(pj)pid=pj.id;return pj?a:m});
+  return {name:name.replace(/\s+/g," ").trim(),at,min,pid}}
+function addQuick(pos,start){
+  const st=UI.qa[pos],q=parseQuick(st.txt);if(!q.name)return null;
+  pushUndo();
+  const t=task({name:q.name,at:q.at,min:q.min||st.dur||0,project:q.pid},
+    {type:UI.sys,where:UI.sys==="дела"?"today":"",status:UI.sys==="работа"?"todo":"",ord:S.tasks.length});
+  if(pos==="top")S.tasks.unshift(t);else S.tasks.push(t);
+  st.txt="";st.dur=0;UI.qaFocus=pos;save();
+  if(start)startT(t);
+  render();
+  if(F.on)note("Добавлено вне фокуса. ПКМ на «Фокус» → «Обновить набор».");
+  return t}
+function qaBox(pos){
+  const st=UI.qa[pos],w=el("div","qa");w.dataset.pos=pos;
+  const inp=el("input");inp.type="text";inp.placeholder="Новая задача";inp.value=st.txt;inp.setAttribute("enterkeyhint","done");
+  inp.oninput=()=>{st.txt=inp.value};
+  inp.onkeydown=(e)=>{if(e.key==="Enter")addQuick(pos,false)};
+  const pl=el("button","mins qp","");pl.type="button";pl.title="Создать и запустить. ПКМ — длительность";
+  const paint=()=>{pl.textContent="▶"+(st.dur?" "+st.dur+" мин":"")};paint();
+  pl.onclick=()=>{if(!st.txt.trim()){inp.focus();return}addQuick(pos,true)};
+  onMenu(pl,(x,y)=>{
+    const it=[5,10,15,25,30,45,60].map((m)=>[(st.dur===m?"✓ ":"    ")+m+" мин",()=>{st.dur=m;paint()}]);
+    it.push("-",["Своё число…",()=>{const v=parseInt(prompt("Минут:","20"),10);if(v>0){st.dur=v;paint()}}],["Без времени (секундомер)",()=>{st.dur=0;paint()}]);
+    popup(x,y,it)});
+  w.append(inp,pl);return w}
+
+function card(t,opt={}){
+  const li=cardBase(t,opt);
+  const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{e.stopPropagation();editName(nm,t)};
+  li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;UI.open=UI.open===t.id?null:t.id;UI.sub=null;render()});
+  const x=el("button","x","✕");x.type="button";x.title="Удалить";x.setAttribute("aria-label","Удалить");x.onclick=(e)=>{e.stopPropagation();delTask(t)};li.appendChild(x);
+  if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
+  return li}
 /* ---------- окружения: фильтр, раскладка, чего не хватает ---------- */
 const ENVS={
   list:{name:"Список",render(host){
+    host.appendChild(qaBox("top"));
     if(F.on){focusEnsure(UI.sys);
       const items=(F.ids[UI.sys]||[]).map(byId).filter(Boolean);
       const h=el("div","ghead");h.appendChild(el("span",null,"Фокус"));
       h.appendChild(el("span",null,items.length+" · "+items.reduce((a,t)=>a+(t.done?0:t.min),0)+" мин"));host.appendChild(h);
       if(!items.length)host.appendChild(el("div","empty","Нет задач под этот фильтр. ПКМ на «Фокус» — выбрать другой."));
-      items.forEach((t)=>host.appendChild(card(t)));return}
+      items.forEach((t)=>host.appendChild(card(t)));host.appendChild(qaBox("bottom"));return}
     const groups=[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"],["","Без места"]];
     let any=false;
     groups.forEach(([k,label])=>{
@@ -345,10 +475,13 @@ const ENVS={
       const h=el("div","ghead");h.appendChild(el("span",null,label));
       h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
       host.appendChild(h);
-      items.forEach((t)=>{host.appendChild(card(t));
-        S.tasks.filter((x)=>x.link===t.id).forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)})});
+      items.forEach((t)=>{const kids=S.tasks.filter((x)=>x.link===t.id);
+        kids.filter((k2)=>k2.rel==="pre").forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)});
+        host.appendChild(card(t));
+        kids.filter((k2)=>k2.rel!=="pre").forEach((k2)=>{const c=card(k2);c.style.marginLeft="26px";host.appendChild(c)})});
     });
     if(!any)host.appendChild(el("div","empty","В этой системе пока нет задач."));
+    host.appendChild(qaBox("bottom"));
   }},
   timeline:{name:"Таймлайн",render(host){
     const H0=8,H1=23,PX=56;
@@ -419,7 +552,7 @@ const ENVS={
   }},
 };
 const HINTS={
-  list:"Ручной порядок внутри группы. Перенос меняет «куда положена» и позицию.",
+  list:"Нажми на карточку — раскроется; на название — правка текста. Сверху и снизу поле «Новая задача».",
   timeline:"Раскладка по времени начала. Задачи без времени лежат под сеткой — их можно будет перетащить на час.",
   kanban:"Две доски над одними задачами: по статусу и по проектам. Перенос между колонками записывает это свойство.",
   calendar:"Раскладка по дате задачи. Без даты — список под календарём.",
@@ -437,6 +570,8 @@ function render(){
   paintFocusBtn();
   const v=document.getElementById("view");v.innerHTML="";
   ENVS[UI.env].render(v);
+  if(UI.qaFocus){const q=v.querySelector('.qa[data-pos="'+UI.qaFocus+'"] input');UI.qaFocus=null;if(q)q.focus()}
+  if(UI.focusNew){const q=v.querySelector(".cl-new");UI.focusNew=null;if(q)q.focus()}
 }
 function boot(){
   const v1=read(V1);
