@@ -70,6 +70,10 @@ body.drag .card .plus{opacity:1}
 .plus.dropplus{background:var(--accent)!important;color:#fff!important;transform:scale(1.35)}
 .card.stackt{margin-top:12px;box-shadow:0 -7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 -13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface))}
 .card.stack.stackt{box-shadow:0 7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface)),0 -7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 -13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface))}
+.radd{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:12px;padding:6px 4px;cursor:pointer;border-radius:8px}
+.radd:hover{background:var(--surface-2)}
+.evb{display:flex;justify-content:space-between;align-items:center;width:100%;margin:14px 0 4px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,#1d2140,#2b2358);color:#e9e6ff;font:inherit;font-weight:800;font-size:14px;cursor:pointer}
+.evb .cd{font-variant-numeric:tabular-nums;opacity:.85}
 .pfoot{display:flex;align-items:center;justify-content:space-between}
 .dtbtn{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;padding:3px 6px;border-radius:8px;cursor:pointer;opacity:.7}
 .dtbtn.set{opacity:1}
@@ -264,7 +268,7 @@ const COLS={
   status:[["","Не начато"],["todo","В работу"],["doing","В работе"],["wait","Жду"],["done","Готово"]],
 };
 const proj=(id)=>{const p=S.projects.find((x)=>x.id===id)||null;return p&&p.type===UI.sys&&(UI.sys==="работа"||!/^работа$/i.test(p.name))?p:null};
-const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
+const mine=()=>S.tasks.filter((t)=>t.type===UI.sys&&!t.routine);   /* рутины живут в своих группах «Утро»/«Вечер» */
 
 /* ---------- одна карточка на все окружения ---------- */
 /* общие кусочки карточки: считаются один раз, окружение только выбирает, где их поставить */
@@ -369,7 +373,7 @@ function paintPill(b,t){
 function tick(){
   S.tasks.forEach((t)=>{const m=t.tm;if(m&&m.run&&!m.sw&&!m.rang&&m.end-NOW()<=0){m.rang=true;save();ring()}});
   document.querySelectorAll("[data-tid]").forEach((b)=>{const t=byId(b.dataset.tid);if(t&&!t.done)paintPill(b,t)})}
-setInterval(()=>{if(S)tick()},500);
+setInterval(()=>{if(S){tick();const c=document.querySelector("#evb .cd");if(c)c.textContent=endOfDay();if(S.day&&S.day.iso!==dayISO())render()}},500);
 document.addEventListener("visibilitychange",()=>{if(S&&document.visibilityState==="visible")tick()});
 
 /* ---------- всплывающее меню: ПКМ или долгое нажатие ---------- */
@@ -425,7 +429,7 @@ function workQueue(){
   return {cur,nxt,all:cur.concat(nxt)}}
 function candidates(sys){
   if(sys==="работа")return workQueue().all;
-  return S.tasks.filter((t)=>t.type===sys&&!t.link&&!t.done&&(t.where||"")==="today")}
+  return S.tasks.filter((t)=>t.type===sys&&!t.routine&&!t.link&&!t.done&&(t.where||"")==="today")}
 function focusCompute(sys){
   const pr=PRESETS.find((p)=>p[0]===F.preset)[2],c=candidates(sys),out=[];
   if(pr.n)c.slice(0,pr.n).forEach((t)=>out.push(t.id));
@@ -742,6 +746,8 @@ const ENVS={
         items.forEach((t)=>rowWithKids(host,t))});
       if(!q.all.length)host.appendChild(el("div","empty","Закинь задачи из проектов на канбан в «В работу» — они появятся здесь."));
       host.appendChild(qaBox("bottom"));return}
+    routineGroup(host,"morning");
+    eveningBanner(host);
     const groups=[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"],["","Без места"]];
     let any=false;
     groups.forEach(([k,label])=>{
@@ -752,6 +758,7 @@ const ENVS={
       host.appendChild(h);
       items.forEach((t)=>rowWithKids(host,t))
     });
+    if(S.day&&S.day.evening)routineGroup(host,"evening");
     if(!any)host.appendChild(el("div","empty","В этой системе пока нет задач."));
     host.appendChild(qaBox("bottom"));
   }},
@@ -847,7 +854,36 @@ function seg(host,items,cur,pick){
   items.forEach(([k,label])=>{const b=el("button",null,label);b.setAttribute("aria-pressed",k===cur);b.onclick=()=>pick(k);host.appendChild(b)});
 }
 function save(){try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
+/* ---------- новый день: утро и вечер сбрасываются; вечер включается кнопкой после 21:00 ---------- */
+function dayRoll(){
+  S.day=S.day||{iso:"",evening:false};const iso=dayISO();
+  if(S.day.iso===iso)return false;
+  if(S.day.iso)S.tasks.filter((t)=>t.routine).forEach((t)=>Object.assign(t,{done:false,doneAt:0,spent:0,acc:0,sessions:0,tm:null,archived:false}));
+  S.day.iso=iso;S.day.evening=false;save();return true}
+const rItems=(k)=>S.tasks.filter((t)=>t.routine===k&&!t.link&&t.type==="дела");
+const rMin=(a)=>a.reduce((m,t)=>m+(t.done?0:t.min||0),0);
+function endOfDay(){const n=new Date(NOW()),e=new Date(n);e.setHours(24,0,0,0);const ms=e-n,m=Math.floor(ms/60000);return Math.floor(m/60)+":"+String(m%60).padStart(2,"0")+":"+String(Math.floor(ms/1000)%60).padStart(2,"0")}
+function routineGroup(host,k){
+  const items=rItems(k);if(!items.length)return;
+  const done=items.filter((t)=>t.done).length,all=done===items.length,label=k==="morning"?"Утро":"Вечер";
+  const open=UI.rOpen&&UI.rOpen[k]!==undefined?UI.rOpen[k]:!all;
+  const h=el("div","ghead rhead");h.dataset.routine=k;h.style.cursor="pointer";
+  h.appendChild(el("span",null,(open?"▾ ":"▸ ")+label+(all?" · всё сделано ✓":"")));
+  h.appendChild(el("span",null,done+" из "+items.length+(rMin(items)?" · "+rMin(items)+" мин":"")));
+  h.onclick=()=>{UI.rOpen=UI.rOpen||{};UI.rOpen[k]=!open;render()};host.appendChild(h);
+  if(!open)return;
+  items.forEach((t)=>rowWithKids(host,t));
+  const add=el("button","radd","+ Пункт");add.type="button";
+  add.onclick=()=>{const t=makeTask({name:"Новая задача",min:0},{routine:k,where:"today"});render();
+    const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
+  host.appendChild(add)}
+function eveningBanner(host){
+  const items=rItems("evening");if(!items.length||S.day.evening||new Date(NOW()).getHours()<21)return;
+  const b=el("button","evb");b.type="button";b.id="evb";
+  b.appendChild(el("span",null,"🌙 Вечерняя рутина · "+items.length+(items.length%10===1&&items.length%100!==11?" пункт":[2,3,4].includes(items.length%10)&&![12,13,14].includes(items.length%100)?" пункта":" пунктов")));b.appendChild(el("span","cd",endOfDay()));
+  b.onclick=()=>{S.day.evening=true;save();render()};host.appendChild(b)}
 function render(){
+  if(S)dayRoll();
   seg(document.getElementById("sysSeg"),[["дела","Дела"],["работа","Работа"]],UI.sys,(k)=>{UI.sys=k;render()});
   seg(document.getElementById("envSeg"),Object.keys(ENVS).map((k)=>[k,ENVS[k].name]),UI.env,(k)=>{UI.env=k;render()});
   document.getElementById("hint").textContent=HINTS[UI.env];
