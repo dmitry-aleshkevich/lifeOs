@@ -212,6 +212,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .kid .kn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kid.done .kn{text-decoration:line-through;color:var(--muted)}
 .kid .ck{width:18px;height:18px;font-size:11px;flex:none}
+.mscr{max-width:640px;margin:8px auto}.mscr .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mscr h2{margin:0;font-size:24px}
 .pbtn{padding:0 11px;display:grid;place-items:center;align-self:center}
 .pbtn[hidden]{display:none}
 .ppop{position:fixed;left:50%;top:90px;transform:translateX(-50%);z-index:90;width:360px;max-height:78vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 14px 40px rgba(0,0,0,.35)}
@@ -959,13 +960,20 @@ function dayRoll(){
   if(S.day.iso===iso)return false;
   if(S.day.iso)S.tasks.filter((t)=>t.routine).forEach((t)=>Object.assign(t,{done:false,doneAt:0,spent:0,acc:0,sessions:0,tm:null,archived:false}));
   S.day.iso=iso;S.day.evening=false;save();return true}
+/* утренний экран (только у Дмитрия, S.morningOnly): с 4 до 14, пока утро не выполнено, виден только список утра */
+function morningOn(){if(!S.morningOnly||UI.sys!=="дела")return false;const h=new Date(NOW()).getHours();if(h<4||h>=14)return false;
+  if(S.day&&S.day.skipMorning===S.day.iso)return false;const it=rItems("morning");return it.length>0&&!it.every((t)=>t.done)}
+function morningScreen(v){
+  const w=el("div","mscr");const h=el("div","mh");h.appendChild(el("h2",null,"Доброе утро ☀️"));
+  const sk=el("button","chipb","Пропустить");sk.type="button";sk.id="mskip";sk.onclick=()=>{S.day.skipMorning=S.day.iso;save();render()};h.appendChild(sk);w.appendChild(h);
+  routineGroup(w,"morning",true);v.appendChild(w)}
 const rItems=(k)=>S.tasks.filter((t)=>t.routine===k&&!t.link&&t.type==="дела");
 const rMin=(a)=>a.reduce((m,t)=>m+(t.done?0:t.min||0),0);
 function endOfDay(){const n=new Date(NOW()),e=new Date(n);e.setHours(24,0,0,0);const ms=e-n,m=Math.floor(ms/60000);return Math.floor(m/60)+":"+String(m%60).padStart(2,"0")+":"+String(Math.floor(ms/1000)%60).padStart(2,"0")}
-function routineGroup(host,k){
+function routineGroup(host,k,force){
   const items=rItems(k);if(!items.length)return;
   const done=items.filter((t)=>t.done).length,all=done===items.length,label=k==="morning"?"Утро":"Вечер";
-  const open=UI.rOpen&&UI.rOpen[k]!==undefined?UI.rOpen[k]:!all;
+  const open=force?true:UI.rOpen&&UI.rOpen[k]!==undefined?UI.rOpen[k]:!all;
   const h=el("div","ghead rhead");h.dataset.routine=k;h.style.cursor="pointer";
   h.appendChild(el("span",null,(open?"▾ ":"▸ ")+label+(all?" · всё сделано ✓":"")));
   h.appendChild(el("span",null,done+" из "+items.length+(rMin(items)?" · "+rMin(items)+" мин":"")));
@@ -989,7 +997,7 @@ function render(){
   document.getElementById("hint").textContent=HINTS[UI.env];
   paintFocusBtn();
   const v=document.getElementById("view");const sx=[...v.querySelectorAll(".kb")].map((k)=>k.scrollLeft),sy=scrollY;v.innerHTML="";
-  ENVS[UI.env].render(v);selBar();
+  if(S&&morningOn())morningScreen(v);else ENVS[UI.env].render(v);selBar();
   v.querySelectorAll(".kb").forEach((k,i)=>{if(sx[i])k.scrollLeft=sx[i]});if(sy&&Math.abs(scrollY-sy)>1)scrollTo(scrollX,sy);
   if(UI.qaFocus){const q=v.querySelector('.qa[data-pos="'+UI.qaFocus+'"] input');UI.qaFocus=null;if(q)q.focus()}
   if(UI.focusNew){const q=v.querySelector(".cl-new");UI.focusNew=null;if(q)q.focus()}
@@ -1090,7 +1098,7 @@ function boot(){
   const v1=read(V1);
   if(!v1){document.getElementById("view").innerHTML=
     '<div class="empty">Данные v1 не найдены в этом браузере. Открой сначала рабочую версию и дождись загрузки задач.</div>';return}
-  S=migrate(v1);S.seedMorning=true;save();render();
+  S=migrate(v1);S.seedMorning=true;S.morningOnly=false;save();render();
 }
 function seedMorning(){
   if(S.seedMorning)return;S.seedMorning=true;
@@ -1100,7 +1108,7 @@ function seedMorning(){
 function start(){
   initFocusBtn();
   const v2=read(V2);
-  if(v2&&v2.v===2&&Array.isArray(v2.tasks)){S=v2;S.tasks.forEach((t)=>{if(t.tm===undefined)t.tm=null});seedMorning();render();return}
+  if(v2&&v2.v===2&&Array.isArray(v2.tasks)){S=v2;S.tasks.forEach((t)=>{if(t.tm===undefined)t.tm=null});seedMorning();if(S.morningOnly===undefined){S.morningOnly=true;save()}render();return}
   boot();
 }
 document.getElementById("again").onclick=()=>{if(confirm("Пересобрать из v1? Таймеры и фокус беты сбросятся."))boot()};
