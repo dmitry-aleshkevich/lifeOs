@@ -209,7 +209,10 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .kid .kn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kid.done .kn{text-decoration:line-through;color:var(--muted)}
 .kid .ck{width:18px;height:18px;font-size:11px;flex:none}
-.kb .col h3.pdrag{cursor:grab}
+.kb .col h3.pdrag{cursor:grab;user-select:none;-webkit-user-select:none}
+.pdrag .grip{color:var(--muted);margin-right:6px;letter-spacing:-3px;font-weight:800;opacity:.7}
+.pdrag:hover .grip{opacity:1}
+.col.pmove{opacity:.55}
 .col.pdrop{outline:2px dashed var(--accent)}
 .play{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:transparent;
  color:var(--ink);font-size:12px;line-height:1;cursor:pointer;padding:0}
@@ -647,20 +650,21 @@ function card(t,opt={}){
 function wireColDrag(h,col,kb){
   let st=null;
   h.addEventListener("pointerdown",(e)=>{if(e.target.closest("button")||(e.pointerType==="mouse"&&e.button!==0))return;
+    if(e.pointerType==="mouse")e.preventDefault();
     st={x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=="mouse",tm:null,ok:e.pointerType==="mouse"};
     if(st.touch)st.tm=setTimeout(()=>{if(st){st.ok=true;col.classList.add("pdrop")}},350)});
   const cols=()=>[...kb.querySelectorAll(".col[data-board=project]")].filter((c)=>c.dataset.key);
   const over=(x)=>{let t=null;cols().forEach((c)=>{const r=c.getBoundingClientRect();if(x>=r.left&&x<=r.right)t=c});return t};
   window.addEventListener("pointermove",(e)=>{if(!st)return;
-    if(!st.on){if(Math.hypot(e.clientX-st.x,e.clientY-st.y)<6)return;if(!st.ok){clearTimeout(st.tm);st=null;return}st.on=true;col.classList.add("pdrop")}
+    if(!st.on){if(Math.hypot(e.clientX-st.x,e.clientY-st.y)<6)return;if(!st.ok){clearTimeout(st.tm);st=null;return}st.on=true;col.classList.add("pdrop","pmove");document.body.classList.add("drag");try{getSelection().removeAllRanges()}catch{}}
     e.preventDefault();cols().forEach((c)=>c.classList.toggle("pdrop",c===over(e.clientX)||c===col));
     const t=over(e.clientX);cols().forEach((c)=>c.style.outline=c===t&&c!==col?"2px dashed var(--accent)":"")});
-  const end=(e)=>{if(!st)return;clearTimeout(st.tm);const on=st.on;st=null;cols().forEach((c)=>{c.classList.remove("pdrop");c.style.outline=""});
+  const end=(e)=>{if(!st)return;clearTimeout(st.tm);const on=st.on;st=null;document.body.classList.remove("drag");cols().forEach((c)=>{c.classList.remove("pdrop","pmove");c.style.outline=""});
     if(!on)return;swallow=true;setTimeout(()=>{swallow=false},50);
     const t=over(e.clientX);if(!t||t===col)return;
     const a=S.projects.findIndex((p)=>p.id===col.dataset.key),b=S.projects.findIndex((p)=>p.id===t.dataset.key);
     if(a<0||b<0)return;pushUndo();const [m]=S.projects.splice(a,1);S.projects.splice(b,0,m);save();render()};
-  window.addEventListener("pointerup",end);window.addEventListener("pointercancel",()=>{if(st){clearTimeout(st.tm);st=null}})}
+  window.addEventListener("pointerup",end);window.addEventListener("pointercancel",()=>{if(st){clearTimeout(st.tm);st=null;document.body.classList.remove("drag");cols().forEach((c)=>c.classList.remove("pdrop","pmove"))}})}
 function clearColumn(k){pushUndo();
   const work=UI.sys==="работа";
   S.tasks.forEach((t)=>{if(t.type!==UI.sys||t.link||t.archived)return;
@@ -891,7 +895,7 @@ const ENVS={
       });
       host.appendChild(kb);
       if(id==="project")kb.querySelectorAll(".col[data-board=project]").forEach((c)=>{if(!c.dataset.key)return;
-        const h=c.querySelector("h3");h.classList.add("pdrag");h.dataset.pid=c.dataset.key;wireColDrag(h,c,kb)});
+        const h=c.querySelector("h3");h.classList.add("pdrag");h.dataset.pid=c.dataset.key;{const g=el("span","grip","⋮⋮");g.setAttribute("aria-hidden","true");h.prepend(g)}wireColDrag(h,c,kb)});
     };
     board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
     const pcols=S.projects.filter((p)=>p.type===UI.sys&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
