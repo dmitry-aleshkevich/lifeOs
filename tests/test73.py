@@ -39,7 +39,7 @@ with sync_playwright() as p:
     pg.locator('.mins[data-tid="a"]').click(); pg.wait_for_timeout(500)
     pg.evaluate("window.__off=(window.__off||0)+125000"); pg.wait_for_timeout(700)
     pg.locator('.card:has-text("Задача А") .ck').click(); pg.wait_for_timeout(400)
-    txt=pg.locator('.card.done:has-text("Задача А") .done-t').inner_text(); assert txt.startswith("2:0") and "из 10 мин" in txt, txt
+    txt=pg.locator('.card.done:has-text("Задача А") .done-t').inner_text(); assert txt.startswith("2:0") and "из" not in txt, txt
     assert "early" in pg.locator('.card.done:has-text("Задача А") .done-t').get_attribute("class")
     b.close()
 print("ERRORS:",errs); sys.exit(1 if errs else 0)
