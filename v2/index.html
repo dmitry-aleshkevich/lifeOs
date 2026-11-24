@@ -154,6 +154,7 @@ body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .card.v .row2{justify-content:space-between;align-items:center;gap:8px;min-height:30px}
 .card.v .r2r{display:flex;align-items:center;gap:8px;flex:none}
 .card.v .pmeta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kp{flex:none;white-space:nowrap}
 .play{flex:none;width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:transparent;
  color:var(--ink);font-size:12px;line-height:1;cursor:pointer;padding:0}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -228,7 +229,7 @@ const UI={sys:"дела",env:"list"};
 const COLS={
   status:[["","Не начато"],["todo","В работу"],["doing","В работе"],["wait","Жду"],["done","Готово"]],
 };
-const proj=(id)=>S.projects.find((p)=>p.id===id)||null;
+const proj=(id)=>{const p=S.projects.find((x)=>x.id===id)||null;return p&&p.type===UI.sys&&(UI.sys==="работа"||!/^работа$/i.test(p.name))?p:null};
 const mine=()=>S.tasks.filter((t)=>t.type===UI.sys);
 
 /* ---------- одна карточка на все окружения ---------- */
@@ -248,7 +249,7 @@ function cardBase(t,opt={}){
   if(opt.v){
     li.classList.add("v");
     const top=el("div","top");top.appendChild(li.firstChild);top.appendChild(txt);
-    if(!t.done&&(t.min||t.tm)){const pl=el("button","play","▶");pl.type="button";pl.title="Таймер";pl.dataset.tid=t.id;wirePill(pl,t);top.appendChild(pl)}
+    if(!t.done){const pl=el("button","mins kp","");pl.type="button";pl.title="Старт/пауза. ПКМ — время";pl.dataset.tid=t.id;wirePill(pl,t);top.appendChild(pl)}
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
@@ -512,7 +513,7 @@ function card(t,opt={}){
   const nm=li.querySelector(".nm");if(nm)nm.onclick=(e)=>{e.stopPropagation();editName(nm,t)};
   li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;UI.open=UI.open===t.id?null:t.id;UI.sub=null;render()});
   li.dataset.cid=t.id;if(t.link)li.dataset.sub="1";
-  if(!t.link&&!opt.v&&!opt.noAt){
+  if(!t.link&&!t.done&&!opt.noAt){
     [["pre","pl-top","Добавить задачу перед этой"],["post","pl-bot","Добавить задачу после этой"]].forEach(([rel,cls,tt])=>{
       const b=el("button","plus "+cls,"+");b.type="button";b.title=tt;b.setAttribute("aria-label",tt);
       b.onclick=(e)=>{e.stopPropagation();UI.sub={id:t.id,rel,dur:0,txt:""};render()};li.appendChild(b)})}
@@ -689,15 +690,16 @@ const ENVS={
         items.forEach((t)=>c.appendChild(card(t,{v:true,noProject:id==="project"})));
         if(!(id==="status"&&k==="done")){
           const add=el("button","add","+ Задача");
-          add.onclick=()=>{pushUndo();const t=task({name:"Новая задача",min:25},Object.assign({type:UI.sys,ord:S.tasks.length},addOpts(k)));
-            S.tasks.push(t);save();render()};
+          add.onclick=()=>{pushUndo();const t=task({name:"Новая задача",min:0},Object.assign({type:UI.sys,ord:S.tasks.length},addOpts(k)));
+            S.tasks.push(t);save();render();
+            const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t)};
           c.appendChild(add)}
         kb.appendChild(c);
       });
       host.appendChild(kb);
     };
     board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
-    const pcols=S.projects.filter((p)=>p.type===UI.sys).map((p)=>[p.id,p.name,p.color]);
+    const pcols=S.projects.filter((p)=>p.type===UI.sys&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
     board("Проекты","project",pcols,inProj,(k)=>({project:k}));
   }},
