@@ -57,6 +57,9 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .chipb.danger{margin-left:auto;color:var(--pc-red);border-color:var(--pc-red-bg)}
 .cl{display:flex;flex-direction:column;gap:6px}
 .cli{display:flex;gap:8px;align-items:center}.cli .clt{flex:1}
+.cli input[type=checkbox]{accent-color:var(--done);width:18px;height:18px}
+.cli.done .clt{text-decoration:line-through;color:var(--muted)}
+.subqa{margin:0;width:100%}
 .cli .clx{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:12px;padding:4px}
 .panel .cl-new,.panel .sub-new{width:100%}
 .qa{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
@@ -255,8 +258,15 @@ const leftOf=(t)=>!t.tm?null:(t.tm.run?t.tm.end-NOW():t.tm.left);
 const spentOf=(t)=>t.done?(t.spent||0):(t.acc||0)+(t.tm&&t.tm.run?NOW()-t.tm.seg:0);
 let AC=null;
 function audio(){try{if(!AC){const C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C()}if(AC&&AC.state==="suspended")AC.resume()}catch{}}
+window.__ac=()=>AC&&AC.state;
+["pointerdown","keydown","touchstart"].forEach((ev)=>document.addEventListener(ev,audio,{capture:true,passive:true}));
 function ring(){window.__rings=(window.__rings||0)+1;
-  try{audio();if(!AC)return;const t0=AC.currentTime;
+  document.title="⏰ Время вышло";setTimeout(()=>{document.title="LifeOS v2 — бета"},4000);
+  try{audio();if(!AC)return;
+    if(AC.state!=="running"){AC.resume().then(beeps).catch(()=>{});return}
+    beeps()}catch{}}
+function beeps(){
+  try{const t0=AC.currentTime;
     for(let i=0;i<6;i++){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=i%2?660:880;
       g.gain.setValueAtTime(0.0001,t0+i*0.5);g.gain.exponentialRampToValueAtTime(0.35,t0+i*0.5+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+i*0.5+0.4);
       o.connect(g);g.connect(AC.destination);o.start(t0+i*0.5);o.stop(t0+i*0.5+0.45)}}catch{}}
@@ -300,7 +310,11 @@ function popup(x,y,items){closePop();
   document.body.appendChild(p);
   const w=p.offsetWidth,h=p.offsetHeight;
   p.style.left=Math.max(8,Math.min(x,innerWidth-w-8))+"px";p.style.top=Math.max(8,Math.min(y,innerHeight-h-8))+"px"}
-document.addEventListener("click",closePop);
+document.addEventListener("click",(e)=>{
+  closePop();
+  if(!UI.open||!document.contains(e.target))return;
+  if(e.target.closest(".card,.pop,.toast,.qa,.bar,.head,.foot"))return;
+  UI.open=null;UI.sub=null;render()});
 function onMenu(node,open){
   let tm=null,fired=false,sx=0,sy=0;
   node.addEventListener("contextmenu",(e)=>{e.preventDefault();open(e.clientX,e.clientY)});
@@ -314,8 +328,14 @@ function wirePill(b,t){
   b.onclick=(e)=>{e.stopPropagation();toggleT(t)};
   onMenu(b,(x,y)=>{
     const items=[];
-    if(t.tm)items.push([t.tm.run?"⏸ Пауза":"▶ Продолжить",()=>toggleT(t)],"-");
-    if(!(t.tm&&t.tm.sw))[1,5,10,15].forEach((m)=>items.push(["+ "+m+" мин",()=>addT(t,m)]));
+    if(t.tm){
+      items.push([t.tm.run?"⏸ Пауза":"▶ Продолжить",()=>toggleT(t)],"-");
+      if(!t.tm.sw)[1,5,10,15].forEach((m)=>items.push(["+ "+m+" мин",()=>addT(t,m)]));
+    }else{
+      [5,10,15,25,30,45,60].forEach((m)=>items.push([(t.min===m?"✓ ":"    ")+m+" мин",()=>{pushUndo();t.min=m;save();render()}]));
+      items.push(["Своё число…",()=>{const v=parseInt(prompt("Минут:",String(t.min||20)),10);if(v>0){pushUndo();t.min=v;save();render()}}],
+        ["Без времени (секундомер)",()=>{pushUndo();t.min=0;save();render()}]);
+    }
     items.push("-",["✓ Готово",()=>complete(t)]);
     popup(x,y,items)});
   paintPill(b,t)}
@@ -372,9 +392,10 @@ function editName(span,t){
     if(ok&&v&&v!==t.name){pushUndo();t.name=v;save()}render()};
   inp.onkeydown=(e)=>{if(e.key==="Enter")fin(true);else if(e.key==="Escape"){e.stopPropagation();fin(false)}};
   inp.onblur=()=>fin(true);inp.onclick=(e)=>e.stopPropagation()}
-function addSub(t,rel,name){pushUndo();
-  const s=task({name},{type:t.type,where:t.where,status:t.type==="работа"?(t.status||"todo"):"",project:t.project,link:t.id,rel,ord:S.tasks.length});
-  S.tasks.push(s);UI.sub=null;save();render()}
+function addSub(t,rel,txt,dur,start){
+  const q=parseQuick(txt);if(!q.name)return;pushUndo();
+  const s=task({name:q.name,at:q.at,min:q.min||dur||0},{type:t.type,where:t.where,status:t.type==="работа"?(t.status||"todo"):"",project:t.project,link:t.id,rel,ord:S.tasks.length});
+  S.tasks.push(s);UI.sub={id:t.id,rel,dur:0};save();if(start)startT(s);render()}
 function panel(t){
   const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
   const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
@@ -396,7 +417,7 @@ function panel(t){
   // чек-лист
   t.check=t.check||[];
   const cl=el("div","cl");
-  t.check.forEach((c,i)=>{const row=el("div","cli");
+  t.check.forEach((c,i)=>{const row=el("div","cli"+(c.done?" done":""));
     const cb=el("input");cb.type="checkbox";cb.checked=!!c.done;cb.onchange=()=>{pushUndo();c.done=cb.checked;save();render()};
     const tx=el("input","clt");tx.type="text";tx.value=c.text||c.t||c.name||"";tx.addEventListener("focus",pushUndo);
     tx.onchange=()=>{c.text=tx.value.trim();save();render()};
@@ -408,11 +429,19 @@ function panel(t){
   // подзадачи
   const r3=el("div","row");
   if(UI.sub&&UI.sub.id===t.id){
-    const si=el("input","sub-new");si.type="text";si.placeholder=(UI.sub.rel==="pre"?"Перед: ":"После: ")+"название подзадачи";
-    si.onkeydown=(e)=>{if(e.key==="Enter"&&si.value.trim())addSub(t,UI.sub.rel,si.value.trim());else if(e.key==="Escape"){e.stopPropagation();UI.sub=null;render()}};
-    r3.appendChild(si);setTimeout(()=>si.focus(),0)}
+    const sb=UI.sub,w=el("div","qa subqa");
+    const si=el("input","sub-new");si.type="text";si.placeholder=(sb.rel==="pre"?"Перед: ":"После: ")+"новая подзадача";
+    si.onkeydown=(e)=>{if(e.key==="Enter"&&si.value.trim())addSub(t,sb.rel,si.value.trim(),sb.dur,false);else if(e.key==="Escape"){e.stopPropagation();UI.sub=null;render()}};
+    const pl=el("button","mins qp","");pl.type="button";pl.title="Создать и запустить. ПКМ — длительность";
+    const paint=()=>{pl.textContent="▶"+(sb.dur?" "+sb.dur+" мин":"")};paint();
+    pl.onclick=()=>{if(!si.value.trim()){si.focus();return}addSub(t,sb.rel,si.value.trim(),sb.dur,true)};
+    onMenu(pl,(x,y)=>{
+      const it=[5,10,15,25,30,45,60].map((m)=>[(sb.dur===m?"✓ ":"    ")+m+" мин",()=>{sb.dur=m;paint()}]);
+      it.push("-",["Своё число…",()=>{const v=parseInt(prompt("Минут:","20"),10);if(v>0){sb.dur=v;paint()}}],["Без времени (секундомер)",()=>{sb.dur=0;paint()}]);
+      popup(x,y,it)});
+    w.append(si,pl);r3.appendChild(w);setTimeout(()=>si.focus(),0)}
   else{[["pre","+ до"],["post","+ после"]].forEach(([rel,l])=>{const b=el("button","chipb",l);b.type="button";b.dataset.rel=rel;
-    b.onclick=()=>{UI.sub={id:t.id,rel};render()};r3.appendChild(b)})}
+    b.onclick=()=>{UI.sub={id:t.id,rel,dur:0};render()};r3.appendChild(b)})}
   const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
   return p}
