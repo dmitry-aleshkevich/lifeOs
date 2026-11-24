@@ -16,7 +16,7 @@ with sync_playwright() as p:
     # клик мимо закрывает окно
     pg.mouse.click(5,500); pg.wait_for_timeout(200); assert pg.locator(".sub-new").count()==0
     c.hover(); c.locator(".pl-bot").click(force=True); pg.fill(".sub-new","Подзадача"); pg.press(".sub-new","Enter"); pg.wait_for_timeout(200)
-    assert pg.locator('.col[data-board="status"] .card[data-cid="w1"] .kid:has-text("Подзадача")').count()==1
+    assert pg.locator('.col[data-board="status"] .card[data-sub="1"]:has-text("Подзадача")').count()==1
     # панель без выбора длительности
     pg.locator('.col[data-board="status"] .card[data-cid="w1"] .nm').click(position=dict(x=200,y=5)) if False else None
     pg.locator('.col[data-board="status"] .card[data-cid="w1"] .txt').click(position=dict(x=5,y=30)); pg.wait_for_timeout(200)

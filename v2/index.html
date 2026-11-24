@@ -260,14 +260,6 @@ function cardBase(t,opt={}){
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
-    const kids=S.tasks.filter((x)=>x.link===t.id);
-    if(kids.length){const kl=el("div","kids");
-      kids.forEach((k2)=>{const kr=el("div","kid"+(k2.done?" done":""));kr.dataset.kid=k2.id;
-        const kc=el("button","ck",k2.done?"✓":"");kc.type="button";kc.onclick=(e)=>{e.stopPropagation();pushUndo();if(k2.done){k2.done=false;save();render()}else complete(k2)};
-        kr.appendChild(kc);kr.appendChild(el("span","kn",k2.name));
-        if(!k2.done){const kp=el("button","mins kp","");kp.type="button";kp.dataset.tid=k2.id;wirePill(kp,k2);kr.appendChild(kp)}
-        kl.appendChild(kr)});
-      li.appendChild(kl)}
     const r2=el("div","row2");
     r2.appendChild(el("span","pmeta",(t.min?Math.round(spentOf(t)/60000)+" из "+t.min+" мин":"")
       +(t.check&&t.check.length?(t.min?"  ·  ":"")+t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"")));
@@ -715,7 +707,9 @@ const ENVS={
           const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
           b.onclick=()=>clearColumn(k);h.appendChild(b)}
         c.appendChild(h);
-        items.forEach((t)=>c.appendChild(card(t,{v:true,noProject:id==="project"})));
+        items.forEach((t)=>{const kids=S.tasks.filter((x)=>x.link===t.id),o={v:true,noProject:id==="project"};
+          const sub=(k2)=>{const kc=card(k2,o);kc.style.marginLeft="22px";c.appendChild(kc)};
+          kids.filter((k2)=>k2.rel==="pre").forEach(sub);c.appendChild(card(t,o));kids.filter((k2)=>k2.rel!=="pre").forEach(sub)});
         if(!(id==="status"&&k==="done")){
           const add=el("button","add","+ Задача");
           add.onclick=()=>{pushUndo();const t=task({name:"Новая задача",min:0},Object.assign({type:UI.sys,ord:S.tasks.length},addOpts(k)));
