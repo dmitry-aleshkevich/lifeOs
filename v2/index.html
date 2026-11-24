@@ -155,11 +155,15 @@ body.drag{user-select:none;-webkit-user-select:none;cursor:grabbing}
 .card.v .r2r{display:flex;align-items:center;gap:8px;flex:none}
 .card.v .pmeta{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kp{flex:none;white-space:nowrap}
-.card.kid2{margin-left:26px;position:relative}
-.card.kid2::before{content:"";position:absolute;left:-14px;top:-12px;bottom:50%;width:12px;border-left:2px solid var(--line);border-bottom:2px solid var(--line);border-bottom-left-radius:8px;pointer-events:none}
-.card>.fold{position:absolute;left:50%;margin-left:24px;bottom:-11px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:12px;line-height:1;padding:0;cursor:pointer;z-index:2}
+.card.kid2{margin-left:0;position:relative}
+.card.kid2::before{content:"";position:absolute;left:50%;top:-10px;height:10px;width:0;border-left:2px solid var(--line);pointer-events:none}
+.card.kid2.kpre::before{top:auto;bottom:-10px}
+.card.kid2.kpre{margin-bottom:10px}
+.card.kid2.kpre>.pl-bot,.card.kid2:not(.kpre)>.pl-top{display:none}
+.card.kid2:not(.kpre){margin-top:10px}
+.card>.fold{position:absolute;left:50%;margin-left:0;transform:translateX(-50%);bottom:-11px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:12px;line-height:1;padding:0;cursor:pointer;z-index:2}
 .card>.plus.arr{opacity:1;pointer-events:auto;font-size:12px}
-.card.stack{margin-bottom:8px;box-shadow:0 5px 0 -1px var(--surface-2),0 6px 0 -1px var(--line)}
+.card.stack{margin-bottom:12px;box-shadow:0 7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface))}
 .kids{display:flex;flex-direction:column;gap:4px;margin-left:8px;padding-left:8px;border-left:2px solid var(--line)}
 .kid{display:flex;align-items:center;gap:6px;font-size:13px}
 .kid .kn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -643,7 +647,7 @@ const FOLD=new Set(read("lifeos.v2.fold")||[]);
 const saveFold=()=>{try{localStorage.setItem("lifeos.v2.fold",JSON.stringify([...FOLD]))}catch{}};
 function rowWithKids(host,t,o={}){
   const kids=S.tasks.filter((x)=>x.link===t.id);
-  const sub=(k2)=>{const c=card(k2,o);c.classList.add("kid2");host.appendChild(c)};
+  const sub=(k2)=>{const c=card(k2,o);c.classList.add("kid2");if(k2.rel==="pre")c.classList.add("kpre");host.appendChild(c)};
   if(!FOLD.has("pre:"+t.id))kids.filter((k2)=>k2.rel==="pre").forEach(sub);
   const c=card(t,o);if(FOLD.has("post:"+t.id)&&kids.some((k2)=>k2.rel!=="pre"))c.classList.add("stack");host.appendChild(c);
   if(!FOLD.has("post:"+t.id))kids.filter((k2)=>k2.rel!=="pre").forEach(sub)}
