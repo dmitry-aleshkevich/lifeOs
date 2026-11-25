@@ -170,6 +170,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
 .ckn,.subn{font-size:11px;font-weight:700;color:var(--muted)}
 .desc{min-width:0;max-width:100%;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta .desc{flex:1 1 100%;white-space:pre-line;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;text-overflow:clip}.meta .desc.open{display:block;-webkit-line-clamp:unset;line-clamp:unset}.dtag{margin-left:-6px}
 .at{font-size:13px;font-weight:700;color:var(--muted);flex:none}.cdn{font-size:12px;font-weight:600;white-space:nowrap;opacity:.85;align-self:center}.cdn.late{color:var(--pc-red);opacity:1}.cal .day .card .cdn{display:none}@media(max-width:480px){.cdn{font-size:11px}}
 .mins{flex:none;display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--line);border-radius:999px;
  padding:6px 12px;font-size:13px;font-weight:800;background:transparent;color:var(--ink);cursor:pointer}
@@ -2035,6 +2036,12 @@ function ckList(t){const w=el("div","cklist");
   t.check.forEach((c)=>{const r=el("div","ckrow"+(c.done?" done":""));const cb=el("input");cb.type="checkbox";cb.checked=!!c.done;
     cb.onclick=(e)=>e.stopPropagation();cb.onchange=()=>{pushUndo();c.done=cb.checked;save();render()};
     r.append(cb,el("span",null,c.text||c.t||c.name||""));w.appendChild(r)});return w}
+const DESCX=new Set(read("lifeos.v2b.descx")||[]);
+const saveDescx=()=>{try{localStorage.setItem("lifeos.v2b.descx",JSON.stringify([...DESCX]))}catch{}};
+/* тег «ещё» нужен только когда описание не влезает в 2 строки (или уже раскрыто — чтобы свернуть) */
+function fitDesc(){document.querySelectorAll(".desc[data-did]").forEach((d)=>{
+  const g=d.parentNode&&d.parentNode.querySelector('.dtag[data-did="'+d.dataset.did+'"]');if(!g)return;
+  g.hidden=!(d.classList.contains("open")||d.scrollHeight>d.clientHeight+1)})}
 const checkTxt=(t)=>t.check&&t.check.length?t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"";
 /* сколько осталось до времени начала: серенький текст слева от кнопки времени («через 39 мин»; прошло — «опоздание 10 мин»).
    Только задачи на сегодня со временем, не выполненные и не запущенные. На таймлайне время видно по позиции, в календаре места нет. */
@@ -2072,7 +2079,9 @@ function cardBase(t,opt={}){
   if(t.tpl&&!t.link)meta.appendChild(el("span","chip pc-gray","⚙ ядро"));
   const kids=S.tasks.filter((x)=>x.link===t.id).length;
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
-  if(t.desc)meta.appendChild(el("span","desc",t.desc));
+  if(t.desc){const d=el("span","desc"+(DESCX.has(t.id)?" open":""),t.desc);d.dataset.did=t.id;meta.appendChild(d);
+    const g=el("button","cktag dtag"+(DESCX.has(t.id)?" on":""),DESCX.has(t.id)?"свернуть ▴":"ещё ▾");g.type="button";g.hidden=true;g.dataset.did=t.id;g.title="Описание целиком / свернуть";
+    g.onclick=(e)=>{e.stopPropagation();if(DESCX.has(t.id))DESCX.delete(t.id);else DESCX.add(t.id);saveDescx();render()};meta.appendChild(g)}
   if(meta.children.length)txt.appendChild(meta);
   if(opt.v){
     li.classList.add("v");
@@ -2986,7 +2995,7 @@ function render(){
   paintFocusBtn();paintCoreBtn();
   const v=document.getElementById("view");const sx=[...v.querySelectorAll(".kb")].map((k)=>k.scrollLeft),sy=scrollY;v.innerHTML="";
   const ph=S&&S.day&&S.day.phase;document.body.classList.toggle("lock",lockedPhase());const xv=!!(S&&UI.view&&UI.view!=="tasks"&&VIEWS[UI.view]);document.body.classList.toggle("xview",xv);
-  if(S&&morningOn())morningScreen(v);else if(S&&ph==="evening")eveningScreen(v);else if(S&&ph==="closed")closedScreen(v);else if(xv)VIEWS[UI.view](v);else ENVS[UI.env].render(v);selBar();
+  if(S&&morningOn())morningScreen(v);else if(S&&ph==="evening")eveningScreen(v);else if(S&&ph==="closed")closedScreen(v);else if(xv)VIEWS[UI.view](v);else ENVS[UI.env].render(v);selBar();fitDesc();
   v.querySelectorAll(".kb").forEach((k,i)=>{if(sx[i])k.scrollLeft=sx[i]});if(sy&&Math.abs(scrollY-sy)>1)scrollTo(scrollX,sy);
   if(UI.qaFocus){const q=v.querySelector('.qa[data-pos="'+UI.qaFocus+'"] input');UI.qaFocus=null;if(q)q.focus()}
   if(UI.focusNew){const q=v.querySelector(".cl-new");UI.focusNew=null;if(q)q.focus()}
