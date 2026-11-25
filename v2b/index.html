@@ -115,10 +115,20 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .dts{border:1px solid var(--line);background:var(--surface-2);color:inherit;font:inherit;font-size:13px;padding:4px 0;border-radius:8px;cursor:pointer}
 .dts.s{background:var(--accent);border-color:var(--accent);color:#fff}.dts.busy{color:var(--muted);text-decoration:line-through}
 .dtp-bot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
-.dtp-bot .ptime{width:70px}.dtp-ap{margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)}
+.dtp-bot .ptime{width:70px}@media(max-width:480px){.dtp-bot .ptime{flex:1;min-width:120px}}.dtp-ap{margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)}
 
 @media (max-width:480px){
  .seg button{padding:8px 10px;font-size:12.5px}
+ body{padding:10px 12px calc(76px + env(safe-area-inset-bottom))}
+ h1{font-size:22px}.head .sub,body>.sub{display:none}
+ #viewSeg{display:flex;flex-wrap:nowrap;overflow-x:auto;width:100%;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:8px}#viewSeg::-webkit-scrollbar{display:none}
+ #viewSeg button{flex:0 0 auto;padding:8px 11px}
+ .bar{margin-bottom:12px;gap:8px}
+ #hint{display:none}
+ .fab{top:auto;bottom:calc(10px + env(safe-area-inset-bottom));right:10px;flex-direction:row;gap:8px}
+ .fab button{width:44px;height:44px;border:1px solid var(--line);border-radius:14px;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:.95}
+ #fbdock{right:10px;left:10px;bottom:calc(64px + env(safe-area-inset-bottom));justify-content:flex-end}
+ .fbpop{width:min(100%,360px);max-height:58vh}
  #envSeg{display:flex;width:100%;box-sizing:border-box}#envSeg button{flex:1 1 auto;padding:8px 4px}
 }
 .card .nm{display:inline-block;max-width:100%;overflow-wrap:anywhere}
@@ -2363,13 +2373,15 @@ function panel(t){
       const el0=[...sl.children].find(x=>x.dataset.t>=want)||sl.lastChild;if(el0)sl.scrollTop=Math.max(0,el0.offsetTop-sl.offsetTop)});
     const bot=el("div","dtp-bot");
     const di=el("input","pdate");di.type="date";di.value=DT.due;di.onchange=()=>{if(di.value){DT.due=di.value;DT.vm=di.value.slice(0,7);DT.busy=null;render()}};bot.appendChild(di);
-    const ti=el("input","ptime");ti.type="text";ti.inputMode="numeric";ti.placeholder="16:20";ti.maxLength=5;ti.value=DT.at;
-    ti.onkeydown=(e)=>{e.stopPropagation();if(e.key==="Enter"){const n=okT(ti.value);if(n){DT.at=n;ap.click()}}};
-    ti.onchange=()=>{const n=okT(ti.value);if(n){DT.at=n;render()}else ti.value=DT.at};bot.appendChild(ti);
+    const readWhen=(v)=>{const w=parseWhen(v);if(w.at||w.due)return {at:w.at,due:w.due};return {at:okT(v),due:""}};
+    const ti=el("input","ptime");ti.type="text";ti.placeholder="16:20 · завтра в 9";ti.maxLength=30;ti.value=DT.at;
+    const putW=(r)=>{if(r.due){DT.due=r.due;DT.vm=r.due.slice(0,7);DT.busy=null}if(r.at)DT.at=r.at};
+    ti.onkeydown=(e)=>{e.stopPropagation();if(e.key==="Enter"){const r=readWhen(ti.value);if(r.at||r.due){putW(r);ap.click()}}};
+    ti.onchange=()=>{const r=readWhen(ti.value);if(r.at||r.due){putW(r);render()}else ti.value=DT.at};bot.appendChild(ti);
     const td=el("button","chipb","Сегодня");td.type="button";td.onclick=()=>{DT.due=dayISO();DT.vm=DT.due.slice(0,7);DT.busy=null;render()};bot.appendChild(td);
     if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";delete t.aa;save();close()};bot.appendChild(c)}
     const cn=el("button","chipb","Отмена");cn.type="button";cn.onclick=close;bot.appendChild(cn);
-    const ap=el("button","chipb dtp-ap","Применить");ap.type="button";ap.onclick=()=>{const n=okT(ti.value)||DT.at;pushUndo();dueSync(t,DT.due);t.at=n||"";delete t.aa;save();close()};bot.appendChild(ap);
+    const ap=el("button","chipb dtp-ap","Применить");ap.type="button";ap.onclick=()=>{const r=readWhen(ti.value);if(r.due)DT.due=r.due;const n=r.at||DT.at;pushUndo();dueSync(t,DT.due);t.at=n||"";delete t.aa;save();close()};bot.appendChild(ap);
     bx.appendChild(bot);
     p.appendChild(bx)}
   return p}
@@ -2383,16 +2395,33 @@ function makeTask(f,ctx,at){
   logA("создана "+nmq(t));save();return t}
 /* ---------- быстрый ввод новой задачи ---------- */
 UI.qa={top:{txt:"",dur:0},bottom:{txt:"",dur:0}};
-function parseQuick(txt){
-  let name=txt,at="",min=0,pid="";
+/* время текстом: «завтра в 9», «в пт 18:00», «через 2 часа» → {rest,at,due}; ничего не нашли — at/due пустые */
+const WDAY={"пн":1,"вт":2,"ср":3,"чт":4,"пт":5,"сб":6,"вс":0,"понедельник":1,"вторник":2,"среда":3,"среду":3,"четверг":4,"пятница":5,"пятницу":5,"суббота":6,"субботу":6,"воскресенье":0};
+function parseWhen(txt){
+  let s=" "+String(txt||"")+" ",at="",due="";const pad=(n)=>String(n).padStart(2,"0");
+  const base=()=>{const [y,m,d]=dayOf(NOW()).split("-").map(Number);return [y,m,d]};
+  const addDays=(n)=>{const [y,m,d]=base(),x=new Date(y,m-1,d+n);return x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate())};
+  s=s.replace(/\s(?:через)\s+(\d+)\s*(минуты|минуту|минут|мин|м|часов|часа|час|ч)(?=\s)/i,(m,n,u)=>{
+    const d=new Date(NOW()+(+n)*(/^ч/i.test(u)?60:1)*6e4);at=pad(d.getHours())+":"+pad(d.getMinutes());due=dayOf(d.getTime());return " "});
+  s=s.replace(/\s(послезавтра|завтра|сегодня)(?=\s)/i,(m,w)=>{due=addDays({"сегодня":0,"завтра":1,"послезавтра":2}[w.toLowerCase()]);return " "});
+  s=s.replace(/\sв\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|пн|вт|ср|чт|пт|сб|вс)(?=\s)/i,(m,w)=>{
+    const [y,mo,d]=base(),cur=new Date(y,mo-1,d).getDay();due=addDays(((WDAY[w.toLowerCase()]-cur+7)%7)||7);return " "});
+  s=s.replace(/\sв\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*(утра|вечера|дня|ночи))?(?=\s*$|\s+[#\d])/i,(m,h,mi,ap)=>{
+    let H=+h;const M=mi?+mi:0;if(H>23||M>59)return m;
+    if(ap){ap=ap.toLowerCase();if((ap==="вечера"||ap==="дня")&&H<12)H+=12;else if(ap==="ночи"&&H===12)H=0}
+    at=pad(H)+":"+pad(M);return " "});
+  return {rest:s.replace(/\s+/g," ").trim(),at,due}}
+ function parseQuick(txt){
+  const w=parseWhen(txt);let name=w.rest,at=w.at,min=0,pid="";
   name=name.replace(/(^|\s)(\d{1,2}):(\d{2})(?=\s|$)/,(m,a,h,mi)=>{at=String(h).padStart(2,"0")+":"+mi;return a});
   name=name.replace(/(^|\s)(\d+)\s*(мин|м|m|ч|h)(?=\s|$)/i,(m,a,n,u)=>{min=(+n)*(/^(ч|h)$/i.test(u)?60:1);return a});
   name=name.replace(/(^|\s)#(\S+)/,(m,a,w)=>{const pj=S.projects.find((x)=>x.type===UI.sys&&x.name.toLowerCase().startsWith(w.toLowerCase()));if(pj)pid=pj.id;return pj?a:m});
-  return {name:name.replace(/\s+/g," ").trim(),at,min,pid}}
+  return {name:name.replace(/\s+/g," ").trim(),at,min,pid,due:w.due}}
 function addQuick(pos,start){
   const st=UI.qa[pos],q=parseQuick(st.txt);if(!q.name)return null;
   const t=makeTask({name:q.name,at:q.at,min:q.min||st.dur||0,project:q.pid},
     {where:UI.sys==="дела"?"today":"",status:UI.sys==="работа"?"todo":""},pos==="top"?"top":undefined);
+  if(q.due)dueSync(t,q.due);
   st.txt="";st.dur=0;UI.qaFocus=pos;save();
   if(start)startT(t);
   render();
@@ -2730,12 +2759,20 @@ const ENVS={
     for(let h=H0;h<=H1;h++){const r=el("div","hr");r.appendChild(el("span",null,String(h).padStart(2,"0")+":00"));wrap.appendChild(r)}
     const now=new Date(),nm=now.getHours()+now.getMinutes()/60;
     if(nm>=H0&&nm<=H1){const n=el("div","now");n.style.top=((nm-H0)*PX)+"px";wrap.appendChild(n)}
-    withAt.forEach((t)=>{const [hh,mm]=t.at.split(":").map(Number);const top=(hh+mm/60-H0)*PX;
-      if(top<0)return;const s=el("div","slot");s.style.top=top+"px";
-      s.style.height=Math.max(50,(t.min||30)/60*PX)+"px";
-      s.appendChild(card(t,{noAt:true}));const rs=el("div","rs");rs.dataset.rid=t.id;s.appendChild(rs);wrap.appendChild(s)});
-    wrap.dataset.h0=H0;wrap.dataset.px=PX;wrap.dataset.h1=H1;
+    /* пересекающиеся задачи встают рядом, колонками (как в календарях), а не друг на друге */
+    const its=[];
+    withAt.forEach((t)=>{const [hh,mm]=t.at.split(":").map(Number);const top=(hh+mm/60-H0)*PX;if(top<0)return;
+      its.push({t,top,h:Math.max(50,(t.min||30)/60*PX),c:0,n:1})});
+    its.sort((x,y)=>x.top-y.top||y.h-x.h);
+    {let grp=[],end=-1;const flush=()=>{const n=Math.max(1,...grp.map((i)=>i.c+1));grp.forEach((i)=>{i.n=n})};
+      its.forEach((i)=>{if(grp.length&&i.top>=end){flush();grp=[];end=-1}
+        const used=new Set(grp.filter((g)=>g.top+g.h>i.top).map((g)=>g.c));let c=0;while(used.has(c))c++;i.c=c;grp.push(i);end=Math.max(end,i.top+i.h)});
+      flush()}
+    its.forEach((i)=>{const s=el("div","slot");s.style.top=i.top+"px";s.style.height=i.h+"px";
+      if(i.n>1){s.style.left=(i.c*100/i.n)+"%";s.style.right="auto";s.style.width="calc("+(100/i.n)+"% - 4px)"}
+      s.appendChild(card(i.t,{noAt:true}));const rs=el("div","rs");rs.dataset.rid=i.t.id;s.appendChild(rs);wrap.appendChild(s)});
     wrap.style.height=((H1-H0+1)*PX)+"px";
+    wrap.dataset.h0=H0;wrap.dataset.px=PX;wrap.dataset.h1=H1;
     const shut=localStorage.getItem("lifeos.v2b.tls")==="0";
     const tw=el("div","tlw"+(shut?" shut":""));tw.appendChild(wrap);
     const side=el("div","tls");const h=el("div","ghead");const tg=el("button","tgl",(shut?"▸ ":"▾ ")+"Склад");tg.type="button";tg.id="tlstore";
