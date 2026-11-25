@@ -2318,7 +2318,11 @@ function panel(t){
     bx.appendChild(el("span","plb","Дата"));
     const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.oninput=()=>{if(dt.value){dueSync(t,dt.value);save()}};dt.onchange=()=>{dueSync(t,dt.value);save();render()};bx.appendChild(dt);
     bx.appendChild(el("span","plb","Время"));
-    const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.oninput=()=>{if(/^\d\d:\d\d$/.test(tm.value)){t.at=tm.value;save()}};tm.onchange=()=>{t.at=tm.value;save();render()};tm.onblur=()=>{if(/^\d\d:\d\d$/.test(tm.value)&&t.at!==tm.value){t.at=tm.value;save()}render()};bx.appendChild(tm);
+    const tm=el("input","ptime");tm.type="text";tm.inputMode="numeric";tm.placeholder="16:30";tm.maxLength=5;tm.value=t.at||"";tm.addEventListener("focus",pushUndo);
+    const okT=(v)=>{const d=String(v).replace(/\D/g,"");let h,m;if(d.length===4){h=+d.slice(0,2);m=+d.slice(2)}else if(d.length===3){h=+d[0];m=+d.slice(1)}else if(d.length>=1&&d.length<=2){h=+d;m=0}else return "";return h<24&&m<60?String(h).padStart(2,"0")+":"+String(m).padStart(2,"0"):""};
+    const putT=()=>{const v=tm.value.trim();if(!v){return}const n=okT(v);if(n){if(t.at!==n){t.at=n;save()}tm.value=n}else tm.value=t.at||""};
+    tm.onkeydown=(e)=>{e.stopPropagation();if(e.key==="Enter"){putT();render()}};tm.onchange=()=>{putT();render()};tm.onblur=()=>{putT()};
+    bx.appendChild(tm);
     if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};bx.appendChild(c)}
     p.appendChild(bx)}
   return p}
