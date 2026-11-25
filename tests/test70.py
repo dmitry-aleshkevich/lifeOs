@@ -45,7 +45,7 @@ with sync_playwright() as p:
     pg.reload(); pg.wait_for_timeout(500)
     assert "on" in pg.get_attribute("#fbtn","class") and pg.locator(".card").count()==2   # память после перезагрузки
     pg.click("#fbtn",button="right"); assert pg.is_visible('.pop button:has-text("Обновить набор")'); pg.keyboard.press("Escape"); pg.click("body",position=dict(x=5,y=5))
-    # автостарт следующей: отметили А → через 3 с стартует Б
+    # автостарт следующей: отметили А → сразу стартует Б
     pg.locator('.card:has-text("Задача А") .ck').click(); pg.wait_for_timeout(300); assert pg.is_visible("#toast")
     pg.wait_for_timeout(3300); assert not pg.is_visible("#toast")
     assert "pause" not in (pill(pg,"b").get_attribute("class") or "") and pill(pg,"b").inner_text().startswith("⏸"), pill(pg,"b").inner_text()
