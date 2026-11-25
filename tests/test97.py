@@ -19,8 +19,8 @@ with sync_playwright() as p:
     assert pg.locator(".card[data-cid=a]").count()==1 and pg.locator(".card[data-cid=b]").count()==0
     pg.click(".ghead[data-where=tomorrow]");assert pg.locator(".card[data-cid=b]").count()==1
     pg.reload();pg.wait_for_selector('#viewSeg button');assert pg.locator(".card[data-cid=b]").count()==1
-    pg.click(".ghead[data-where=today]");assert pg.locator(".card[data-cid=a]").count()==0
-    pg.click(".ghead[data-where=today]")
+    pg.click(".ghead[data-where=today] .gt");assert pg.locator(".card[data-cid=a]").count()==0
+    pg.click(".ghead[data-where=today] .gt")
     # пред/пост: стрелки и рамка у родителя
     pg.evaluate("()=>{const c=byId('c');const k1=task({name:'До'},{type:'дела',where:'today',link:'c',rel:'pre'});const k2=task({name:'После'},{type:'дела',where:'today',link:'c',rel:'post'});S.tasks.push(k1,k2);save();render()}")
     assert pg.locator(".card.fam[data-cid=c]").count()==1

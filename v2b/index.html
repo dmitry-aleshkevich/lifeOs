@@ -212,7 +212,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .ghead.fold{cursor:pointer;user-select:none}.ghead .gt{display:inline-block;width:14px;color:var(--muted)}
 .card.kid2.kpre>.pl-bot,.card.kid2:not(.kpre)>.pl-top{display:none}
 .card>.fold{position:absolute;left:50%;margin-left:0;transform:translateX(-50%);bottom:-11px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:12px;line-height:1;padding:0;cursor:pointer;z-index:2}
-.card>.plus.arr{opacity:1;pointer-events:auto;font-size:12px}
+.card>.plus.arr{opacity:1;pointer-events:auto;font-size:12px;z-index:5}
 .card.stack{margin-bottom:12px;box-shadow:0 7px 0 -3px color-mix(in srgb,var(--accent) 34%,var(--surface)),0 13px 0 -6px color-mix(in srgb,var(--accent) 50%,var(--surface))}
 .kids{display:flex;flex-direction:column;gap:4px;margin-left:8px;padding-left:8px;border-left:2px solid var(--line)}
 .kid{display:flex;align-items:center;gap:6px;font-size:13px}
@@ -2261,6 +2261,31 @@ function dateLabel(t){
     if(t.due===day(now))d="сегодня";else if(t.due===day(tm))d="завтра";
     else{const [y,m,dd]=t.due.split("-").map(Number);d=dd+" "+["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"][m-1]}}
   return [d,t.at].filter(Boolean).join(" · ")}
+/* ---------- «В календарь»: запись события в Google Calendar (OAuth через Google Identity Services, без сервера) ---------- */
+const GC={scope:"https://www.googleapis.com/auth/calendar.events",tok:"",exp:0};
+const gcId=()=>{try{return localStorage.getItem("lifeos.v2b.gcid")||""}catch{return ""}};
+function gcLoad(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();
+  const sc=document.createElement("script");sc.src="https://accounts.google.com/gsi/client";sc.onload=()=>res();sc.onerror=()=>rej(new Error("Не загрузился Google-скрипт"));document.head.appendChild(sc)})}
+async function gcToken(){
+  if(GC.tok&&Date.now()<GC.exp-60000)return GC.tok;
+  let id=gcId();
+  if(!id){id=(prompt("Client ID из Google Cloud (OAuth, тип Web). Один раз:","")||"").trim();if(!id)throw new Error("Нужен Client ID");try{localStorage.setItem("lifeos.v2b.gcid",id)}catch{}}
+  await gcLoad();
+  return new Promise((res,rej)=>{const tc=google.accounts.oauth2.initTokenClient({client_id:id,scope:GC.scope,
+    callback:(r)=>{if(r&&r.access_token){GC.tok=r.access_token;GC.exp=Date.now()+(+r.expires_in||3600)*1000;res(GC.tok)}else rej(new Error((r&&r.error)||"Нет доступа"))},
+    error_callback:(e)=>rej(new Error((e&&e.type)||"Окно входа закрыто"))});tc.requestAccessToken({prompt:GC.tok?"":"consent"})})}
+function gcBody(t){const day=t.due||dayISO(),[h,m]=(t.at||"09:00").split(":").map(Number),mins=t.min||30;
+  const st=new Date(+day.slice(0,4),+day.slice(5,7)-1,+day.slice(8,10),h,m),en=new Date(st.getTime()+mins*60000),pd=(n)=>String(n).padStart(2,"0");
+  const f=(d)=>d.getFullYear()+"-"+pd(d.getMonth()+1)+"-"+pd(d.getDate())+"T"+pd(d.getHours())+":"+pd(d.getMinutes())+":00",tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return {summary:t.name,description:t.desc||"",start:{dateTime:f(st),timeZone:tz},end:{dateTime:f(en),timeZone:tz}}}
+async function toCalendar(t){
+  if(!t.at){note("Укажи время начала у задачи");return false}
+  try{const tok=await gcToken(),url="https://www.googleapis.com/calendar/v3/calendars/primary/events"+(t.gcal?"/"+t.gcal:"");
+    const r=await fetch(url,{method:t.gcal?"PATCH":"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify(gcBody(t))});
+    if(r.status===404&&t.gcal){t.gcal="";return toCalendar(t)}
+    if(!r.ok)throw new Error("Календарь ответил "+r.status);
+    const j=await r.json();t.gcal=j.id||t.gcal;save();logA("в календарь: "+nmq(t));note("В календаре: "+t.name);render();return true}
+  catch(e){note("Календарь: "+(e&&e.message||e));return false}}
 function panel(t){
   const p=el("div","panel");p.onclick=(e)=>e.stopPropagation();
   const fld=(cls,node)=>{node.addEventListener("focus",pushUndo);return node};
@@ -2282,6 +2307,7 @@ function panel(t){
   const r3=el("div","row pfoot");
   const dtb=el("button","dtbtn"+((t.at||t.due)?" set":""),(t.at||t.due)?dateLabel(t):"📅");dtb.type="button";
   dtb.title="Дата и время";dtb.onclick=()=>{UI.dt=UI.dt===t.id?null:t.id;render()};r3.appendChild(dtb);
+  const gcb=el("button","chipb gcb",t.gcal?"✓ В календаре":"📅 В календарь");gcb.type="button";gcb.title="Записать в Google Calendar (нужно время начала)";gcb.onclick=()=>toCalendar(t);r3.appendChild(gcb);
   const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
   if(UI.dt===t.id){
@@ -2353,10 +2379,10 @@ function card(t,opt={}){
   li.addEventListener("click",(e)=>{if(e.target.closest("button,input,textarea,.panel"))return;
     LASTT=t.name;if(e.shiftKey&&SEL.size){rangeSel(t);return}if(e.metaKey||e.ctrlKey||e.shiftKey||SEL.size){toggleSel(t);return}UI.open=UI.open===t.id?null:t.id;UI.sub=null;UI.dt=null;render()});
   li.dataset.cid=t.id;if(t.link)li.dataset.sub="1";
-  if(!t.done&&!opt.noAt){
+  if(!opt.noAt){
     const kidsOf=t.link?[]:S.tasks.filter((x)=>x.link===t.id);
     [["pre","pl-top","Добавить задачу перед этой"],["post","pl-bot","Добавить задачу после этой"]].forEach(([rel,cls,tt])=>{
-      const has=kidsOf.some((k2)=>(k2.rel==="pre")===(rel==="pre")),key=rel+":"+t.id;
+      const has=kidsOf.some((k2)=>(k2.rel==="pre")===(rel==="pre")),key=rel+":"+t.id;if(t.done&&!has)return;
       const b=el("button","plus "+cls+(has?" arr":""),has?((rel==="pre")===FOLD.has(key)?"⌃":"⌄"):"+");b.type="button";
       b.title=has?(FOLD.has(key)?"Показать":"Скрыть")+(rel==="pre"?" предзадачи":" подзадачи"):tt;b.setAttribute("aria-label",b.title);
       b.onclick=(e)=>{e.stopPropagation();
@@ -2481,6 +2507,7 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
     else if(d.tgt.cal){const z=d.tgt.cal;G.forEach((t)=>{logA("перенос "+nmq(t)+" → "+(z.dataset.date||"склад"));t.link="";t.rel="";dueSync(t,z.dataset.date||"")})}
     else{
       const n=d.tgt.n;let head=!!d.tgt.head,o=n&&!head?byId(n.dataset.cid):null,after=!!d.tgt.after;const w=n&&n.dataset?n.dataset.where:"";
+      if(o&&o.link){const par=byId(o.link);if(par){after=o.rel==="pre"?false:true;o=par}}   /* бросили на до/после-задачу: порядок считается от родителя */
       G.forEach((t)=>{
         if(d.tgt.kanban)dropKanban(d,t,o,after);else dropList(d,t,o,after,head,w);
         if(after||head){o=t;after=true;head=false}})}
@@ -2581,6 +2608,8 @@ const ENVS={
       const lb=el("span",null);lb.appendChild(el("span","gt",op?"▾":"▸"));lb.appendChild(document.createTextNode(label));h.appendChild(lb);
       h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
       h.onclick=()=>{if(!swallow)gToggle(k)};
+      if(k==="today"&&items.some((t)=>t.at&&!t.done)){const gb=el("button","chipb gday","📅 День в календарь");gb.type="button";gb.title="Все задачи сегодня со временем — в Google Calendar";
+        gb.onclick=async(e)=>{e.stopPropagation();let n=0;for(const t of mine().filter((x)=>x.at&&!x.done&&(x.where==="today"||x.due===dayISO()))){if(await toCalendar(t))n++;else break}if(n)note("В календаре: "+n)};h.insertBefore(gb,h.lastChild)}
       host.appendChild(h);
       if(op)items.forEach((t)=>rowWithKids(host,t))
     });
