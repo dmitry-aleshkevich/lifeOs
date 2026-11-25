@@ -2765,6 +2765,37 @@ function dayPop(cell,key,items){dayPopHide();const p=el("div");p.id="dpop";p.app
   items.forEach((t)=>p.appendChild(el("div",t.done?"d":"",(t.at?t.at+" ":"")+t.name)));document.body.appendChild(p);
   const r=cell.getBoundingClientRect();p.style.left=Math.max(6,Math.min(innerWidth-p.offsetWidth-6,r.left))+"px";p.style.top=Math.min(innerHeight-p.offsetHeight-6,r.bottom+4)+"px"}
 document.addEventListener("click",(e)=>{if(!e.target.closest(".dots"))dayPopHide()});
+/* масштаб таймлайна: пикселей на час, запоминается на устройстве. Щипок (телефон) и Shift+колесо (компьютер) */
+const tlPx=()=>{const v=+read("lifeos.v2b.tlpx");return v>=24&&v<=160?v:56};
+(function(){
+  const view=document.getElementById("view");let raf=0,pend=null,p0=null;
+  const apply=(px,ay)=>{px=Math.max(24,Math.min(160,Math.round(px)));if(px===tlPx())return;
+    const wr=view.querySelector(".tl");if(!wr)return;const hOff=(ay-wr.getBoundingClientRect().top)/tlPx();
+    try{localStorage.setItem("lifeos.v2b.tlpx",String(px))}catch{}
+    render();const w2=view.querySelector(".tl");if(w2)window.scrollBy(0,w2.getBoundingClientRect().top-(ay-hOff*px))};
+  view.addEventListener("wheel",(e)=>{if(!e.shiftKey||!e.target.closest||!e.target.closest(".tl"))return;
+    e.preventDefault();const d=e.deltaY||e.deltaX;if(d)apply(tlPx()*(d<0?1.12:1/1.12),e.clientY)},{passive:false});
+  const dist=(t)=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  const live=(px,ay)=>{const wr=view.querySelector(".tl");if(!wr||!p0)return;px=Math.max(24,Math.min(160,px));p0.cur=px;
+    const H=(+wr.dataset.h1)-(+wr.dataset.h0)+1,minh=Math.max(30,Math.round(50*Math.min(1,px/56)));
+    wr.style.height=(H*px)+"px";wr.dataset.px=px;
+    wr.querySelectorAll(".hr").forEach((h)=>{h.style.height=px+"px"});
+    wr.querySelectorAll(".slot").forEach((s)=>{s.style.top=(+s.dataset.th*px)+"px";s.style.height=Math.max(minh,(+s.dataset.mn)/60*px)+"px"});
+    wr.querySelectorAll(".now").forEach((n)=>{n.style.top=(+n.dataset.th*px)+"px"});
+    window.scrollBy(0,wr.getBoundingClientRect().top-(ay-p0.hOff*px))};
+  view.addEventListener("touchstart",(e)=>{
+    const wr=e.target.closest&&e.target.closest(".tl");
+    if(e.touches.length===2&&wr){if(DR){clearTimeout(DR.timer);DR=null}
+      const ay=(e.touches[0].clientY+e.touches[1].clientY)/2;p0={d:dist(e.touches),px:tlPx(),cur:tlPx(),hOff:(ay-wr.getBoundingClientRect().top)/tlPx()}}
+    else if(e.touches.length!==2)p0=null},{passive:true});
+  view.addEventListener("touchmove",(e)=>{if(!p0||e.touches.length!==2)return;e.preventDefault();
+    pend=[p0.px*dist(e.touches)/p0.d,(e.touches[0].clientY+e.touches[1].clientY)/2];
+    if(!raf)raf=requestAnimationFrame(()=>{raf=0;const q=pend;pend=null;if(q)live(q[0],q[1])})},{passive:false});
+  const done=()=>{if(!p0)return;const px=Math.round(p0.cur);p0=null;
+    if(px!==tlPx()){try{localStorage.setItem("lifeos.v2b.tlpx",String(px))}catch{}render()}};
+  view.addEventListener("touchend",(e)=>{if(e.touches.length<2)done()});
+  view.addEventListener("touchcancel",done);
+})();
 const ENVS={
   list:{name:"Список",render(host){
     host.appendChild(qaBox("top"));
@@ -2803,22 +2834,22 @@ const ENVS={
     host.appendChild(qaBox("bottom"));
   }},
   timeline:{name:"Таймлайн",render(host){
-    const H0=8,H1=23,PX=56;
+    const H0=8,H1=23,PX=tlPx(),MINH=Math.max(30,Math.round(50*Math.min(1,PX/56)));
     const withAt=mine().filter((t)=>t.at),none=mine().filter((t)=>!t.at&&!t.link);
     const wrap=el("div","tl");
-    for(let h=H0;h<=H1;h++){const r=el("div","hr");r.appendChild(el("span",null,String(h).padStart(2,"0")+":00"));wrap.appendChild(r)}
+    for(let h=H0;h<=H1;h++){const r=el("div","hr");r.style.height=PX+"px";r.appendChild(el("span",null,String(h).padStart(2,"0")+":00"));wrap.appendChild(r)}
     const now=new Date(),nm=now.getHours()+now.getMinutes()/60;
-    if(nm>=H0&&nm<=H1){const n=el("div","now");n.style.top=((nm-H0)*PX)+"px";wrap.appendChild(n)}
+    if(nm>=H0&&nm<=H1){const n=el("div","now");n.style.top=((nm-H0)*PX)+"px";n.dataset.th=nm-H0;wrap.appendChild(n)}
     /* пересекающиеся задачи встают рядом, колонками (как в календарях), а не друг на друге */
     const its=[];
     withAt.forEach((t)=>{const [hh,mm]=t.at.split(":").map(Number);const top=(hh+mm/60-H0)*PX;if(top<0)return;
-      its.push({t,top,h:Math.max(50,(t.min||30)/60*PX),c:0,n:1})});
+      its.push({t,top,h:Math.max(MINH,(t.min||30)/60*PX),c:0,n:1})});
     its.sort((x,y)=>x.top-y.top||y.h-x.h);
     {let grp=[],end=-1;const flush=()=>{const n=Math.max(1,...grp.map((i)=>i.c+1));grp.forEach((i)=>{i.n=n})};
       its.forEach((i)=>{if(grp.length&&i.top>=end){flush();grp=[];end=-1}
         const used=new Set(grp.filter((g)=>g.top+g.h>i.top).map((g)=>g.c));let c=0;while(used.has(c))c++;i.c=c;grp.push(i);end=Math.max(end,i.top+i.h)});
       flush()}
-    its.forEach((i)=>{const s=el("div","slot");s.style.top=i.top+"px";s.style.height=i.h+"px";
+    its.forEach((i)=>{const s=el("div","slot");s.style.top=i.top+"px";s.style.height=i.h+"px";s.dataset.th=i.top/PX;s.dataset.mn=i.t.min||30;
       if(i.n>1){s.style.left=(i.c*100/i.n)+"%";s.style.right="auto";s.style.width="calc("+(100/i.n)+"% - 4px)"}
       s.appendChild(card(i.t,{noAt:true}));const rs=el("div","rs");rs.dataset.rid=i.t.id;s.appendChild(rs);wrap.appendChild(s)});
     wrap.style.height=((H1-H0+1)*PX)+"px";
