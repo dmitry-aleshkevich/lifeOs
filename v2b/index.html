@@ -2609,8 +2609,8 @@ const ENVS={
       const lb=el("span",null);lb.appendChild(el("span","gt",op?"▾":"▸"));lb.appendChild(document.createTextNode(label));h.appendChild(lb);
       h.appendChild(el("span",null,items.length+" · "+items.reduce((s,t)=>s+(t.done?0:t.min),0)+" мин"));
       h.onclick=()=>{if(!swallow)gToggle(k)};
-      if(k==="today"&&items.some((t)=>t.at&&!t.done)){const gb=el("button","chipb gday","📅 День в календарь");gb.type="button";gb.title="Все задачи сегодня со временем — в Google Calendar";
-        gb.onclick=async(e)=>{e.stopPropagation();let n=0;for(const t of mine().filter((x)=>x.at&&!x.done&&(x.where==="today"||x.due===dayISO()))){if(await toCalendar(t))n++;else break}if(n)note("В календаре: "+n)};h.insertBefore(gb,h.lastChild)}
+      if(k==="today"){const gb=el("button","chipb gday","📅 День в календарь");gb.type="button";gb.title="Все задачи сегодня со временем — в Google Calendar";
+        gb.onclick=async(e)=>{e.stopPropagation();let n=0;for(const t of mine().filter((x)=>x.at&&!x.done&&(x.where==="today"||x.due===dayISO()))){if(await toCalendar(t))n++;else break}if(n)note("В календаре: "+n);else if(!mine().some((x)=>x.at&&!x.done))note("Нет сегодняшних задач со временем")};h.insertBefore(gb,h.lastChild)}
       host.appendChild(h);
       if(op)items.forEach((t)=>rowWithKids(host,t))
     });
