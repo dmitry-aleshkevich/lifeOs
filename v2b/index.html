@@ -77,6 +77,19 @@ body.drag .card .plus{opacity:1}
 .radd{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:12px;padding:6px 4px;cursor:pointer;border-radius:8px}
 .radd:hover{background:var(--surface-2)}
 .evb{display:flex;justify-content:space-between;align-items:center;width:100%;margin:14px 0 4px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,#1d2140,#2b2358);color:#e9e6ff;font:inherit;font-weight:800;font-size:14px;cursor:pointer}
+#dnb{position:fixed;right:16px;top:96px;z-index:45;width:230px;background:#1d1d1f;color:#fff;border-radius:16px;padding:12px 14px;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+#dnb.late{background:#712B13}#dnb .dr+.dr{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.14)}
+#dnb .dx{position:absolute;right:8px;top:6px;width:24px;height:24px;border-radius:7px;border:0;background:transparent;color:rgba(255,255,255,.7);font-size:18px;line-height:1;cursor:pointer}
+#dnb .dl{font-size:12px;font-weight:700;color:rgba(255,255,255,.65);padding-right:22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dnb .dt{font-size:32px;font-weight:800;letter-spacing:-.5px;line-height:1.1;margin:2px 0 4px;font-variant-numeric:tabular-nums}
+#dnb .dr.late .dt,#dnb .dr.late .dl{color:#ff9f86}
+#dnb .ds{font-size:12.5px;font-weight:600;line-height:1.35;color:rgba(255,255,255,.85)}
+#dnb .dgo{margin:8px 0 0;width:100%;font-size:13px;padding:9px 10px}
+#dnb.min{width:auto;padding:7px 12px;border-radius:999px;cursor:pointer}#dnb.min .dx{display:none}#dnb .dm{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+@media(max-width:480px){#dnb:not(.min){left:8px;right:8px;top:calc(6px + env(safe-area-inset-top));width:auto;padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px 16px}
+ #dnb:not(.min) .dr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;flex:1 1 100%}#dnb:not(.min) .dr+.dr{margin-top:0;padding-top:6px}
+ #dnb:not(.min) .dl{padding-right:0;flex:1 1 auto;min-width:0}#dnb:not(.min) .dt{font-size:22px;margin:0}#dnb:not(.min) .ds{flex:1 1 100%}
+ #dnb.min{top:calc(8px + env(safe-area-inset-top));right:8px}}
 .evb .cd{font-variant-numeric:tabular-nums;opacity:.85}
 .card.sel{outline:2px solid var(--accent);outline-offset:-2px;background:color-mix(in srgb,var(--accent) 10%,var(--surface))}
 .gcount{position:absolute;right:-8px;top:-8px;min-width:22px;height:22px;border-radius:11px;background:var(--accent);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px}
@@ -2046,14 +2059,16 @@ function fitDesc(){document.querySelectorAll(".desc[data-did]").forEach((d)=>{
 const checkTxt=(t)=>t.check&&t.check.length?t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"";
 /* сколько осталось до времени начала: серенький текст слева от кнопки времени («через 39 мин»; прошло — «опоздание 10 мин»).
    Только задачи на сегодня со временем, не выполненные и не запущенные. На таймлайне время видно по позиции, в календаре места нет. */
-function untilInfo(t){
+function startDelta(t){   /* мс до времени начала сегодняшней задачи (меньше нуля — опоздание); null — не подходит */
   if(!t||!t.at||t.done||t.tm||t.archived)return null;
   const [y,m,d]=dayOf(NOW()).split("-").map(Number);
   const key=y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");
   if(!(t.due===key||(!t.due&&t.where==="today")))return null;
   const [hh,mm]=t.at.split(":").map(Number);if(!(hh>=0&&mm>=0))return null;
-  const atMs=new Date(y,m-1,d+(hh<4?1:0),hh,mm,0,0).getTime();
-  const mins=Math.ceil((atMs-NOW())/60000);
+  return new Date(y,m-1,d+(hh<4?1:0),hh,mm,0,0).getTime()-NOW()}
+function untilInfo(t){
+  const dl=startDelta(t);if(dl===null)return null;
+  const mins=Math.ceil(dl/60000);
   const fm=(n)=>n<60?n+" мин":Math.floor(n/60)+" ч"+(n%60?" "+(n%60)+" мин":"");
   if(mins>180||mins<-720)return null;
   if(mins>0)return {txt:"через "+fm(mins),late:false};
@@ -2821,7 +2836,6 @@ const ENVS={
       if(!q.all.length)host.appendChild(el("div","empty","Закинь задачи из проектов на канбан в «В работу» — они появятся здесь."));
       host.appendChild(qaBox("bottom"));return}
     if(CORE.show)routineGroup(host,"morning");
-    eveningBanner(host);
     const groups=[["today","Сегодня"],["tomorrow","Завтра"],["backlog","Дела"],["wait","Жду"],["","Без места"]];
     let any=false;
     const onlyToday=TO.on&&UI.sys==="дела";
@@ -3017,11 +3031,52 @@ function routineGroup(host,k,force){
   add.onclick=()=>{const t=makeTask({name:"Новая задача",min:0},{routine:k,where:"today"});render();
     const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
   host.appendChild(add)}
-function eveningBanner(host){
-  const items=rItems("evening");if(!items.length||S.day.phase!=="day"||!isEvening())return;
-  const b=el("button","evb");b.type="button";b.id="evb";
-  b.appendChild(el("span",null,"🌙 Начать вечер · "+items.length+(items.length%10===1&&items.length%100!==11?" пункт":[2,3,4].includes(items.length%10)&&![12,13,14].includes(items.length%100)?" пункта":" пунктов")));b.appendChild(el("span","cd",endOfDay()));
-  b.onclick=()=>{S.day.evening=true;S.day.phase="evening";save();render()};host.appendChild(b)}
+/* плавающее окно «Дальше / Вечер» (как баннер в v1): тикает, сворачивается в пилюлю «–», на телефоне — полоска сверху */
+const DNB={min:(()=>{const v=read("lifeos.v2b.dnb");return !!(v&&v.day===dayISO()&&v.min)})()};
+const saveDnb=()=>{try{localStorage.setItem("lifeos.v2b.dnb",JSON.stringify({day:dayISO(),min:DNB.min}))}catch{}};
+const hms=(ms)=>{const sec=Math.max(0,Math.floor(ms/1000)),h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s2=sec%60,p=(n)=>String(n).padStart(2,"0");return h?h+":"+p(m)+":"+p(s2):p(m)+":"+p(s2)};
+function dnbData(){
+  if(!S||!S.day)return null;
+  if(UI.view&&UI.view!=="tasks")return null;
+  const ph=S.day.phase;if(ph==="closed"||morningOn())return null;
+  let nx=null;
+  mine().forEach((t)=>{const dl=startDelta(t);if(dl===null||dl>3*36e5||dl<-3*36e5)return;if(!nx||Math.abs(dl)<Math.abs(nx.dl))nx={t,dl}});
+  let ev=null;
+  const items=rItems("evening");
+  if(ph==="evening"||(ph==="day"&&isEvening()&&items.length)){
+    const n=new Date(NOW()),e=new Date(n);e.setHours(24,0,0,0);const ms=e-n;
+    const left=S.tasks.filter((t)=>t.type==="дела"&&!t.routine&&!t.done&&!t.link&&t.where==="today"&&(CORE.show||!t.tpl)).length;
+    ev={ms,late:ms<=36e5,go:ph==="day",sub:ph==="evening"?"Вечерняя рутина: ещё "+items.filter((t)=>!t.done).length:(left?"Успей закончить дела: ещё "+left:"Дела закрыты — можно на вечернюю рутину")}}
+  return (nx||ev)?{nx,ev}:null}
+function paintDnb(){
+  let w=document.getElementById("dnb");
+  if(!w){w=el("div","dnb");w.id="dnb";w.hidden=true;
+    w.innerHTML='<button class="dx" type="button" aria-label="Свернуть">–</button><div class="dm" hidden></div>'
+      +'<div class="dr rn" hidden><div class="dl"></div><div class="dt"></div></div>'
+      +'<div class="dr re" hidden><div class="dl">🌙 До конца дня</div><div class="dt"></div><div class="ds"></div></div>';
+    w.querySelector(".dx").onclick=(e)=>{e.stopPropagation();DNB.min=true;saveDnb();paintDnb()};
+    w.onclick=()=>{if(DNB.min){DNB.min=false;saveDnb();paintDnb()}};
+    document.body.appendChild(w)}
+  const d=dnbData();
+  if(!d||!d.ev){const g0=document.getElementById("evb");if(g0)g0.remove()}
+  if(!d){w.hidden=true;document.body.style.paddingTop="";return}
+  w.hidden=false;w.classList.toggle("min",DNB.min);
+  const rn=w.querySelector(".rn"),re=w.querySelector(".re"),dm=w.querySelector(".dm");
+  rn.hidden=!d.nx||DNB.min;re.hidden=!d.ev||DNB.min;dm.hidden=!DNB.min;
+  if(d.nx){const late=d.nx.dl<0;rn.classList.toggle("late",late);
+    rn.querySelector(".dl").textContent=(late?"Опоздание · ":"До · ")+(d.nx.t.name||"задача");
+    rn.querySelector(".dt").textContent=(late?"+":"")+hms(Math.abs(d.nx.dl))}
+  if(d.ev){re.querySelector(".dt").textContent=hms(d.ev.ms);re.querySelector(".ds").textContent=d.ev.sub;
+    w.classList.toggle("late",d.ev.late);
+    let g=re.querySelector("#evb");
+    if(d.ev.go&&!g){g=el("button","evb dgo","🌙 Начать вечер");g.type="button";g.id="evb";
+      g.onclick=(e)=>{e.stopPropagation();S.day.evening=true;S.day.phase="evening";save();render()};re.appendChild(g)}
+    else if(!d.ev.go&&g)g.remove()}
+  else w.classList.remove("late");
+  if(DNB.min)dm.textContent=(d.nx&&(d.nx.dl<0?"+":"")+hms(Math.abs(d.nx.dl)))||("🌙 "+hms(d.ev.ms));
+  /* на телефоне полоска занимает место сверху — сдвигаем содержимое */
+  document.body.style.paddingTop=(!DNB.min&&matchMedia("(max-width:480px)").matches)?(w.offsetHeight+14)+"px":""}
+setInterval(()=>{try{paintDnb()}catch{}},1000);
 function render(){
   if(S){dayRoll();planSync()}
   try{localStorage.setItem("lifeos.v2b.ui",JSON.stringify({sys:UI.sys,env:UI.env,view:UI.view}))}catch{}
@@ -3034,7 +3089,7 @@ function render(){
   paintFocusBtn();paintCoreBtn();
   const v=document.getElementById("view");const sx=[...v.querySelectorAll(".kb")].map((k)=>k.scrollLeft),sy=scrollY;v.innerHTML="";
   const ph=S&&S.day&&S.day.phase;document.body.classList.toggle("lock",lockedPhase());const xv=!!(S&&UI.view&&UI.view!=="tasks"&&VIEWS[UI.view]);document.body.classList.toggle("xview",xv);
-  if(S&&morningOn())morningScreen(v);else if(S&&ph==="evening")eveningScreen(v);else if(S&&ph==="closed")closedScreen(v);else if(xv)VIEWS[UI.view](v);else ENVS[UI.env].render(v);selBar();fitDesc();
+  if(S&&morningOn())morningScreen(v);else if(S&&ph==="evening")eveningScreen(v);else if(S&&ph==="closed")closedScreen(v);else if(xv)VIEWS[UI.view](v);else ENVS[UI.env].render(v);selBar();fitDesc();paintDnb();
   v.querySelectorAll(".kb").forEach((k,i)=>{if(sx[i])k.scrollLeft=sx[i]});if(sy&&Math.abs(scrollY-sy)>1)scrollTo(scrollX,sy);
   if(UI.qaFocus){const q=v.querySelector('.qa[data-pos="'+UI.qaFocus+'"] input');UI.qaFocus=null;if(q)q.focus()}
   if(UI.focusNew){const q=v.querySelector(".cl-new");UI.focusNew=null;if(q)q.focus()}
