@@ -115,7 +115,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .dts{border:1px solid var(--line);background:var(--surface-2);color:inherit;font:inherit;font-size:13px;padding:4px 0;border-radius:8px;cursor:pointer}
 .dts.s{background:var(--accent);border-color:var(--accent);color:#fff}.dts.busy{color:var(--muted);text-decoration:line-through}
 .dtp-bot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
-.dtp-bot .ptime{width:70px}@media(max-width:480px){.dtp-bot .ptime{flex:1;min-width:120px}}.dtp-ap{margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)}
+.dtp-parts{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}.dtp-bot .ptime{width:70px}@media(max-width:480px){.dtp-bot .ptime{flex:1;min-width:120px}}.dtp-ap{margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)}
 
 @media (max-width:480px){
  .seg button{padding:8px 10px;font-size:12.5px}
@@ -2371,6 +2371,11 @@ function panel(t){
     top.appendChild(calw);top.appendChild(sl);bx.appendChild(top);
     requestAnimationFrame(()=>{const now=new Date(),isT=DT.due===dayISO();let want=DT.at||(isT?pd2(now.getHours())+":"+(now.getMinutes()<30?"00":"30"):"09:00");
       const el0=[...sl.children].find(x=>x.dataset.t>=want)||sl.lastChild;if(el0)sl.scrollTop=Math.max(0,el0.offsetTop-sl.offsetTop)});
+    const prow=el("div","dtp-parts");
+    PARTS.forEach(([k,lab])=>{const b=el("button","chipb"+(DT.at===partT(k)?" on":""),lab+" "+partT(k));b.type="button";b.dataset.part=k;b.title="Нажми — поставить время; ПКМ или долгое нажатие — изменить";
+      b.onclick=()=>{DT.at=partT(k);render()};
+      onMenu(b,()=>{const v=prompt("Время для «"+lab+"» (ЧЧ:ММ):",partT(k));const n=v&&okT(v);if(n){S.parts=Object.assign({},S.parts||{});S.parts[k]=n;save();render()}});prow.appendChild(b)});
+    bx.appendChild(prow);
     const bot=el("div","dtp-bot");
     const di=el("input","pdate");di.type="date";di.value=DT.due;di.onchange=()=>{if(di.value){DT.due=di.value;DT.vm=di.value.slice(0,7);DT.busy=null;render()}};bot.appendChild(di);
     const readWhen=(v)=>{const w=parseWhen(v);if(w.at||w.due)return {at:w.at,due:w.due};return {at:okT(v),due:""}};
@@ -2395,6 +2400,8 @@ function makeTask(f,ctx,at){
   logA("создана "+nmq(t));save();return t}
 /* ---------- быстрый ввод новой задачи ---------- */
 UI.qa={top:{txt:"",dur:0},bottom:{txt:"",dur:0}};
+const PARTS=[["m","Утро","08:00"],["d","День","13:00"],["e","Вечер","19:00"]];
+const partT=(k)=>{const d=PARTS.find((x)=>x[0]===k)[2];return (typeof S!=="undefined"&&S&&S.parts&&/^\d\d:\d\d$/.test(S.parts[k]||""))?S.parts[k]:d};
 /* время текстом: «завтра в 9», «в пт 18:00», «через 2 часа» → {rest,at,due}; ничего не нашли — at/due пустые */
 const WDAY={"пн":1,"вт":2,"ср":3,"чт":4,"пт":5,"сб":6,"вс":0,"понедельник":1,"вторник":2,"среда":3,"среду":3,"четверг":4,"пятница":5,"пятницу":5,"суббота":6,"субботу":6,"воскресенье":0};
 function parseWhen(txt){
@@ -2406,6 +2413,7 @@ function parseWhen(txt){
   s=s.replace(/\s(послезавтра|завтра|сегодня)(?=\s)/i,(m,w)=>{due=addDays({"сегодня":0,"завтра":1,"послезавтра":2}[w.toLowerCase()]);return " "});
   s=s.replace(/\sв\s+(понедельник|вторник|среду|среда|четверг|пятницу|пятница|субботу|суббота|воскресенье|пн|вт|ср|чт|пт|сб|вс)(?=\s)/i,(m,w)=>{
     const [y,mo,d]=base(),cur=new Date(y,mo-1,d).getDay();due=addDays(((WDAY[w.toLowerCase()]-cur+7)%7)||7);return " "});
+  s=s.replace(/\s(утром|днем|днём|вечером)(?=\s)/i,(m,w)=>{if(!at)at=partT({"утром":"m","днем":"d","днём":"d","вечером":"e"}[w.toLowerCase()]);return " "});
   s=s.replace(/\sв\s+(\d{1,2})(?:[:.](\d{2}))?(?:\s*(утра|вечера|дня|ночи))?(?=\s*$|\s+[#\d])/i,(m,h,mi,ap)=>{
     let H=+h;const M=mi?+mi:0;if(H>23||M>59)return m;
     if(ap){ap=ap.toLowerCase();if((ap==="вечера"||ap==="дня")&&H<12)H+=12;else if(ap==="ночи"&&H===12)H=0}
