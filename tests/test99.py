@@ -27,6 +27,6 @@ with sync_playwright() as p:
     # кнопка «День в календарь»
     pg.evaluate("()=>{byId('a').gcal='';byId('b').at='18:00';byId('b').gcal='';UI.open=null;render()}")
     pg.click(".gday");pg.wait_for_timeout(600)
-    assert len(pg.evaluate("()=>window.__calls"))==7   # 2 + все задачи дня со временем (с шаблонами)
+    c=pg.evaluate("()=>window.__calls");n=[json.loads(x["b"])["summary"] for x in c[2:]];print(n);assert len(c)==11   # 2 + все задачи дня со временем (шаблоны и цепочки до/после)
     assert errs==[],errs
     print("ERRORS:",errs)

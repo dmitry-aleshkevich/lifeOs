@@ -2276,7 +2276,7 @@ function dateLabel(t){
   if(t.due){const now=new Date(),tm=new Date(Date.now()+864e5);
     if(t.due===day(now))d="сегодня";else if(t.due===day(tm))d="завтра";
     else{const [y,m,dd]=t.due.split("-").map(Number);d=dd+" "+["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"][m-1]}}
-  return [d,t.at].filter(Boolean).join(" · ")}
+  return [d,t.at?(t.aa?"~":"")+t.at:""].filter(Boolean).join(" · ")}
 /* ---------- «В календарь»: запись события в Google Calendar (OAuth через Google Identity Services, без сервера) ---------- */
 const GC={scope:"https://www.googleapis.com/auth/calendar.events",tok:"",exp:0};
 const GC_DEFAULT="413636813504-9fsstjtt3eqimbvjjvkh97sev6i0jm93.apps.googleusercontent.com";
@@ -2368,9 +2368,9 @@ function panel(t){
     ti.onkeydown=(e)=>{e.stopPropagation();if(e.key==="Enter"){const n=okT(ti.value);if(n){DT.at=n;ap.click()}}};
     ti.onchange=()=>{const n=okT(ti.value);if(n){DT.at=n;render()}else ti.value=DT.at};bot.appendChild(ti);
     const td=el("button","chipb","Сегодня");td.type="button";td.onclick=()=>{DT.due=dayISO();DT.vm=DT.due.slice(0,7);DT.busy=null;render()};bot.appendChild(td);
-    if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();close()};bot.appendChild(c)}
+    if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";delete t.aa;save();close()};bot.appendChild(c)}
     const cn=el("button","chipb","Отмена");cn.type="button";cn.onclick=close;bot.appendChild(cn);
-    const ap=el("button","chipb dtp-ap","Применить");ap.type="button";ap.onclick=()=>{const n=okT(ti.value)||DT.at;pushUndo();dueSync(t,DT.due);t.at=n||"";save();close()};bot.appendChild(ap);
+    const ap=el("button","chipb dtp-ap","Применить");ap.type="button";ap.onclick=()=>{const n=okT(ti.value)||DT.at;pushUndo();dueSync(t,DT.due);t.at=n||"";delete t.aa;save();close()};bot.appendChild(ap);
     bx.appendChild(bot);
     p.appendChild(bx)}
   return p}
@@ -2790,7 +2790,18 @@ function seg(host,items,cur,pick){
   host.innerHTML="";
   items.forEach(([k,label])=>{const b=el("button",null,label);b.setAttribute("aria-pressed",k===cur);b.onclick=()=>pick(k);host.appendChild(b)});
 }
-function save(){try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
+function chainSync(){
+  const kids={},pd=(n)=>String(n).padStart(2,"0"),mn=(t,d)=>t.min>0?t.min:d,pm=(a)=>{const [h,m]=String(a||"").split(":").map(Number);return isNaN(h)?null:h*60+(m||0)};
+  S.tasks.forEach((t)=>{if(t.link&&(t.rel==="pre"||t.rel==="post"))(kids[t.link]=kids[t.link]||[]).push(t)});
+  const walk=(a,seen)=>{if(seen.has(a.id))return;seen.add(a.id);const ks=kids[a.id];if(!ks)return;
+    const st=pm(a.at),has=st!==null,end=has?st+mn(a,30):0;
+    const put=(k,v)=>{if(k.aa||!k.at){if(has&&v>=0&&v<1440){k.at=pd(Math.floor(v/60))+":"+pd(v%60);k.aa=1;if(a.due)k.due=a.due;return true}if(k.aa){k.at="";delete k.aa}}return false};
+    let cur=st;const pre=ks.filter((k)=>k.rel==="pre"),post=ks.filter((k)=>k.rel==="post");
+    for(let i=pre.length-1;i>=0;i--){const k=pre[i];if(has&&!(k.aa||!k.at)&&pm(k.at)!==null)cur=pm(k.at);else{cur-=mn(k,15);put(k,cur)}walk(k,seen)}
+    cur=end;
+    for(const k of post){if(has&&!(k.aa||!k.at)&&pm(k.at)!==null)cur=pm(k.at)+mn(k,15);else{put(k,cur);cur+=mn(k,15)}walk(k,seen)}};
+  S.tasks.forEach((t)=>{if(!(t.link&&(t.rel==="pre"||t.rel==="post")))walk(t,new Set())})}
+function save(){try{chainSync()}catch{}try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
 /* ---------- фазы дня (Beta 2.0): Утро → День → Вечер → Ночь; новый день с 04:00, по часам фаза не меняется ---------- */
 const APP_URL="https://dmitry-aleshkevich.github.io/qr/?n=1";
 const rItems=(k)=>S.tasks.filter((t)=>t.routine===k&&!t.link&&t.type==="дела");
