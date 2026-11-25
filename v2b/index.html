@@ -3647,8 +3647,7 @@ function scenInit(){ensureExtras();if(Array.isArray(S.scen)){scenMigrate();retur
 const scenDefaultVer=(sc)=>{if(sc.kind!=="morning")return sc.versions[0].id;const id=[1,3,5].includes(new Date(NOW()).getDay())?"fast":"home";return (sc.versions.find((v)=>v.id===id)||sc.versions[0]).id};
 /* применить версию: утро заменяет невыполненные пункты, вечер добавляется вниз, свой сценарий — задачей в «Сегодня» */
 function scenApply(sc,ver){scenInit();pushUndo();BATCH=true;
-  try{const work=UI.sys==="работа"&&sc.kind==="custom";
-    const base=sc.kind==="custom"?(work?{type:"работа",status:"todo",where:""}:{type:"дела",where:"today"}):{type:"дела",where:"today",routine:sc.kind};
+  try{const base=sc.kind==="custom"?{type:"дела",where:"today"}:{type:"дела",where:"today",routine:sc.kind};
     const all=scenTasks(sc,ver),roots=all.filter((t)=>!t.link);
     const clone=(t)=>task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((c)=>({text:c.text||c.t||c.name||"",done:false}))},Object.assign({ord:S.tasks.length},base));
     if(sc.kind==="morning")S.tasks=S.tasks.filter((t)=>!(t.routine==="morning"&&!t.done));
@@ -3692,7 +3691,7 @@ function renderScen(v){scenInit();
         h.appendChild(el("span","cnt",fmtMin(scenSum(sc,ver))));
         if(sc.versions.length>1){const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delver";dv.setAttribute("aria-label","Удалить версию");dv.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id&&t.sv===ver.id));sc.versions=sc.versions.filter((x)=>x!==ver);save();render()};h.appendChild(dv)}},
       colFoot:(c,k)=>{const ver=verOf(k);
-        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":UI.sys==="работа"?"Добавить в ToDo":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>scenApply(sc,ver);c.appendChild(ap)}})});
+        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>scenApply(sc,ver);c.appendChild(ap)}})});
   const add=el("button","chipb on","＋ Сценарий");add.type="button";add.id="scadd";add.onclick=()=>{S.scen.push({id:"t-"+uid(),kind:"custom",name:"Новый сценарий",icon:"",versions:[{id:"std",name:"Стандарт"}]});save();render()};v.appendChild(add)}
 function renderScenTabs(v){const t=el("div","seg");t.id="scenTabs";[["scen","Сценарии"],["plan","Шаблоны"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.tab=k;b.setAttribute("aria-pressed",(UI.scenTab||"scen")===k);b.onclick=()=>{UI.scenTab=k;render()};t.appendChild(b)});v.appendChild(t);
   if((UI.scenTab||"scen")==="plan")renderPlan(v);else renderScen(v)}
