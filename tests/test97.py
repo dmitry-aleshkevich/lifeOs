@@ -43,5 +43,10 @@ with sync_playwright() as p:
     pg.click("#fnote,[aria-label='Заметка'],.fbtn[data-kind=note]") if pg.locator("#fnote,[aria-label='Заметка'],.fbtn[data-kind=note]").count() else pg.evaluate("()=>fbOpen('note')")
     assert pg.locator(".fbpop textarea").is_visible() and pg.locator(".fbpop .fbls").is_hidden()
     pg.click(".fbpast");assert pg.locator(".fbpop .fbls").is_visible()
+    # меню: переключатели видов — отдельным рядом под основным; Enter добавляет запись, Shift+Enter — перенос
+    assert pg.evaluate("()=>document.getElementById('envSeg').getBoundingClientRect().top>document.getElementById('viewSeg').getBoundingClientRect().bottom-2")
+    pg.fill(".fbpop textarea","раз");pg.press(".fbpop textarea","Shift+Enter");pg.keyboard.type("два")
+    assert pg.input_value(".fbpop textarea")=="раз\nдва"
+    n0=pg.evaluate("()=>FBL.note.length");pg.press(".fbpop textarea","Enter");assert pg.evaluate("()=>FBL.note.length")==n0+1 and pg.input_value(".fbpop textarea")==""
     assert errs==[],errs
     print("ERRORS:",errs)

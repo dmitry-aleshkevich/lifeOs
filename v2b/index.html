@@ -220,7 +220,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .kid.done .kn{text-decoration:line-through;color:var(--muted)}
 .kid .ck{width:18px;height:18px;font-size:11px;flex:none}
 body.lock .bar,body.lock .hint,body.lock .foot,body.lock .note{display:none}.qr{width:150px;margin:0 auto 12px;border-radius:12px;overflow:hidden;line-height:0;border:1px solid var(--line)}.qr svg{width:100%;height:auto}.closed{text-align:center;padding:40px 0}.closed .dsum{color:var(--muted)}.muted{color:var(--muted);font-size:13px}
-body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xview #cbtn,body.xview #pbtn,body.xview #hint{display:none}
+body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xview #cbtn,body.xview #pbtn,body.xview #hint{display:none}
 .xcol{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}.xc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
 .xh{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}.xh h2{margin:0;font-size:17px}.xh .sum{color:var(--muted);font-size:12px;flex:1}.xh .chipb{margin-left:auto}.wknav{margin-left:auto;display:flex;gap:6px}
 .hrow{display:grid;grid-template-columns:minmax(120px,1.6fr) repeat(7,34px) 78px;gap:6px;align-items:center;padding:5px 0}.hhead .hd{text-align:center;font-size:11px;font-weight:800;color:var(--muted);line-height:1.2}.hhead .hd.today{color:var(--accent)}
@@ -328,9 +328,11 @@ body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xview #cbtn,body.xvi
   <div><h1>LifeOS</h1><div class="sub">Beta 2.0. Данные — отдельная копия, бета не затронута.</div></div>
   <div class="seg vsw"><a href="../index.html">V1</a><a href="../v2/index.html">Beta</a><a class="on" href="#">Beta 2.0</a></div>
 </div>
-<div class="bar">
+<div class="bar" id="bar1" style="margin-bottom:10px">
   <div class="seg" id="viewSeg"></div>
-    <div class="seg" id="envSeg"></div>
+</div>
+<div class="bar" id="bar2">
+  <div class="seg" id="envSeg"></div>
   <button class="fbtn" id="fbtn" type="button" hidden>🔥 Фокус</button>
   <button class="fbtn" id="cbtn" type="button" title="Утро, еда, зал и вечер: показать или скрыть">⚙ LifeCore</button>
   <button class="fbtn pbtn" id="pbtn" type="button" title="Проекты: порядок и видимость" aria-label="Проекты"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -2823,7 +2825,7 @@ function render(){
   if(UI.focusNew){const q=v.querySelector(".cl-new");UI.focusNew=null;if(q)q.focus()}
 }
 /* ---------- «Баг» и «Заметка»: справа две кнопки, окошко, экспорт сообщения в буфер ---------- */
-const FB={bug:{k:"lifeos.v2b.bugs",title:"Баг",ph:"Что не так? (Ctrl+Enter — добавить)"},note:{k:"lifeos.v2b.notes",title:"Заметка",ph:"Мысль, идея, вопрос… (Ctrl+Enter — добавить)"}};
+const FB={bug:{k:"lifeos.v2b.bugs",title:"Баг",ph:"Что не так? (Enter — добавить, Shift+Enter — новая строка)"},note:{k:"lifeos.v2b.notes",title:"Заметка",ph:"Мысль, идея, вопрос… (Enter — добавить, Shift+Enter — новая строка)"}};
 const FBL={bug:read(FB.bug.k)||[],note:read(FB.note.k)||[]};
 const fbSave=(kind)=>{try{localStorage.setItem(FB[kind].k,JSON.stringify(FBL[kind]))}catch{}};
 const ctxTag=()=>(UI.sys==="дела"?"Дела":"Работа")+" · "+ENVS[UI.env].name+(LASTT?" · «"+LASTT.slice(0,40)+"»":"");
@@ -2851,7 +2853,7 @@ function fbOpen(kind){
   const doAdd=()=>{const v=ta.value.trim();if(!v)return false;FBL[kind].push({tag:ctxTag(),text:v,at:Date.now(),log:kind==="bug"?ALOG.slice(-6):[]});fbSave(kind);ta.value="";list();return true};
   past.onclick=()=>{showPast=!showPast;try{localStorage.setItem("lifeos.v2b.fbpast",showPast?"1":"0")}catch{}list()};
   add.onclick=()=>{doAdd();ta.focus()};
-  ta.addEventListener("keydown",(e)=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();doAdd()}});
+  ta.addEventListener("keydown",(e)=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();doAdd()}});
   ex.onclick=()=>{doAdd();const m=fbMessage(kind);if(!m){st.textContent="Пока пусто";return}
     const done=()=>{st.textContent="Скопировано ✓"};
     if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(m).then(done,()=>{ta.value=m;ta.select();st.textContent="Выдели и скопируй"});else{ta.value=m;ta.select();st.textContent="Выдели и скопируй"}};
