@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg=b.new_context(viewport=dict(width=1200,height=1000)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#sysSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     # среда 25.11.2026 12:00 → обед-a, ужин (зал только пн/ср/пт: среда → зал есть, обед-b)
     pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.planGen='';render()}");pg.wait_for_timeout(200)
     names=pg.evaluate("()=>S.tasks.filter(t=>t.tpl&&!t.link).map(t=>t.name).join('|')")
@@ -42,8 +42,8 @@ with sync_playwright() as p:
     pg.evaluate("()=>{logT({project:'',routine:''},600000);render()}")
     pg.click("#viewSeg button:has-text('Итоги')");assert pg.locator(".tile").count()==4 and pg.locator(".brow").count()>=3
     pg.click("#wprev");assert pg.locator("#wnext").is_enabled()
-    pg.click("#viewSeg button:has-text('Шаблоны')");assert pg.locator(".plb").count()==4
+    pg.click("#viewSeg button:has-text('Сценарии')");pg.click("#scenTabs button:has-text('Шаблоны')");assert pg.locator(".plb").count()==4
     pg.click("#pladd");assert pg.locator(".plb").count()==5
-    pg.click("#viewSeg button:has-text('Задачи')");assert pg.locator("#sysSeg").is_visible()
+    pg.click("#viewSeg button:has-text('Дела')");assert pg.locator("#envSeg").is_visible()
     assert errs==[],errs
     print("ERRORS:",errs)

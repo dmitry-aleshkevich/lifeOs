@@ -10,12 +10,12 @@ with sync_playwright() as p:
     pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button');pg.wait_for_timeout(500)
     assert pg.locator(".vsw a").count()==3
     before=pg.evaluate("()=>localStorage.getItem('lifeos.v2')")
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#sysSeg button');pg.wait_for_timeout(500)
+    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(500)
     assert pg.locator(".card[data-cid=a]").count()==1
     assert pg.locator(".vsw a.on").inner_text()=="Beta 2.0"
     pg.evaluate("()=>{S.tasks.find(t=>t.id==='a').name='Изменено';save();render()}")
     assert pg.evaluate("()=>localStorage.getItem('lifeos.v2')")==before  # бета не тронута
     assert "lifeos.v2b" in pg.evaluate("()=>Object.keys(localStorage).join()")
-    pg.reload();pg.wait_for_selector('#sysSeg button');assert pg.locator(".card[data-cid=a] .nm").inner_text()=="Изменено"
+    pg.reload();pg.wait_for_selector('#viewSeg button');assert pg.locator(".card[data-cid=a] .nm").inner_text()=="Изменено"
     assert errs==[],errs
     print("ERRORS:",errs)
