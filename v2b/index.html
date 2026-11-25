@@ -2323,7 +2323,7 @@ function panel(t){
   // подвал: слева дата и время (серым), справа «Удалить»
   const r3=el("div","row pfoot");
   const dtb=el("button","dtbtn"+((t.at||t.due)?" set":""),(t.at||t.due)?dateLabel(t):"📅");dtb.type="button";
-  dtb.title="Дата и время";dtb.onclick=()=>{UI.dt=UI.dt===t.id?null:t.id;UI.dtd=null;render()};r3.appendChild(dtb);
+  dtb.title="Дата и время";const opn=()=>{if(UI.dt===t.id)return;UI.dt=t.id;UI.dtd=null;render()};dtb.onclick=opn;let hv=0;dtb.onmouseenter=()=>{clearTimeout(hv);hv=setTimeout(opn,180)};dtb.onmouseleave=()=>clearTimeout(hv);r3.appendChild(dtb);
   const gcb=el("button","chipb gcb",t.gcal?"✓ В календаре":"📅 В календарь");gcb.type="button";gcb.title="Записать в Google Calendar (нужно время начала)";gcb.onclick=()=>toCalendar(t);r3.appendChild(gcb);
   const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
@@ -2360,6 +2360,8 @@ function panel(t){
       const b=el("button","dts"+(DT.at===lab?" s":"")+(isb?" busy":""),lab);b.type="button";b.dataset.t=lab;if(isb)b.title="В календаре занято";
       b.onclick=()=>{DT.at=lab;render()};sl.appendChild(b)}
     top.appendChild(calw);top.appendChild(sl);bx.appendChild(top);
+    requestAnimationFrame(()=>{const now=new Date(),isT=DT.due===dayISO();let want=DT.at||(isT?pd2(now.getHours())+":"+(now.getMinutes()<30?"00":"30"):"09:00");
+      const el0=[...sl.children].find(x=>x.dataset.t>=want)||sl.lastChild;if(el0)sl.scrollTop=Math.max(0,el0.offsetTop-sl.offsetTop)});
     const bot=el("div","dtp-bot");
     const di=el("input","pdate");di.type="date";di.value=DT.due;di.onchange=()=>{if(di.value){DT.due=di.value;DT.vm=di.value.slice(0,7);DT.busy=null;render()}};bot.appendChild(di);
     const ti=el("input","ptime");ti.type="text";ti.inputMode="numeric";ti.placeholder="16:20";ti.maxLength=5;ti.value=DT.at;

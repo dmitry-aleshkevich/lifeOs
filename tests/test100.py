@@ -32,5 +32,11 @@ with sync_playwright() as p:
     assert pg.locator(".dts.busy").count()==2   # 12:00 и 12:30
     pg.click(".dtp .chipb:has-text('Убрать')");pg.wait_for_timeout(100)
     assert pg.evaluate("()=>byId('a').at")=="" and pg.evaluate("()=>byId('a').due")==""
+    # наведение на кнопку даты открывает поповер; дата по умолчанию — сегодня; список времени стоит на текущем слоте
+    pg.evaluate("()=>{byId('a').at='';byId('a').due='';save();render()}");pg.wait_for_timeout(100)
+    if not pg.locator(".card[data-cid=a] .dtbtn").count():pg.click(".card[data-cid=a]",position={"x":300,"y":10})
+    pg.hover(".card[data-cid=a] .dtbtn");pg.wait_for_selector(".dtp .dts",timeout=3000);pg.wait_for_timeout(150)
+    assert pg.evaluate("()=>document.querySelector('.dd.s').dataset.k===dayISO()")
+    assert pg.evaluate("()=>{const sl=document.querySelector('.dtp-slots'),n=new Date(),w=String(n.getHours()).padStart(2,'0')+':'+(n.getMinutes()<30?'00':'30');const e=[...sl.children].find(x=>x.dataset.t>=w);return !e||Math.abs(sl.scrollTop-(e.offsetTop-sl.offsetTop))<=sl.scrollHeight-sl.clientHeight+2}")
     assert errs==[],errs
     print("ERRORS:",errs)
