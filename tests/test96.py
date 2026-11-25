@@ -12,29 +12,43 @@ with sync_playwright() as p:
     pg.click("#viewSeg button:has-text('Сценарии')")
     assert pg.locator(".xc[data-sid]").count()==3          # Утро, Вечер, Уборка
     assert pg.locator(".xc[data-sid=morning] .col[data-ver]").count()==3
-    # редактор: пункт с чек-листом, версия, применение к утру
-    pg.fill(".xc[data-sid=morning] .col[data-ver=home] [data-add]","Зарядка 15м");pg.press(".xc[data-sid=morning] .col[data-ver=home] [data-add]","Enter")
-    assert pg.evaluate("()=>S.scen[0].versions.find(v=>v.id==='home').items.map(i=>i.name+i.min).join()")=="Душ10,Чай5,Зарядка15"
-    pg.locator(".xc[data-sid=morning] .col[data-ver=home] .scit").nth(2).locator("details summary").click()
-    pg.locator(".xc[data-sid=morning] .col[data-ver=home] .scit").nth(2).locator("textarea").fill("Отжимания\nПресс");pg.keyboard.press("Tab")
-    pg.fill(".xc[data-sid=morning] .col[data-ver=home] .scit >> nth=2 >> input[placeholder^='+ после']","Душ 5м");pg.press(".xc[data-sid=morning] .col[data-ver=home] .scit >> nth=2 >> input[placeholder^='+ после']","Enter")
+    # пункты — обычные задачи типа «сценарий»; в списках и канбане их нет
+    assert pg.evaluate("()=>S.tasks.filter(t=>t.type==='сценарий'&&t.sc==='morning'&&t.sv==='home'&&!t.link).map(t=>t.name+t.min).join()")=="Душ10,Чай5"
+    assert pg.locator(".xc[data-sid=morning] .col[data-ver=home] h3 .cnt").inner_text()=="15 мин"
+    # новая задача в колонке, до/после через «+» карточки, как в Делах
+    pg.click(".xc[data-sid=morning] .col[data-ver=home] [data-a=addtask]");pg.keyboard.type("Зарядка");pg.keyboard.press("Enter");pg.wait_for_timeout(100)
+    assert pg.evaluate("()=>S.tasks.some(t=>t.type==='сценарий'&&t.sv==='home'&&t.name==='Зарядка')")
+    cid=pg.evaluate("()=>S.tasks.find(t=>t.type==='сценарий'&&t.name==='Зарядка').id")
+    pg.hover(f".card[data-cid='{cid}']");pg.click(f".card[data-cid='{cid}'] .pl-bot");pg.wait_for_timeout(200);pg.keyboard.type("Планка 5м");pg.keyboard.press("Enter");pg.wait_for_timeout(100)
     pg.click(".xc[data-sid=morning] .col[data-ver=home] [data-a=apply]")
     assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&!t.link).map(t=>t.name).join()")=="Душ,Чай,Зарядка"
-    assert pg.evaluate("()=>S.tasks.find(t=>t.name==='Зарядка').check.length")==2 and pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&t.link).length")==1
+    assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&t.link).length")==1
     # вечер добавляется вниз, не заменяя
-    pg.click(".xc[data-sid=evening] .col >> nth=0 >> [data-a=apply]");assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='evening'&&!t.link).length")==2
-    # свой сценарий → задача с подзадачами в «Сегодня»
+    n0=pg.evaluate("()=>S.tasks.filter(t=>t.routine==='evening'&&!t.link).length")
+    pg.click(".xc[data-sid=evening] .col >> nth=0 >> [data-a=apply]");assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='evening'&&!t.link).length")>n0
+    # свой сценарий: набор задач в «Сегодня», без общего родителя
     pg.click(".xc[data-sid=t-clean] .col >> nth=0 >> [data-a=apply]")
-    assert pg.evaluate("()=>{const p=S.tasks.find(t=>t.name==='Уборка 🧹');return !!p&&S.tasks.filter(t=>t.link===p.id).length===3&&p.where==='today'}")
-    pg.click(".xc[data-sid=t-clean] .col >> nth=0 >> [data-a=mode]");pg.click(".xc[data-sid=t-clean] .col >> nth=0 >> [data-a=apply]")
-    assert pg.evaluate("()=>S.tasks.filter(t=>t.name==='Уборка 🧹'&&t.check&&t.check.length===3).length")==1
-    # новая версия и удаление
+    assert pg.evaluate("()=>['Кухня','Комната','Одежда'].every(n=>S.tasks.some(t=>t.name===n&&t.type==='дела'&&t.where==='today'&&!t.routine))")
+    # новая версия копирует задачи, удаление версии убирает и задачи
     pg.click(".xc[data-sid=evening] [data-a=addver]");assert pg.locator(".xc[data-sid=evening] .col").count()==2
+    assert pg.evaluate("()=>S.tasks.filter(t=>t.type==='сценарий'&&t.sc==='evening').length")>=2
     pg.click(".xc[data-sid=evening] .col >> nth=1 >> [data-a=delver]");assert pg.locator(".xc[data-sid=evening] .col").count()==1
+    # перетаскивание задачи в другую версию
+    pg.locator(".xc[data-sid=morning] .col[data-ver=home] .card .nm >> nth=0").scroll_into_view_if_needed();pg.evaluate("()=>scrollBy(0,-150)");pg.wait_for_timeout(100)
+    a=pg.locator(".xc[data-sid=morning] .col[data-ver=home] .card .nm >> nth=0").bounding_box();t2=pg.locator(".xc[data-sid=morning] .col[data-ver=fast]").bounding_box()
+    pg.mouse.move(a["x"]+20,a["y"]+10);pg.mouse.down();pg.mouse.move(a["x"]+40,a["y"]+40,steps=4);pg.mouse.move(t2["x"]+t2["width"]/2,t2["y"]+60,steps=8);pg.mouse.up();pg.wait_for_timeout(150)
+    assert pg.evaluate("()=>S.tasks.some(t=>t.type==='сценарий'&&t.name==='Душ'&&t.sv==='fast')")
+    # подсказка в «Новой задаче»
+    pg.click("#viewSeg button:has-text('Дела')");pg.fill(".qa[data-pos=top] input","Убо")
+    assert pg.locator(".qsug .qs").count()==1
+    pg.press(".qa[data-pos=top] input","Enter")
+    assert pg.evaluate("()=>S.tasks.filter(t=>t.name==='Кухня'&&t.type==='дела').length")==2
+    # Ctrl+Enter — обычная задача
+    pg.fill(".qa[data-pos=top] input","Убор");pg.press(".qa[data-pos=top] input","Control+Enter")
+    assert pg.evaluate("()=>S.tasks.some(t=>t.name==='Убор'&&t.type==='дела')")
     # выбор версии на утреннем экране
-    pg.click("#viewSeg button:has-text('Дела')")
     pg.evaluate("()=>{S.morningOnly=true;S.day.phase='morning';render()}")
     assert pg.locator("#scchips [data-ver]").count()==3
-    pg.click("#scchips [data-ver=fast]");assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&!t.link).map(t=>t.name).join()")=="Умыться"
+    pg.click("#scchips [data-ver=fast]");assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&!t.link).map(t=>t.name).join()").startswith("Умыться")
     assert errs==[],errs
     print("ERRORS:",errs)
