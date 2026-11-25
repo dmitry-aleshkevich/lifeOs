@@ -2263,7 +2263,8 @@ function dateLabel(t){
   return [d,t.at].filter(Boolean).join(" · ")}
 /* ---------- «В календарь»: запись события в Google Calendar (OAuth через Google Identity Services, без сервера) ---------- */
 const GC={scope:"https://www.googleapis.com/auth/calendar.events",tok:"",exp:0};
-const gcId=()=>{try{return localStorage.getItem("lifeos.v2b.gcid")||""}catch{return ""}};
+const GC_DEFAULT="413636813504-9fsstjtt3eqimbvjjvkh97sev6i0jm93.apps.googleusercontent.com";
+const gcId=()=>{try{return localStorage.getItem("lifeos.v2b.gcid")||GC_DEFAULT}catch{return GC_DEFAULT}};
 function gcLoad(){return new Promise((res,rej)=>{if(window.google&&google.accounts&&google.accounts.oauth2)return res();
   const sc=document.createElement("script");sc.src="https://accounts.google.com/gsi/client";sc.onload=()=>res();sc.onerror=()=>rej(new Error("Не загрузился Google-скрипт"));document.head.appendChild(sc)})}
 async function gcToken(){

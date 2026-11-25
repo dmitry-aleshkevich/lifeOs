@@ -16,7 +16,7 @@ with sync_playwright() as p:
     pg.click(".card[data-cid=a] .gcb");pg.wait_for_timeout(300)
     c=pg.evaluate("()=>window.__calls");assert len(c)==1 and c[0]["m"]=="POST" and c[0]["a"]=="Bearer tok" and c[0]["u"].endswith("/calendars/primary/events")
     body=json.loads(c[0]["b"]);assert body["summary"]=="Созвон" and body["start"]["dateTime"].endswith("T15:30:00") and body["end"]["dateTime"].endswith("T16:15:00"),body
-    assert pg.evaluate("()=>localStorage.getItem('lifeos.v2b.gcid')")=="test-client-id" and pg.evaluate("()=>byId('a').gcal")=="ev1"
+    assert pg.evaluate("()=>byId('a').gcal")=="ev1"
     # повторное нажатие обновляет событие, а не создаёт второе
     pg.click(".card[data-cid=a]",position={"x":300,"y":10});pg.click(".card[data-cid=a]",position={"x":300,"y":10}) if False else None
     pg.evaluate("()=>{UI.open='a';render()}");pg.click(".card[data-cid=a] .gcb");pg.wait_for_timeout(300)
