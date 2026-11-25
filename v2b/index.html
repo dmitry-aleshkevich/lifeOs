@@ -2286,7 +2286,7 @@ async function toCalendar(t){
   try{const tok=await gcToken(),url="https://www.googleapis.com/calendar/v3/calendars/primary/events"+(t.gcal?"/"+t.gcal:"");
     const r=await fetch(url,{method:t.gcal?"PATCH":"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"application/json"},body:JSON.stringify(gcBody(t))});
     if(r.status===404&&t.gcal){t.gcal="";return toCalendar(t)}
-    if(!r.ok)throw new Error("Календарь ответил "+r.status);
+    if(!r.ok){let m="";try{const e=await r.json();m=e&&e.error&&(e.error.message||e.error.status)||""}catch{}if(r.status===401)GC.tok="";throw new Error("ответил "+r.status+(m?": "+String(m).slice(0,160):""))}
     const j=await r.json();t.gcal=j.id||t.gcal;save();logA("в календарь: "+nmq(t));note("В календаре: "+t.name);render();return true}
   catch(e){note("Календарь: "+(e&&e.message||e));return false}}
 function panel(t){
