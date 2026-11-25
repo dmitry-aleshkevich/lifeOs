@@ -2659,7 +2659,7 @@ function seg(host,items,cur,pick){
 }
 function save(){try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
 /* ---------- фазы дня (Beta 2.0): Утро → День → Вечер → Ночь; новый день с 04:00, по часам фаза не меняется ---------- */
-const APP_URL="https://dmitry-aleshkevich.github.io/lifeOs/v2b/";
+const APP_URL="https://dmitry-aleshkevich.github.io/qr/?n=1";
 const rItems=(k)=>S.tasks.filter((t)=>t.routine===k&&!t.link&&t.type==="дела");
 const rMin=(a)=>a.reduce((m,t)=>m+(t.done?0:t.min||0),0);
 const hourNow=()=>new Date(NOW()).getHours();
