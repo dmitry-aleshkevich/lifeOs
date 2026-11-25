@@ -280,7 +280,6 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
 
 .mpbar button{border:0;background:transparent;font:inherit;cursor:pointer}body.xview .mpwrap{margin:0 -4px}
 .xcol:has(.scb){max-width:1120px}.scb{align-items:flex-start;width:auto;margin-left:0;padding:0 0 8px;scroll-snap-type:none;scroll-padding-inline:0}.tl .slot .rs{position:absolute;left:0;right:0;bottom:-3px;height:10px;cursor:ns-resize;touch-action:none;z-index:5}.tl .slot .rs::after{content:"";position:absolute;left:50%;bottom:3px;width:26px;height:3px;margin-left:-13px;border-radius:2px;background:var(--muted);opacity:0}.tl .slot:hover .rs::after,.tl .slot .rs.on::after{opacity:.7}.tlw.tldrop .tls{outline:2px dashed var(--accent);outline-offset:-2px}.scol{min-width:270px;max-width:300px;padding:10px}.scol h3{display:flex;align-items:center;gap:6px}.scol h3 .vn{flex:1;min-width:0;font-weight:800}.scol .cnt{color:var(--muted);font-size:13px;font-weight:700}
-.scb .ck,.scb .mins{pointer-events:none}
 .scchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}.scit{border-top:1px solid var(--line);padding:8px 0}.scdet{margin:6px 0 0 24px;font-size:13px}.scdet summary{cursor:pointer;color:var(--muted)}.scdet textarea{width:100%;min-height:60px;margin-top:6px;font:inherit;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--ink)}.scnm{flex:1;font-weight:800;font-size:16px}
 .mscr{max-width:640px;margin:8px auto}.mscr .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mscr h2{margin:0;font-size:24px}
 .pbtn{padding:0 11px;display:grid;place-items:center;align-self:center}
@@ -3457,7 +3456,7 @@ function scenApply(sc,ver){scenInit();pushUndo();BATCH=true;
   try{const work=UI.sys==="работа"&&sc.kind==="custom";
     const base=sc.kind==="custom"?(work?{type:"работа",status:"todo",where:""}:{type:"дела",where:"today"}):{type:"дела",where:"today",routine:sc.kind};
     const all=scenTasks(sc,ver),roots=all.filter((t)=>!t.link);
-    const clone=(t)=>task({name:t.name,min:t.min,desc:t.desc,check:(t.check||[]).map((c)=>({text:c.text||c.t||c.name||"",done:false}))},Object.assign({ord:S.tasks.length},base));
+    const clone=(t)=>task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((c)=>({text:c.text||c.t||c.name||"",done:false}))},Object.assign({ord:S.tasks.length},base));
     if(sc.kind==="morning")S.tasks=S.tasks.filter((t)=>!(t.routine==="morning"&&!t.done));
     roots.forEach((r)=>{const par=clone(r),kids=all.filter((k)=>k.link===r.id);
       S.tasks.push(...kids.filter((k)=>k.rel==="pre").map((k)=>Object.assign(clone(k),{link:par.id,rel:"pre"})),par,...kids.filter((k)=>k.rel!=="pre").map((k)=>Object.assign(clone(k),{link:par.id,rel:"post"})))});
@@ -3469,7 +3468,7 @@ function scenChips(host,k){scenInit();const sc=S.scen.find((x)=>x.kind===k);if(!
   sc.versions.forEach((v)=>{const b=el("button","chipb"+(cur===v.id?" on":""),v.name+(!cur&&v.id===def?" ★":""));b.type="button";b.dataset.ver=v.id;b.onclick=()=>scenApply(sc,v);row.appendChild(b)});host.appendChild(row)}
 let scenCur={};const scOpen=new Set();
 function scenCopyVer(sc,from,nv){const map={};
-  scenTasks(sc,from).forEach((t)=>{const c=task({name:t.name,min:t.min,desc:t.desc,check:(t.check||[]).map((x)=>({text:x.text||"",done:false}))},{type:"сценарий",sc:sc.id,sv:nv.id,where:"",ord:S.tasks.length});map[t.id]=c;c.link=t.link;c.rel=t.rel;S.tasks.push(c)});
+  scenTasks(sc,from).forEach((t)=>{const c=task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((x)=>({text:x.text||"",done:false}))},{type:"сценарий",sc:sc.id,sv:nv.id,where:"",ord:S.tasks.length});map[t.id]=c;c.link=t.link;c.rel=t.rel;S.tasks.push(c)});
   const old=scenTasks(sc,from),cur=scenTasks(sc,nv);cur.forEach((c,i)=>{if(c.link){const o=old.find((x)=>x.id===c.link);const idx=old.indexOf(o);c.link=o?cur[idx].id:""}})}
 function renderScen(v){scenInit();
   const col=xcol();
