@@ -32,6 +32,9 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:13px;
  padding:8px 15px;border-radius:999px;cursor:pointer;min-height:38px}
 .seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+ /* закреплённое меню (комп): всегда сверху при прокрутке */
+@media(min-width:481px){#stk{position:sticky;top:var(--dnbh,0px);z-index:40;background:var(--bg);padding:8px 0 0;margin:0 0 10px;box-shadow:0 1px 0 var(--line)}#stk .bar{margin-bottom:8px!important}}
+.scflt{display:flex;gap:6px;margin:0 0 10px}
 .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
 .bar .seg{margin-bottom:0}
 .seg .ico{display:inline-flex;align-items:center;justify-content:center;padding:7px 11px}
@@ -367,6 +370,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
   <div><h1>LifeOS</h1><div class="sub">Beta 2.0. Данные — отдельная копия, бета не затронута.</div></div>
   <div class="seg vsw"><a href="../index.html">V1</a><a href="../v2/index.html">Beta</a><a class="on" href="#">Beta 2.0</a></div>
 </div>
+<div id="stk">
 <div class="bar" id="bar1" style="margin-bottom:10px">
   <div class="seg" id="viewSeg"></div>
 </div>
@@ -377,6 +381,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
   <button class="fbtn" id="cbtn" type="button" title="Утро, еда, зал и вечер: показать или скрыть">⚙ LifeCore</button>
   <button class="fbtn pbtn" id="pbtn" type="button" title="Проекты: порядок и видимость" aria-label="Проекты"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
+</div>
 <p class="hint" id="hint"></p>
 <div id="view"></div>
 <div class="foot">
@@ -2959,7 +2964,7 @@ function seg(host,items,cur,pick){
   items.forEach(([k,label])=>{const b=el("button",null,label);b.setAttribute("aria-pressed",k===cur);b.onclick=()=>pick(k);host.appendChild(b)});
 }
 function chainSync(){
-  const kids={},pd=(n)=>String(n).padStart(2,"0"),mn=(t,d)=>t.min>0?t.min:d,pm=(a)=>{const [h,m]=String(a||"").split(":").map(Number);return isNaN(h)?null:h*60+(m||0)};
+  const kids={},pd=(n)=>String(n).padStart(2,"0"),mn=(t,d)=>t.min>0?t.min:d,pm=(a)=>{if(!/^\d{1,2}:\d\d$/.test(String(a||"")))return null;const [h,m]=String(a).split(":").map(Number);return h*60+m};
   S.tasks.forEach((t)=>{if(t.link&&(t.rel==="pre"||t.rel==="post"))(kids[t.link]=kids[t.link]||[]).push(t)});
   const walk=(a,seen)=>{if(seen.has(a.id))return;seen.add(a.id);const ks=kids[a.id];if(!ks)return;
     const st=pm(a.at),has=st!==null,end=has?st+mn(a,30):0;
@@ -3655,13 +3660,19 @@ function scenApply(sc,ver){scenInit();pushUndo();BATCH=true;
 function scenChips(host,k){scenInit();const sc=S.scen.find((x)=>x.kind===k);if(!sc||sc.versions.length<2)return;
   const row=el("div","scchips");row.id="scchips";const cur=S.day.scen&&S.day.scen[k],def=scenDefaultVer(sc);
   sc.versions.forEach((v)=>{const b=el("button","chipb"+(cur===v.id?" on":""),v.name+(!cur&&v.id===def?" ★":""));b.type="button";b.dataset.ver=v.id;b.onclick=()=>scenApply(sc,v);row.appendChild(b)});host.appendChild(row)}
+const SCH=read("lifeos.v2b.schide")||{};
 let scenCur={};const scOpen=new Set();
 function scenCopyVer(sc,from,nv){const map={};
   scenTasks(sc,from).forEach((t)=>{const c=task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((x)=>({text:x.text||"",done:false}))},{type:"сценарий",sc:sc.id,sv:nv.id,where:"",ord:S.tasks.length});map[t.id]=c;c.link=t.link;c.rel=t.rel;S.tasks.push(c)});
   const old=scenTasks(sc,from),cur=scenTasks(sc,nv);cur.forEach((c,i)=>{if(c.link){const o=old.find((x)=>x.id===c.link);const idx=old.indexOf(o);c.link=o?cur[idx].id:""}})}
 function renderScen(v){scenInit();
   v.appendChild(el("div","ghead")).appendChild(el("span",null,"Сценарии — набор задач, колонки — его версии. Задачи те же, что в Делах"));
+  const fl=el("div","scflt");fl.id="scflt";
+  [["morning","Утро"],["evening","Вечер"]].forEach(([k,l])=>{const hid=!!SCH[k],b=el("button","chipb"+(hid?"":" on"),l+(hid?" ▾":" ▴"));b.type="button";b.dataset.hide=k;b.setAttribute("aria-pressed",!hid);
+    b.title=hid?"Показать настройку сценария":"Скрыть настройку сценария";b.onclick=()=>{SCH[k]=!SCH[k];try{localStorage.setItem("lifeos.v2b.schide",JSON.stringify(SCH))}catch{}render()};fl.appendChild(b)});
+  v.appendChild(fl);
   S.scen.forEach((sc,si)=>{
+    if(SCH[sc.kind])return;
     if(!sc.versions.length)sc.versions.push({id:"std",name:"Стандарт"});
     const sec=el("div","scsec");sec.dataset.sid=sc.id;v.appendChild(sec);
     const hd=el("div","ghead sch");
