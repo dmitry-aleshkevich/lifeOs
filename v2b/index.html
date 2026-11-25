@@ -279,7 +279,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
 @media (max-width: 640px) { .mphelp { display: none; } }
 
 .mpbar button{border:0;background:transparent;font:inherit;cursor:pointer}body.xview .mpwrap{margin:0 -4px}
-.xcol:has(.scb){max-width:1120px}.scb{align-items:flex-start;width:auto;margin-left:0;padding:0 0 8px;scroll-snap-type:none;scroll-padding-inline:0}.tl .slot .rs{position:absolute;left:0;right:0;bottom:-3px;height:10px;cursor:ns-resize;touch-action:none;z-index:5}.tl .slot .rs::after{content:"";position:absolute;left:50%;bottom:3px;width:26px;height:3px;margin-left:-13px;border-radius:2px;background:var(--muted);opacity:0}.tl .slot:hover .rs::after,.tl .slot .rs.on::after{opacity:.7}.tlw.tldrop .tls{outline:2px dashed var(--accent);outline-offset:-2px}.scol{min-width:270px;max-width:300px;padding:10px}.scol h3{display:flex;align-items:center;gap:6px}.scol h3 .vn{flex:1;min-width:0;font-weight:800}.scol .cnt{color:var(--muted);font-size:13px;font-weight:700}
+.scb{align-items:flex-start}.sch{gap:8px;align-items:center;text-transform:none;letter-spacing:0}.sch .scnm{flex:1;font-size:16px}.scsec{margin-bottom:8px}.tl .slot .rs{position:absolute;left:0;right:0;bottom:-3px;height:10px;cursor:ns-resize;touch-action:none;z-index:5}.tl .slot .rs::after{content:"";position:absolute;left:50%;bottom:3px;width:26px;height:3px;margin-left:-13px;border-radius:2px;background:var(--muted);opacity:0}.tl .slot:hover .rs::after,.tl .slot .rs.on::after{opacity:.7}.tlw.tldrop .tls{outline:2px dashed var(--accent);outline-offset:-2px}.scol h3{display:flex;align-items:center;gap:6px}.scol h3 .vn{flex:1;min-width:0;font-weight:800}.scol .cnt{color:var(--muted);font-size:13px;font-weight:700}
 .scchips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0 0 12px}.scit{border-top:1px solid var(--line);padding:8px 0}.scdet{margin:6px 0 0 24px;font-size:13px}.scdet summary{cursor:pointer;color:var(--muted)}.scdet textarea{width:100%;min-height:60px;margin-top:6px;font:inherit;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px;color:var(--ink)}.scnm{flex:1;font-weight:800;font-size:16px}
 .mscr{max-width:640px;margin:8px auto}.mscr .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.mscr h2{margin:0;font-size:24px}
 .pbtn{padding:0 11px;display:grid;place-items:center;align-self:center}
@@ -2448,6 +2448,37 @@ function card(t,opt={}){
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}
 
+/* общий канбан: используют «Дела/Работа» и редактор сценариев; различаются только фильтром, колонками и записью при броске */
+function kbBoard(host,o){
+  const {id,cols,pick,addOpts,base}=o,work=UI.sys==="работа";
+  if(o.headEl)host.appendChild(o.headEl);else host.appendChild(el("div","ghead")).appendChild(el("span",null,o.label));
+  const kb=el("div","kb"+(o.kbCls?" "+o.kbCls:""));
+  cols.forEach(([k,title,color])=>{
+    const items=base().filter((t)=>pick(t,k));
+    const c=el("div","col"+(o.colCls?" "+o.colCls:"")),col=color||"gray";c.dataset.board=id;c.dataset.key=k;if(o.colData)o.colData(c,k);
+    c.style.setProperty("--cbg","color-mix(in srgb, var(--pc-"+col+"-bg) 55%, var(--surface-2))");
+    c.style.setProperty("--cln","color-mix(in srgb, var(--pc-"+col+") 22%, var(--line))");
+    c.style.setProperty("--ctag","var(--pc-"+col+"-bg)");
+    c.style.setProperty("--cink","var(--pc-"+col+")");
+    const h=el("h3");
+    if(o.colHead)o.colHead(h,k,items,c);
+    else{h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));
+      if(id==="status"&&((work&&k==="todo")||(!work&&k==="today")||k==="done")){
+        const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
+        b.onclick=()=>clearColumn(k);h.appendChild(b)}}
+    c.appendChild(h);
+    items.forEach((t)=>rowWithKids(c,t,{v:true,noProject:id==="project"||id==="scen"}));
+    if(!(id==="status"&&k==="done")){
+      const add=el("button","add","+ Задача");add.type="button";add.dataset.a="addtask";
+      add.onclick=()=>{const t=makeTask({name:"Новая задача",min:0},addOpts(k));render();
+        const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
+      c.appendChild(add)}
+    if(o.colFoot)o.colFoot(c,k);
+    kb.appendChild(c)});
+  host.appendChild(kb);
+  if(id==="project")kb.querySelectorAll(".col[data-board=project]").forEach((c)=>{if(!c.dataset.key)return;
+    const h=c.querySelector("h3");h.classList.add("pdrag");h.dataset.pid=c.dataset.key;{const g=el("span","grip","⋮⋮");g.setAttribute("aria-hidden","true");h.prepend(g)}wireColDrag(h,c,kb)});
+  return kb}
 function wireColDrag(h,col,kb){
   let st=null;
   h.addEventListener("pointerdown",(e)=>{if(e.target.closest("button")||(e.pointerType==="mouse"&&e.button!==0))return;
@@ -2617,7 +2648,7 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
     const t=byId(li.dataset.cid);if(t){e.preventDefault();toggleSel(t)}});
   let L=null;
   document.addEventListener("pointerdown",(e)=>{
-    if(e.pointerType!=="mouse"||e.button!==0||(UI.env!=="list"&&UI.env!=="kanban"))return;
+    if(e.pointerType!=="mouse"||e.button!==0||(UI.view!=="scen"&&UI.env!=="list"&&UI.env!=="kanban"))return;
     if(e.target.closest(".card,button,input,textarea,select,.ghead,h3,.qa,.rhead,.evb,.panel,.radd,#fbdock,#ppop,#fab,#selbar,.seg,.pop,details,label"))return;
     L={x:e.clientX,y:e.clientY,on:false,base:(e.shiftKey||e.metaKey||e.ctrlKey)?new Set(SEL):new Set(),box:null}});
   document.addEventListener("pointermove",(e)=>{
@@ -2720,34 +2751,7 @@ const ENVS={
     const base=()=>mine().filter((t)=>!t.link&&!t.archived);
     const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:(!t.done&&(t.where||"")===k));
     const inProj=(t,k)=>(t.project||"")===k&&(work?!t.status:(!t.done&&!t.where));
-    const board=(label,id,cols,pick,addOpts)=>{
-      host.appendChild(el("div","ghead")).appendChild(el("span",null,label));
-      const kb=el("div","kb");
-      cols.forEach(([k,title,color])=>{
-        const items=base().filter((t)=>pick(t,k));
-        const c=el("div","col"),col=color||"gray";c.dataset.board=id;c.dataset.key=k;
-        c.style.setProperty("--cbg","color-mix(in srgb, var(--pc-"+col+"-bg) 55%, var(--surface-2))");
-        c.style.setProperty("--cln","color-mix(in srgb, var(--pc-"+col+") 22%, var(--line))");
-        c.style.setProperty("--ctag","var(--pc-"+col+"-bg)");
-        c.style.setProperty("--cink","var(--pc-"+col+")");
-        const h=el("h3");h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));
-        if(id==="status"&&((work&&k==="todo")||(!work&&k==="today")||k==="done")){
-          const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
-          b.onclick=()=>clearColumn(k);h.appendChild(b)}
-        c.appendChild(h);
-        items.forEach((t)=>{const kids=S.tasks.filter((x)=>x.link===t.id),o={v:true,noProject:id==="project"};
-          rowWithKids(c,t,o)});
-        if(!(id==="status"&&k==="done")){
-          const add=el("button","add","+ Задача");
-          add.onclick=()=>{const t=makeTask({name:"Новая задача",min:0},addOpts(k));render();
-            const nm=document.querySelector('[data-cid="'+t.id+'"] .nm');if(nm)editName(nm,t,true)};
-          c.appendChild(add)}
-        kb.appendChild(c);
-      });
-      host.appendChild(kb);
-      if(id==="project")kb.querySelectorAll(".col[data-board=project]").forEach((c)=>{if(!c.dataset.key)return;
-        const h=c.querySelector("h3");h.classList.add("pdrag");h.dataset.pid=c.dataset.key;{const g=el("span","grip","⋮⋮");g.setAttribute("aria-hidden","true");h.prepend(g)}wireColDrag(h,c,kb)});
-    };
+    const board=(label,id,cols,pick,addOpts)=>kbBoard(host,{label,id,cols,pick,addOpts,base});
     board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
     const pcols=S.projects.filter((p)=>p.type===UI.sys&&!p.hidden&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
@@ -3471,30 +3475,29 @@ function scenCopyVer(sc,from,nv){const map={};
   scenTasks(sc,from).forEach((t)=>{const c=task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((x)=>({text:x.text||"",done:false}))},{type:"сценарий",sc:sc.id,sv:nv.id,where:"",ord:S.tasks.length});map[t.id]=c;c.link=t.link;c.rel=t.rel;S.tasks.push(c)});
   const old=scenTasks(sc,from),cur=scenTasks(sc,nv);cur.forEach((c,i)=>{if(c.link){const o=old.find((x)=>x.id===c.link);const idx=old.indexOf(o);c.link=o?cur[idx].id:""}})}
 function renderScen(v){scenInit();
-  const col=xcol();
-  col.appendChild(xcard("Сценарии","сценарий — набор задач; колонки — его версии. Задачи те же, что в Делах: до и после, чек-лист, перетаскивание"));
+  v.appendChild(el("div","ghead")).appendChild(el("span",null,"Сценарии — набор задач, колонки — его версии. Задачи те же, что в Делах"));
   S.scen.forEach((sc,si)=>{
     if(!sc.versions.length)sc.versions.push({id:"std",name:"Стандарт"});
-    const c=xcard("");c.dataset.sid=sc.id;const h=c.querySelector(".xh");h.innerHTML="";
+    const sec=el("div","scsec");sec.dataset.sid=sc.id;v.appendChild(sec);
+    const hd=el("div","ghead sch");
     const nm=el("input","hin scnm");nm.type="text";nm.value=(sc.icon?sc.icon+" ":"")+sc.name;nm.maxLength=30;nm.setAttribute("aria-label","Название сценария");
-    nm.onchange=()=>{const x=nm.value.trim();if(x){sc.name=x;sc.icon="";save();render()}else nm.value=sc.name};h.appendChild(nm);
-    const av=el("button","chipb","+ Версия");av.type="button";av.dataset.a="addver";av.onclick=()=>{const base=sc.versions[sc.versions.length-1];const nv={id:"v-"+uid(),name:"Версия "+(sc.versions.length+1)};sc.versions.push(nv);scenCopyVer(sc,base,nv);save();render()};h.appendChild(av);
-    if(sc.kind==="custom"){const d=el("button","ib danger","🗑");d.type="button";d.setAttribute("aria-label","Удалить сценарий");d.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id));S.scen.splice(si,1);save();render()};h.appendChild(d)}
-    const kb=el("div","kb scb");
-    sc.versions.forEach((ver)=>{
-      const cc=el("div","col scol");cc.dataset.board="scen";cc.dataset.key=ver.id;cc.dataset.sid=sc.id;cc.dataset.ver=ver.id;
-      const hh=el("h3");const vn=el("input","hin vn");vn.type="text";vn.value=ver.name;vn.maxLength=30;vn.setAttribute("aria-label","Название версии");vn.onchange=()=>{const x=vn.value.trim();if(x){ver.name=x;save()}else vn.value=ver.name};hh.appendChild(vn);
-      hh.appendChild(el("span","cnt",fmtMin(scenSum(sc,ver))));
-      if(sc.versions.length>1){const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delver";dv.setAttribute("aria-label","Удалить версию");dv.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id&&t.sv===ver.id));sc.versions=sc.versions.filter((x)=>x!==ver);save();render()};hh.appendChild(dv)}
-      cc.appendChild(hh);
-      scenTasks(sc,ver).filter((t)=>!t.link).forEach((t)=>rowWithKids(cc,t,{noProject:true}));
-      const add=el("button","add","+ Задача");add.type="button";add.dataset.a="addtask";
-      add.onclick=()=>{const t=makeTask({name:"Новая задача",min:0},{type:"сценарий",sc:sc.id,sv:ver.id,where:""});render();const n=document.querySelector('[data-cid="'+t.id+'"] .nm');if(n)editName(n,t,true)};cc.appendChild(add);
-      const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":UI.sys==="работа"?"Добавить в ToDo":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>scenApply(sc,ver);cc.appendChild(ap);
-      kb.appendChild(cc)});
-    c.appendChild(kb);col.appendChild(c)});
-  const add=el("button","chipb on","＋ Сценарий");add.type="button";add.id="scadd";add.onclick=()=>{S.scen.push({id:"t-"+uid(),kind:"custom",name:"Новый сценарий",icon:"",versions:[{id:"std",name:"Стандарт"}]});save();render()};col.appendChild(add);
-  v.appendChild(col)}
+    nm.onchange=()=>{const x=nm.value.trim();if(x){sc.name=x;sc.icon="";save();render()}else nm.value=sc.name};hd.appendChild(nm);
+    const av=el("button","chipb","+ Версия");av.type="button";av.dataset.a="addver";av.onclick=()=>{const base=sc.versions[sc.versions.length-1];const nv={id:"v-"+uid(),name:"Версия "+(sc.versions.length+1)};sc.versions.push(nv);scenCopyVer(sc,base,nv);save();render()};hd.appendChild(av);
+    if(sc.kind==="custom"){const d=el("button","ib danger","🗑");d.type="button";d.setAttribute("aria-label","Удалить сценарий");d.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id));S.scen.splice(si,1);save();render()};hd.appendChild(d)}
+    const verOf=(k)=>sc.versions.find((x)=>x.id===k);
+    kbBoard(sec,{headEl:hd,id:"scen",kbCls:"scb",colCls:"scol",
+      cols:sc.versions.map((x)=>[x.id,x.name,"gray"]),
+      base:()=>S.tasks.filter((t)=>t.type==="сценарий"&&t.sc===sc.id&&!t.link&&!t.archived),
+      pick:(t,k)=>t.sv===k,
+      addOpts:(k)=>({type:"сценарий",sc:sc.id,sv:k,where:""}),
+      colData:(c,k)=>{c.dataset.sid=sc.id;c.dataset.ver=k},
+      colHead:(h,k)=>{const ver=verOf(k);
+        const vn=el("input","hin vn");vn.type="text";vn.value=ver.name;vn.maxLength=30;vn.setAttribute("aria-label","Название версии");vn.onchange=()=>{const x=vn.value.trim();if(x){ver.name=x;save()}else vn.value=ver.name};h.appendChild(vn);
+        h.appendChild(el("span","cnt",fmtMin(scenSum(sc,ver))));
+        if(sc.versions.length>1){const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delver";dv.setAttribute("aria-label","Удалить версию");dv.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id&&t.sv===ver.id));sc.versions=sc.versions.filter((x)=>x!==ver);save();render()};h.appendChild(dv)}},
+      colFoot:(c,k)=>{const ver=verOf(k);
+        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":UI.sys==="работа"?"Добавить в ToDo":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>scenApply(sc,ver);c.appendChild(ap)}})});
+  const add=el("button","chipb on","＋ Сценарий");add.type="button";add.id="scadd";add.onclick=()=>{S.scen.push({id:"t-"+uid(),kind:"custom",name:"Новый сценарий",icon:"",versions:[{id:"std",name:"Стандарт"}]});save();render()};v.appendChild(add)}
 function renderScenTabs(v){const t=el("div","seg");t.id="scenTabs";[["scen","Сценарии"],["plan","Шаблоны"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.tab=k;b.setAttribute("aria-pressed",(UI.scenTab||"scen")===k);b.onclick=()=>{UI.scenTab=k;render()};t.appendChild(b)});v.appendChild(t);
   if((UI.scenTab||"scen")==="plan")renderPlan(v);else renderScen(v)}
 const VIEWS={habits:renderHabits,stats:renderStats,plan:renderPlan,scen:renderScenTabs,map:renderMap};

@@ -29,9 +29,8 @@ with sync_playwright() as p:
     pg.mouse.move(sl['x']+60,sl['y']+15);pg.mouse.down();pg.mouse.move(sl['x']+50,sl['y']+40,steps=3)
     pg.mouse.move(side['x']+side['width']/2,side['y']+side['height']/2,steps=8);pg.mouse.up();pg.wait_for_timeout(200)
     assert pg.evaluate("()=>byId('s1').at")=="","время не снято"
-    # сценарии: колонки внутри карточки
-    pg.evaluate("()=>{UI.view='scen';render()}");pg.wait_for_selector('.scb')
-    r=pg.evaluate("()=>{const c=document.querySelector('.xc[data-sid]').getBoundingClientRect(),k=document.querySelector('.scb').getBoundingClientRect();return [c.left,c.right,k.left,k.right]}")
-    assert r[2]>=r[0]-1 and r[3]<=r[1]+1,r
+    # сценарии: тот же канбан, колонки видны
+    pg.evaluate("()=>{UI.view='scen';render()}");pg.wait_for_selector('.scb .col')
+    assert pg.locator('.scb .col').count()>=3
     assert errs==[],errs
     print("ERRORS:",errs)

@@ -10,32 +10,32 @@ with sync_playwright() as p:
     pg.goto("file:///home/claude/work/lo/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
     pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.click("#viewSeg button:has-text('Сценарии')")
-    assert pg.locator(".xc[data-sid]").count()==3          # Утро, Вечер, Уборка
-    assert pg.locator(".xc[data-sid=morning] .col[data-ver]").count()==3
+    assert pg.locator(".scsec[data-sid]").count()==3          # Утро, Вечер, Уборка
+    assert pg.locator(".scsec[data-sid=morning] .col[data-ver]").count()==3
     # пункты — обычные задачи типа «сценарий»; в списках и канбане их нет
     assert pg.evaluate("()=>S.tasks.filter(t=>t.type==='сценарий'&&t.sc==='morning'&&t.sv==='home'&&!t.link).map(t=>t.name+t.min).join()")=="Душ10,Чай5"
-    assert pg.locator(".xc[data-sid=morning] .col[data-ver=home] h3 .cnt").inner_text()=="15 мин"
+    assert pg.locator(".scsec[data-sid=morning] .col[data-ver=home] h3 .cnt").inner_text()=="15 мин"
     # новая задача в колонке, до/после через «+» карточки, как в Делах
-    pg.click(".xc[data-sid=morning] .col[data-ver=home] [data-a=addtask]");pg.keyboard.type("Зарядка");pg.keyboard.press("Enter");pg.wait_for_timeout(100)
+    pg.click(".scsec[data-sid=morning] .col[data-ver=home] [data-a=addtask]");pg.keyboard.type("Зарядка");pg.keyboard.press("Enter");pg.wait_for_timeout(100)
     assert pg.evaluate("()=>S.tasks.some(t=>t.type==='сценарий'&&t.sv==='home'&&t.name==='Зарядка')")
     cid=pg.evaluate("()=>S.tasks.find(t=>t.type==='сценарий'&&t.name==='Зарядка').id")
     pg.hover(f".card[data-cid='{cid}']");pg.click(f".card[data-cid='{cid}'] .pl-bot");pg.wait_for_timeout(200);pg.keyboard.type("Планка 5м");pg.keyboard.press("Enter");pg.wait_for_timeout(100)
-    pg.click(".xc[data-sid=morning] .col[data-ver=home] [data-a=apply]")
+    pg.click(".scsec[data-sid=morning] .col[data-ver=home] [data-a=apply]")
     assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&!t.link).map(t=>t.name).join()")=="Душ,Чай,Зарядка"
     assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='morning'&&t.link).length")==1
     # вечер добавляется вниз, не заменяя
     n0=pg.evaluate("()=>S.tasks.filter(t=>t.routine==='evening'&&!t.link).length")
-    pg.click(".xc[data-sid=evening] .col >> nth=0 >> [data-a=apply]");assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='evening'&&!t.link).length")>n0
+    pg.click(".scsec[data-sid=evening] .col >> nth=0 >> [data-a=apply]");assert pg.evaluate("()=>S.tasks.filter(t=>t.routine==='evening'&&!t.link).length")>n0
     # свой сценарий: набор задач в «Сегодня», без общего родителя
-    pg.click(".xc[data-sid=t-clean] .col >> nth=0 >> [data-a=apply]")
+    pg.click(".scsec[data-sid=t-clean] .col >> nth=0 >> [data-a=apply]")
     assert pg.evaluate("()=>['Кухня','Комната','Одежда'].every(n=>S.tasks.some(t=>t.name===n&&t.type==='дела'&&t.where==='today'&&!t.routine))")
     # новая версия копирует задачи, удаление версии убирает и задачи
-    pg.click(".xc[data-sid=evening] [data-a=addver]");assert pg.locator(".xc[data-sid=evening] .col").count()==2
+    pg.click(".scsec[data-sid=evening] [data-a=addver]");assert pg.locator(".scsec[data-sid=evening] .col").count()==2
     assert pg.evaluate("()=>S.tasks.filter(t=>t.type==='сценарий'&&t.sc==='evening').length")>=2
-    pg.click(".xc[data-sid=evening] .col >> nth=1 >> [data-a=delver]");assert pg.locator(".xc[data-sid=evening] .col").count()==1
+    pg.click(".scsec[data-sid=evening] .col >> nth=1 >> [data-a=delver]");assert pg.locator(".scsec[data-sid=evening] .col").count()==1
     # перетаскивание задачи в другую версию
-    pg.locator(".xc[data-sid=morning] .col[data-ver=home] .card .nm >> nth=0").scroll_into_view_if_needed();pg.evaluate("()=>scrollBy(0,-150)");pg.wait_for_timeout(100)
-    a=pg.locator(".xc[data-sid=morning] .col[data-ver=home] .card .nm >> nth=0").bounding_box();t2=pg.locator(".xc[data-sid=morning] .col[data-ver=fast]").bounding_box()
+    pg.locator(".scsec[data-sid=morning] .col[data-ver=home] .card .nm >> nth=0").scroll_into_view_if_needed();pg.evaluate("()=>scrollBy(0,-150)");pg.wait_for_timeout(100)
+    a=pg.locator(".scsec[data-sid=morning] .col[data-ver=home] .card .nm >> nth=0").bounding_box();t2=pg.locator(".scsec[data-sid=morning] .col[data-ver=fast]").bounding_box()
     pg.mouse.move(a["x"]+20,a["y"]+10);pg.mouse.down();pg.mouse.move(a["x"]+40,a["y"]+40,steps=4);pg.mouse.move(t2["x"]+t2["width"]/2,t2["y"]+60,steps=8);pg.mouse.up();pg.wait_for_timeout(150)
     assert pg.evaluate("()=>S.tasks.some(t=>t.type==='сценарий'&&t.name==='Душ'&&t.sv==='fast')")
     # подсказка в «Новой задаче»
