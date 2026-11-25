@@ -2034,6 +2034,8 @@ function migrate(v1){
 let S=null;
 const UI=(()=>{const u={sys:"дела",env:"list",view:"tasks"},r=read("lifeos.v2b.ui")||{};if(["tasks","habits","stats","plan","scen","map"].includes(r.view))u.view=r.view;
   if(r.sys==="дела"||r.sys==="работа")u.sys=r.sys;if(["list","kanban","timeline","calendar"].includes(r.env))u.env=r.env;return u})();
+const ENVBY=(()=>{const e=read("lifeos.v2b.envby")||{};if(!e[UI.sys])e[UI.sys]=UI.env;return e})();
+const setEnvBy=(sys,env)=>{ENVBY[sys]=env;try{localStorage.setItem("lifeos.v2b.envby",JSON.stringify(ENVBY))}catch{}};
 const COLS={
   status:[["","Не начато"],["todo","В работу"],["doing","В работе"],["wait","Жду"],["done","Готово"]],
 };
@@ -3040,13 +3042,15 @@ function dnbData(){
   if(UI.view&&UI.view!=="tasks")return null;
   const ph=S.day.phase;if(ph==="closed"||morningOn())return null;
   let nx=null;
-  mine().forEach((t)=>{const dl=startDelta(t);if(dl===null||dl>3*36e5||dl<-3*36e5)return;if(!nx||Math.abs(dl)<Math.abs(nx.dl))nx={t,dl}});
+  mine().forEach((t)=>{if(t.tpl&&!CORE.show)return;const dl=startDelta(t);if(dl===null||dl>3*36e5||dl<-3*36e5)return;if(!nx||Math.abs(dl)<Math.abs(nx.dl))nx={t,dl}});
   let ev=null;
   const items=rItems("evening");
   if(ph==="evening"||(ph==="day"&&isEvening()&&items.length)){
-    const n=new Date(NOW()),e=new Date(n);e.setHours(24,0,0,0);const ms=e-n;
+    const n=new Date(NOW()),e=new Date(n);e.setHours(24,0,0,0);let ms=e-n,lbl="🌙 До конца дня",over=false,late=ms<=36e5;
+    if(n.getHours()<4){const since=n-new Date(n.getFullYear(),n.getMonth(),n.getDate(),0,0,0,0),G=30*6e4;   /* после полуночи: 30 минут до овертайма, потом секундомер */
+      if(since<G){ms=G-since;lbl="🌙 До овертайма";late=true}else{ms=since-G;lbl="🌙 Овертайм";late=true;over=true}}
     const left=S.tasks.filter((t)=>t.type==="дела"&&!t.routine&&!t.done&&!t.link&&t.where==="today"&&(CORE.show||!t.tpl)).length;
-    ev={ms,late:ms<=36e5,go:ph==="day",sub:ph==="evening"?"Вечерняя рутина: ещё "+items.filter((t)=>!t.done).length:(left?"Успей закончить дела: ещё "+left:"Дела закрыты — можно на вечернюю рутину")}}
+    ev={ms,lbl,over,late,go:ph==="day",sub:ph==="evening"?"Вечерняя рутина: ещё "+items.filter((t)=>!t.done).length:(left?"Успей закончить дела: ещё "+left:"Дела закрыты — можно на вечернюю рутину")}}
   return (nx||ev)?{nx,ev}:null}
 function paintDnb(){
   let w=document.getElementById("dnb");
@@ -3066,14 +3070,14 @@ function paintDnb(){
   if(d.nx){const late=d.nx.dl<0;rn.classList.toggle("late",late);
     rn.querySelector(".dl").textContent=(late?"Опоздание · ":"До · ")+(d.nx.t.name||"задача");
     rn.querySelector(".dt").textContent=(late?"+":"")+hms(Math.abs(d.nx.dl))}
-  if(d.ev){re.querySelector(".dt").textContent=hms(d.ev.ms);re.querySelector(".ds").textContent=d.ev.sub;
+  if(d.ev){re.querySelector(".dl").textContent=d.ev.lbl;re.querySelector(".dt").textContent=(d.ev.over?"+":"")+hms(d.ev.ms);re.querySelector(".ds").textContent=d.ev.sub;
     w.classList.toggle("late",d.ev.late);
     let g=re.querySelector("#evb");
     if(d.ev.go&&!g){g=el("button","evb dgo","🌙 Начать вечер");g.type="button";g.id="evb";
       g.onclick=(e)=>{e.stopPropagation();S.day.evening=true;S.day.phase="evening";save();render()};re.appendChild(g)}
     else if(!d.ev.go&&g)g.remove()}
   else w.classList.remove("late");
-  if(DNB.min)dm.textContent=(d.nx&&(d.nx.dl<0?"+":"")+hms(Math.abs(d.nx.dl)))||("🌙 "+hms(d.ev.ms));
+  if(DNB.min)dm.textContent=(d.nx&&(d.nx.dl<0?"+":"")+hms(Math.abs(d.nx.dl)))||("🌙 "+(d.ev.over?"+":"")+hms(d.ev.ms));
   /* на телефоне полоска занимает место сверху — сдвигаем содержимое */
   document.body.style.paddingTop=(!DNB.min&&matchMedia("(max-width:480px)").matches)?(w.offsetHeight+14)+"px":""}
 setInterval(()=>{try{paintDnb()}catch{}},1000);
@@ -3081,10 +3085,10 @@ function render(){
   if(S){dayRoll();planSync()}
   try{localStorage.setItem("lifeos.v2b.ui",JSON.stringify({sys:UI.sys,env:UI.env,view:UI.view}))}catch{}
   const onT=!UI.view||UI.view==="tasks";if(UI.view==="plan"){UI.view="scen";UI.scenTab="plan"}
-  seg(document.getElementById("viewSeg"),VIEWS_NAV,onT?UI.sys:UI.view,(k)=>{logA("вкладка: "+k);if(k==="дела"||k==="работа"){UI.sys=k;UI.view="tasks"}else UI.view=k;render()});
+  seg(document.getElementById("viewSeg"),VIEWS_NAV,onT?UI.sys:UI.view,(k)=>{logA("вкладка: "+k);if(k==="дела"||k==="работа"){if(k!==UI.sys){setEnvBy(UI.sys,UI.env);UI.env=ENVBY[k]||"list"}UI.sys=k;UI.view="tasks"}else UI.view=k;render()});
   const es=document.getElementById("envSeg");es.hidden=!onT;es.innerHTML="";
   ["list","kanban","timeline","calendar"].forEach((k)=>{const b=el("button","ico");b.type="button";b.dataset.env=k;b.title=ENVS[k].name;b.setAttribute("aria-label",ENVS[k].name);b.setAttribute("aria-pressed",k===UI.env);
-    b.innerHTML=ENV_ICO[k]+'<span class="sr">'+ENVS[k].name+'</span>';b.onclick=()=>{logA("окружение: "+ENVS[k].name);UI.env=k;render()};es.appendChild(b)});
+    b.innerHTML=ENV_ICO[k]+'<span class="sr">'+ENVS[k].name+'</span>';b.onclick=()=>{logA("окружение: "+ENVS[k].name);UI.env=k;setEnvBy(UI.sys,k);render()};es.appendChild(b)});
   const hn=document.getElementById("hint");hn.textContent=HINTS[UI.env];hn.hidden=!onT;
   paintFocusBtn();paintCoreBtn();
   const v=document.getElementById("view");const sx=[...v.querySelectorAll(".kb")].map((k)=>k.scrollLeft),sy=scrollY;v.innerHTML="";

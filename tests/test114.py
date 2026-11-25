@@ -6,7 +6,7 @@ def setup(pg):
     pg.goto("file:///home/claude/work/lo/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
     pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""()=>{const d=new Date();d.setHours(21,21,0,0);window.__off=d.getTime()-Date.now();
-      S.morningOnly=false;S.day.phase='day';S.tasks=[];
+      S.morningOnly=false;S.day.phase='day';S.tasks=[];CORE.show=false;
       S.tasks.push(Object.assign(task({name:'Свести бюджет',min:30,at:'22:00'},{type:'дела',where:'today',ord:0}),{id:'b'}),
                    Object.assign(task({name:'Умыться',min:5},{type:'дела',routine:'evening',where:'today',ord:1}),{id:'e1'}));
       DNB.min=false;UI.sys='дела';UI.env='list';UI.view='tasks';save();render()}""")
@@ -32,6 +32,12 @@ with sync_playwright() as p:
     assert pg.is_visible('#dnb .dm') and not pg.is_visible('#dnb .rn')
     assert pg.evaluate("()=>JSON.parse(localStorage.getItem('lifeos.v2b.dnb')).min")==True
     pg.click('#dnb');assert not pg.evaluate("()=>document.getElementById('dnb').classList.contains('min')")
+    # после полуночи: 30 минут до овертайма, потом секундомер +
+    pg.evaluate("()=>{S.day.phase='day';UI.view='tasks';const d=new Date();d.setHours(24,10,0,0);window.__off=d.getTime()-Date.now();DNB.min=false;render()}")
+    assert 'овертайма' in t('.re .dl') and t('.re .dt').startswith('19:'),(t('.re .dl'),t('.re .dt'))
+    pg.evaluate("()=>{const d=new Date();d.setHours(24,45,0,0);window.__off=d.getTime()-Date.now();render()}")
+    assert 'Овертайм' in t('.re .dl') and t('.re .dt').startswith('+15:'),(t('.re .dl'),t('.re .dt'))
+    assert pg.evaluate("()=>document.getElementById('dnb').classList.contains('late')")
     # «Начать вечер» из окна
     pg.click('#evb');pg.wait_for_timeout(200);assert pg.evaluate("()=>S.day.phase")=="evening"
     # на экранах не про задачи и при закрытом дне окна нет
