@@ -168,7 +168,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
 .ckn,.subn{font-size:11px;font-weight:700;color:var(--muted)}
 .desc{min-width:0;max-width:100%;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.at{font-size:13px;font-weight:700;color:var(--muted);flex:none}
+.at{font-size:13px;font-weight:700;color:var(--muted);flex:none}.cdn{font-size:12px;font-weight:600;white-space:nowrap;opacity:.85;align-self:center}.cdn.late{color:var(--pc-red);opacity:1}.cal .day .card .cdn{display:none}@media(max-width:480px){.cdn{font-size:11px}}
 .mins{flex:none;display:inline-flex;align-items:center;gap:5px;border:1.5px solid var(--line);border-radius:999px;
  padding:6px 12px;font-size:13px;font-weight:800;background:transparent;color:var(--ink);cursor:pointer}
 .mins.hot{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -2034,7 +2034,29 @@ function ckList(t){const w=el("div","cklist");
     cb.onclick=(e)=>e.stopPropagation();cb.onchange=()=>{pushUndo();c.done=cb.checked;save();render()};
     r.append(cb,el("span",null,c.text||c.t||c.name||""));w.appendChild(r)});return w}
 const checkTxt=(t)=>t.check&&t.check.length?t.check.filter((c)=>c.done).length+"/"+t.check.length+" ✓":"";
-const atSpan=()=>null; /* время живёт в подвале раскрытой карточки; на таймлайне его показывает сама позиция */
+/* сколько осталось до времени начала: серенький текст слева от кнопки времени («через 39 мин»; прошло — «опоздание 10 мин»).
+   Только задачи на сегодня со временем, не выполненные и не запущенные. На таймлайне время видно по позиции, в календаре места нет. */
+function untilInfo(t){
+  if(!t||!t.at||t.done||t.tm||t.archived)return null;
+  const [y,m,d]=dayOf(NOW()).split("-").map(Number);
+  const key=y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+  if(!(t.due===key||(!t.due&&t.where==="today")))return null;
+  const [hh,mm]=t.at.split(":").map(Number);if(!(hh>=0&&mm>=0))return null;
+  const atMs=new Date(y,m-1,d+(hh<4?1:0),hh,mm,0,0).getTime();
+  const mins=Math.ceil((atMs-NOW())/60000);
+  const fm=(n)=>n<60?n+" мин":Math.floor(n/60)+" ч"+(n%60?" "+(n%60)+" мин":"");
+  if(mins>180||mins<-720)return null;
+  if(mins>0)return {txt:"через "+fm(mins),late:false};
+  if(mins===0)return {txt:"сейчас",late:false};
+  return {txt:"опоздание "+fm(-mins),late:true}}
+function atSpan(t,opt){
+  if(opt&&opt.noAt)return null;
+  const u=untilInfo(t);if(!u)return null;
+  const sp=el("span","at cdn"+(u.late?" late":""),u.txt);sp.dataset.cd=t.id;sp.title="До времени начала ("+t.at+")";return sp}
+function refreshCdn(){document.querySelectorAll(".cdn[data-cd]").forEach((n)=>{
+  const u=untilInfo(byId(n.dataset.cd));if(!u){n.remove();return}
+  if(n.textContent!==u.txt)n.textContent=u.txt;n.classList.toggle("late",u.late)})}
+setInterval(refreshCdn,20000);
 function pillBtn(t,cls,title){const pl=el("button","mins"+cls,"");pl.type="button";if(title)pl.title=title;pl.dataset.tid=t.id;wirePill(pl,t);return pl}
 function cardBase(t,opt={}){
   const li=el("div","card"+(t.done?" done":""));
