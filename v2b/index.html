@@ -196,6 +196,7 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .mins.done-t.late{color:var(--pc-red);border-color:var(--pc-red-bg);background:var(--pc-red-bg)}
 .mins.run{background:var(--accent);border-color:var(--accent);color:#fff}
 .mins.pause{border-style:dashed}
+.mins .pi{padding:2px 4px 2px 0;margin:-2px 0}.mins .pt{cursor:pointer}
 .mins.over{background:var(--pc-red-bg);border-color:var(--pc-red);color:var(--pc-red)}
 .play.run{background:var(--accent);border-color:var(--accent);color:#fff}
 .play.over{background:var(--pc-red-bg);border-color:var(--pc-red);color:var(--pc-red)}
@@ -2171,15 +2172,19 @@ function complete(t){
   if(F.on)nextInFocus(t)}
 function fmtSpent(ms){const s=Math.round(ms/1000);if(s<60)return s+" с";
   const m=Math.floor(s/60),r=s%60;if(m<60)return m+":"+String(r).padStart(2,"0")+" мин";return Math.floor(m/60)+" ч "+String(m%60).padStart(2,"0")+" мин"}
+function pillTime(t){const m=t.tm,l=leftOf(t);return m.sw?mmss(-l):(l<0?"+"+mmss(-l):mmss(l))}
 function pillText(t){
   const m=t.tm;if(!m)return "▶ "+(t.min?t.min+" мин":"старт");
-  const l=leftOf(t);
-  if(m.sw)return (m.run?"⏸ ":"▶ ")+mmss(-l);
-  return (m.run?"⏸ ":"▶ ")+(l<0?"+"+mmss(-l):mmss(l))}
+  return (m.run?"⏸ ":"▶ ")+pillTime(t)}
 function paintPill(b,t){
   const m=t.tm,l=leftOf(t),over=!!m&&!m.sw&&l<0;
   b.classList.toggle("run",!!m&&m.run&&!over);b.classList.toggle("over",over);b.classList.toggle("pause",!!m&&!m.run);
-  b.textContent=b.classList.contains("play")?(m&&m.run?"⏸":"▶"):pillText(t)}
+  if(b.classList.contains("play")){b.textContent=m&&m.run?"⏸":"▶";return}
+  if(!m){if(b.firstElementChild||!b.textContent)b.textContent=pillText(t);else if(b.textContent!==pillText(t))b.textContent=pillText(t);return}
+  /* запущенный таймер: две зоны — значок ⏸/▶ ставит на паузу и продолжает, время (остальная кнопка) завершает задачу */
+  let pi=b.querySelector(":scope>.pi"),pt=b.querySelector(":scope>.pt");
+  if(!pi||!pt){b.textContent="";pi=el("span","pi");pt=el("span","pt");b.append(pi,pt)}
+  const a=m.run?"⏸ ":"▶ ",x=pillTime(t);if(pi.textContent!==a)pi.textContent=a;if(pt.textContent!==x)pt.textContent=x}
 function tick(){
   S.tasks.forEach((t)=>{const m=t.tm;if(m&&m.run&&!m.sw&&!m.rang&&m.end-NOW()<=0){m.rang=true;save();ring()}});
   document.querySelectorAll("[data-tid]").forEach((b)=>{const t=byId(b.dataset.tid);if(t&&!t.done)paintPill(b,t)})}
@@ -2212,7 +2217,7 @@ function onMenu(node,open){
   node.addEventListener("touchend",(e)=>{stop();if(fired)e.preventDefault()});
   node.addEventListener("click",(e)=>{if(fired){e.stopImmediatePropagation();e.preventDefault();fired=false}},true)}
 function wirePill(b,t){
-  b.onclick=(e)=>{e.stopPropagation();toggleT(t)};
+  b.onclick=(e)=>{e.stopPropagation();if(t.tm&&!b.classList.contains("play")&&!e.target.closest(".pi")){complete(t);return}toggleT(t)};
   onMenu(b,(x,y)=>{
     const items=[];
     if(t.tm){
