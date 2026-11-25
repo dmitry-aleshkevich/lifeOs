@@ -24,6 +24,7 @@
 - Тесты ждут путь `/home/claude/work/lo`: `mkdir -p /home/claude/work && ln -sfn /home/claude/lifeos /home/claude/work/lo`
 - v1: исходники `src/shell.html`, `src/app.css`, `src/js/*.js`.
 - v2 (бета): `v2/index.html`.
+- v2b (Beta 2.0): исходники `v2b/src/` (`shell.html`, `css/*.css`, `lib-qrcode.js`, `js/NN-имя.js` — склеиваются по имени). **Правим исходники, не `v2b/index.html`.** Сборка: `python3 build_v2b.py` (до тестов и перед пушем).
 - **Тесты гонять по чистой сборке:** `python3 build.py`, затем `cd tests && ./run_tests.sh`.
   Сборка с Supabase (`build_gh.py`) без сети падает и валит все тесты.
 - **Перед пушем:** `python3 build.py && python3 build_gh.py index.html`, затем commit и push в `main`.
