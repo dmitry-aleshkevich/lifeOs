@@ -2316,9 +2316,9 @@ function panel(t){
   if(UI.dt===t.id){
     const bx=el("div","dtbox row");
     bx.appendChild(el("span","plb","Дата"));
-    const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.onchange=()=>{dueSync(t,dt.value);save();render()};bx.appendChild(dt);
+    const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.oninput=()=>{if(dt.value){dueSync(t,dt.value);save()}};dt.onchange=()=>{dueSync(t,dt.value);save();render()};bx.appendChild(dt);
     bx.appendChild(el("span","plb","Время"));
-    const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.onchange=()=>{t.at=tm.value;save();render()};bx.appendChild(tm);
+    const tm=el("input","ptime");tm.type="time";tm.value=t.at||"";tm.addEventListener("focus",pushUndo);tm.oninput=()=>{if(/^\d\d:\d\d$/.test(tm.value)){t.at=tm.value;save()}};tm.onchange=()=>{t.at=tm.value;save();render()};tm.onblur=()=>{if(/^\d\d:\d\d$/.test(tm.value)&&t.at!==tm.value){t.at=tm.value;save()}render()};bx.appendChild(tm);
     if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};bx.appendChild(c)}
     p.appendChild(bx)}
   return p}
