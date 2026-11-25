@@ -103,6 +103,20 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .dtbtn.set{opacity:1}
 .dtbtn:hover{background:var(--surface-2)}
 .dtbox{flex-wrap:wrap;gap:6px;align-items:center}
+.dtp{display:block;border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:6px;background:var(--surface)}
+.dtp-top{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px}
+.dtp-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:13px;text-transform:capitalize}
+.dtp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dtp-grid .dh{font-size:11px;color:var(--muted);text-align:center}
+.dtp-grid .dd{border:0;background:transparent;color:inherit;font:inherit;font-size:13px;padding:5px 0;border-radius:50%;cursor:pointer}
+.dtp-grid .dd.o{color:var(--muted);opacity:.6}.dtp-grid .dd.tdy{outline:1px solid var(--line)}
+.dtp-grid .dd:hover{background:var(--surface-2)}.dtp-grid .dd.s{background:var(--accent);color:#fff}
+.dtp-slots{display:flex;flex-direction:column;gap:4px;max-height:210px;overflow:auto}
+.dts{border:1px solid var(--line);background:var(--surface-2);color:inherit;font:inherit;font-size:13px;padding:4px 0;border-radius:8px;cursor:pointer}
+.dts.s{background:var(--accent);border-color:var(--accent);color:#fff}.dts.busy{color:var(--muted);text-decoration:line-through}
+.dtp-bot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.dtp-bot .ptime{width:70px}.dtp-ap{margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)}
+
 @media (max-width:480px){
  .seg button{padding:8px 10px;font-size:12.5px}
  #envSeg{display:flex;width:100%;box-sizing:border-box}#envSeg button{flex:1 1 auto;padding:8px 4px}
@@ -2309,21 +2323,53 @@ function panel(t){
   // подвал: слева дата и время (серым), справа «Удалить»
   const r3=el("div","row pfoot");
   const dtb=el("button","dtbtn"+((t.at||t.due)?" set":""),(t.at||t.due)?dateLabel(t):"📅");dtb.type="button";
-  dtb.title="Дата и время";dtb.onclick=()=>{UI.dt=UI.dt===t.id?null:t.id;render()};r3.appendChild(dtb);
+  dtb.title="Дата и время";dtb.onclick=()=>{UI.dt=UI.dt===t.id?null:t.id;UI.dtd=null;render()};r3.appendChild(dtb);
   const gcb=el("button","chipb gcb",t.gcal?"✓ В календаре":"📅 В календарь");gcb.type="button";gcb.title="Записать в Google Calendar (нужно время начала)";gcb.onclick=()=>toCalendar(t);r3.appendChild(gcb);
   const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
   if(UI.dt===t.id){
-    const bx=el("div","dtbox row");
-    bx.appendChild(el("span","plb","Дата"));
-    const dt=el("input","pdate");dt.type="date";dt.value=t.due||"";dt.addEventListener("focus",pushUndo);dt.oninput=()=>{if(dt.value){dueSync(t,dt.value);save()}};dt.onchange=()=>{dueSync(t,dt.value);save();render()};bx.appendChild(dt);
-    bx.appendChild(el("span","plb","Время"));
-    const tm=el("input","ptime");tm.type="text";tm.inputMode="numeric";tm.placeholder="16:30";tm.maxLength=5;tm.value=t.at||"";tm.addEventListener("focus",pushUndo);
+    const bx=el("div","dtbox dtp");
     const okT=(v)=>{const d=String(v).replace(/\D/g,"");let h,m;if(d.length===4){h=+d.slice(0,2);m=+d.slice(2)}else if(d.length===3){h=+d[0];m=+d.slice(1)}else if(d.length>=1&&d.length<=2){h=+d;m=0}else return "";return h<24&&m<60?String(h).padStart(2,"0")+":"+String(m).padStart(2,"0"):""};
-    const putT=()=>{const v=tm.value.trim();if(!v){return}const n=okT(v);if(n){if(t.at!==n){t.at=n;save()}tm.value=n}else tm.value=t.at||""};
-    tm.onkeydown=(e)=>{e.stopPropagation();if(e.key==="Enter"){putT();render()}};tm.onchange=()=>{putT();render()};tm.onblur=()=>{putT()};
-    bx.appendChild(tm);
-    if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();render()};bx.appendChild(c)}
+    const pd2=(n)=>String(n).padStart(2,"0"),kOf=(d)=>d.getFullYear()+"-"+pd2(d.getMonth()+1)+"-"+pd2(d.getDate());
+    const DT=UI.dtd&&UI.dtd.id===t.id?UI.dtd:(UI.dtd={id:t.id,due:t.due||dayISO(),at:t.at||"",vm:(t.due||dayISO()).slice(0,7)});
+    const close=()=>{UI.dt=null;UI.dtd=null;render()};
+    const top=el("div","dtp-top");
+    const calw=el("div","dtp-cal"),sl=el("div","dtp-slots");
+    const vy=+DT.vm.slice(0,4),vmn=+DT.vm.slice(5,7)-1;
+    const nav=el("div","dtp-nav");
+    const pv=el("button","chipb","‹");pv.type="button";pv.onclick=()=>{const d=new Date(vy,vmn-1,1);DT.vm=kOf(d).slice(0,7);render()};
+    const nx=el("button","chipb","›");nx.type="button";nx.onclick=()=>{const d=new Date(vy,vmn+1,1);DT.vm=kOf(d).slice(0,7);render()};
+    nav.appendChild(pv);nav.appendChild(el("b","",new Date(vy,vmn,1).toLocaleDateString("ru-RU",{month:"long",year:"numeric"})));nav.appendChild(nx);calw.appendChild(nav);
+    const gr=el("div","dtp-grid");["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].forEach(x=>gr.appendChild(el("span","dh",x)));
+    const f1=new Date(vy,vmn,1),off=(f1.getDay()+6)%7,tk=dayISO();
+    for(let i=0;i<42;i++){const d=new Date(vy,vmn,1-off+i),k=kOf(d);
+      const c=el("button","dd"+(d.getMonth()!==vmn?" o":"")+(k===DT.due?" s":"")+(k===tk?" tdy":""),String(d.getDate()));c.type="button";c.dataset.k=k;
+      c.onclick=()=>{DT.due=k;DT.vm=k.slice(0,7);DT.busy=null;render()};gr.appendChild(c)}
+    calw.appendChild(gr);
+    // занятые слоты из Google Calendar (только если уже есть токен, окно входа не открываем)
+    const busy=DT.busy&&DT.busy.k===DT.due?DT.busy.a:[];
+    if(GC.tok&&Date.now()<GC.exp-60000&&(!DT.busy||DT.busy.k!==DT.due)){const k=DT.due;DT.busy={k,a:[]};
+      const t0=new Date(+k.slice(0,4),+k.slice(5,7)-1,+k.slice(8,10));
+      fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin="+encodeURIComponent(t0.toISOString())+"&timeMax="+encodeURIComponent(new Date(t0.getTime()+864e5).toISOString()),{headers:{Authorization:"Bearer "+GC.tok}})
+        .then(r=>r.ok?r.json():null).then(j=>{if(!j||!UI.dtd||UI.dtd.busy.k!==k)return;
+          UI.dtd.busy.a=(j.items||[]).filter(e=>e.start&&e.start.dateTime&&e.id!==t.gcal).map(e=>[new Date(e.start.dateTime),new Date(e.end.dateTime)]);render()}).catch(()=>{})}
+    const t0=new Date(+DT.due.slice(0,4),+DT.due.slice(5,7)-1,+DT.due.slice(8,10));
+    for(let m=360;m<=1410;m+=30){const h=Math.floor(m/60),mm=m%60,lab=pd2(h)+":"+pd2(mm);
+      const a=new Date(t0.getTime()+m*60000),z=new Date(a.getTime()+30*60000);
+      const isb=busy.some(x=>x[0]<z&&x[1]>a);
+      const b=el("button","dts"+(DT.at===lab?" s":"")+(isb?" busy":""),lab);b.type="button";b.dataset.t=lab;if(isb)b.title="В календаре занято";
+      b.onclick=()=>{DT.at=lab;render()};sl.appendChild(b)}
+    top.appendChild(calw);top.appendChild(sl);bx.appendChild(top);
+    const bot=el("div","dtp-bot");
+    const di=el("input","pdate");di.type="date";di.value=DT.due;di.onchange=()=>{if(di.value){DT.due=di.value;DT.vm=di.value.slice(0,7);DT.busy=null;render()}};bot.appendChild(di);
+    const ti=el("input","ptime");ti.type="text";ti.inputMode="numeric";ti.placeholder="16:20";ti.maxLength=5;ti.value=DT.at;
+    ti.onkeydown=(e)=>{e.stopPropagation();if(e.key==="Enter"){const n=okT(ti.value);if(n){DT.at=n;ap.click()}}};
+    ti.onchange=()=>{const n=okT(ti.value);if(n){DT.at=n;render()}else ti.value=DT.at};bot.appendChild(ti);
+    const td=el("button","chipb","Сегодня");td.type="button";td.onclick=()=>{DT.due=dayISO();DT.vm=DT.due.slice(0,7);DT.busy=null;render()};bot.appendChild(td);
+    if(t.at||t.due){const c=el("button","chipb","Убрать");c.type="button";c.onclick=()=>{pushUndo();t.at="";t.due="";save();close()};bot.appendChild(c)}
+    const cn=el("button","chipb","Отмена");cn.type="button";cn.onclick=close;bot.appendChild(cn);
+    const ap=el("button","chipb dtp-ap","Применить");ap.type="button";ap.onclick=()=>{const n=okT(ti.value)||DT.at;pushUndo();dueSync(t,DT.due);t.at=n||"";save();close()};bot.appendChild(ap);
+    bx.appendChild(bot);
     p.appendChild(bx)}
   return p}
 
