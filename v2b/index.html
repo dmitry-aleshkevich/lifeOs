@@ -2553,6 +2553,14 @@ function dropKanban(d,t,o,after){
       if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else t.where=key}}
   else{t.project=key;if(t.tm&&t.tm.run)pauseT(t);t.done=false;if(work)t.status="";else t.where=""}
   if(o)S.tasks.splice(S.tasks.indexOf(o)+(after?1:0),0,t);else S.tasks.push(t)}
+/* Alt + бросок в другую версию сценария: копия задачи (с до/после-подзадачами), оригинал остаётся */
+function scenCopyTask(t,col,o,after){
+  const sid=col.dataset.sid,sv=col.dataset.key;
+  const mk=(x)=>task({name:x.name,min:x.min,desc:x.desc,at:x.at||"",check:(x.check||[]).map((c)=>({text:c.text||"",done:false}))},{type:"сценарий",sc:sid,sv,where:"",ord:S.tasks.length});
+  const par=mk(t),kids=S.tasks.filter((k)=>k.link===t.id).map((k)=>Object.assign(mk(k),{link:par.id,rel:k.rel}));
+  const all=[...kids.filter((k)=>k.rel==="pre"),par,...kids.filter((k)=>k.rel!=="pre")];
+  logA("копия "+nmq(t)+" → версия "+sv);
+  const at=o&&S.tasks.indexOf(o)>=0?S.tasks.indexOf(o)+(after?1:0):S.tasks.length;S.tasks.splice(at,0,...all);return par}
 function dropList(d,t,o,after,head,w){
   logA("перенос "+nmq(t)+(head?" → группа "+w:""));
   t.link="";t.rel="";S.tasks=S.tasks.filter((x)=>x!==t);let idx;
@@ -2627,7 +2635,7 @@ function dragMove(){const d=DR;if(!d||!d.active)return;
   const after=isHead?true:d.y>r.top+r.height/2;
   d.tgt={n:best,after,head:isHead};
   d.line.hidden=false;d.line.style.left=r.left+"px";d.line.style.width=r.width+"px";d.line.style.top=(after?r.bottom+1:r.top-3)+"px"}
-function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null;if(!d.active)return;
+function dragEnd(e,cancel){const d=DR;if(!d)return;d.alt=!!(e&&e.altKey);clearTimeout(d.timer);DR=null;if(!d.active)return;
   document.querySelectorAll(".card.dragging").forEach((c)=>c.classList.remove("dragging"));document.body.classList.remove("drag");d.ghost.remove();d.line.remove();
   swallow=true;setTimeout(()=>{swallow=false},60);
   document.querySelectorAll(".dropcol").forEach((c)=>c.classList.remove("dropcol"));document.querySelectorAll(".tldrop").forEach((c)=>c.classList.remove("tldrop"));
@@ -2642,9 +2650,10 @@ function dragEnd(e,cancel){const d=DR;if(!d)return;clearTimeout(d.timer);DR=null
     else{
       const n=d.tgt.n;let head=!!d.tgt.head,o=n&&!head?byId(n.dataset.cid):null,after=!!d.tgt.after;const w=n&&n.dataset?n.dataset.where:"";
       if(o&&o.link){const par=byId(o.link);if(par){after=o.rel==="pre"?false:true;o=par}}   /* бросили на до/после-задачу: порядок считается от родителя */
-      G.forEach((t)=>{
-        if(d.tgt.kanban)dropKanban(d,t,o,after);else dropList(d,t,o,after,head,w);
-        if(after||head){o=t;after=true;head=false}})}
+      G.forEach((t)=>{let nx=t;
+        if(d.tgt.kanban&&d.alt&&d.tgt.col.dataset.board==="scen")nx=scenCopyTask(t,d.tgt.col,o,after);
+        else if(d.tgt.kanban)dropKanban(d,t,o,after);else dropList(d,t,o,after,head,w);
+        if(after||head){o=nx;after=true;head=false}})}
   }finally{BATCH=false}
   if(F.on&&F.ids[UI.sys]){F.ids[UI.sys].sort((a,b)=>S.tasks.indexOf(byId(a))-S.tasks.indexOf(byId(b)));saveF()}
   save();render()}
