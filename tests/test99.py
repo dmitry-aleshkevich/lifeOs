@@ -11,6 +11,7 @@ with sync_playwright() as p:
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
     pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.tasks=S.tasks.filter(t=>!t.tpl);S.planGen='';render()}");pg.wait_for_timeout(200)
     pg.evaluate(STUB)
     pg.click(".card[data-cid=a] .nm >> nth=0") if False else pg.click(".card[data-cid=a]",position={"x":300,"y":10});pg.wait_for_selector(".card[data-cid=a] .gcb")
     pg.click(".card[data-cid=a] .gcb");pg.wait_for_timeout(300)

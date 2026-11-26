@@ -20,5 +20,4 @@ function start(){
   if(fromBeta()){ensureExtras();seedMorning();if(S.morningOnly===undefined)S.morningOnly=true;save();render();return}
   boot();
 }
-document.getElementById("again").onclick=()=>{if(confirm("Скопировать данные из беты заново? Данные Beta 2.0 будут заменены."))(fromBeta()?(seedMorning(),render()):boot())};
 start();

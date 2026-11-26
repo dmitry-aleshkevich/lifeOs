@@ -23,7 +23,7 @@ function nextInFocus(done){
 /* утро и вечер: после «Готово» следующий пункт рутины запускается сам */
 function nextInRoutine(done){
   if(!done.routine||!S.day||S.day.phase!==done.routine)return;
-  autoNext(rItems(done.routine).slice().sort((a,b)=>(a.ord||0)-(b.ord||0)).find((x)=>!x.done&&x.min>0&&x!==done))}
+  autoNext(rItems(done.routine).find((x)=>!x.done&&x.min>0&&x!==done))}
 function autoNext(n){
   if(!n)return;
   closeToast();startT(n);render();

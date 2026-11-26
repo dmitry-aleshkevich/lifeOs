@@ -9,7 +9,7 @@ with sync_playwright() as p:
     pg.goto("file:///home/claude/work/lo/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
     pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     # среда 25.11.2026 12:00 → обед-a, ужин (зал только пн/ср/пт: среда → зал есть, обед-b)
-    pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.planGen='';render()}");pg.wait_for_timeout(200)
+    pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.tasks=S.tasks.filter(t=>!t.tpl);S.planGen='';render()}");pg.wait_for_timeout(200)
     names=pg.evaluate("()=>S.tasks.filter(t=>t.tpl&&!t.link).map(t=>t.name).join('|')")
     assert names=="Зал 🏋️|Обед 🍽️|Ужин 🍽️",names   # среда: зал + обед-b + ужин
     assert pg.evaluate("()=>S.tasks.filter(t=>t.tpl&&t.link).length")==4   # Готовка и Посуда на обед и ужин

@@ -32,7 +32,7 @@ function addT(t,min){const add=min*60000;
   const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;save();tick()}
 function markDone(t){
   if(t.tm){if(t.tm.run)pauseT(t);t.tm=null}
-  t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";logDone(t);if(t.routine&&S&&S.day)phaseCheck()}
+  delete t.carry;t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";logDone(t);if(t.routine&&S&&S.day)phaseCheck()}
 function complete(t){
   logA("готово "+nmq(t));markDone(t);save();render();
   if(F.on)nextInFocus(t);else nextInRoutine(t)}

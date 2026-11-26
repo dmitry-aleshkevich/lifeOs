@@ -7,6 +7,10 @@ const isEvening=()=>hourNow()>=21||hourNow()<4;
 function dayRoll(){
   S.day=S.day||{iso:"",evening:false};const iso=dayISO();
   if(S.day.iso===iso){if(!S.day.phase){S.day.phase=S.day.evening?"evening":(S.morningOnly&&rItems("morning").length&&!rItems("morning").every((t)=>t.done)&&hourNow()<14&&S.day.skipMorning!==iso?"morning":"day");save()}return false}
+  if(S.day.iso){   /* новый день: «Завтра» и задачи с сегодняшней датой — в «Сегодня»; невыполненные со вчера остаются в «Сегодня» с красной пометкой */
+    const cand=(t)=>t.type==="дела"&&!t.routine&&!t.tpl&&!t.link&&!t.done&&!t.archived;
+    S.tasks.forEach((t)=>{if(cand(t)&&t.where==="today")t.carry=1});
+    S.tasks.forEach((t)=>{if(cand(t)&&t.where!=="today"&&(t.where==="tomorrow"||t.due===iso)){t.where="today";if(t.due&&t.due<iso)t.due=iso}})}
   if(S.day.iso)S.tasks.filter((t)=>t.routine).forEach((t)=>Object.assign(t,{done:false,doneAt:0,spent:0,acc:0,sessions:0,tm:null,archived:false}));
   S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";
   S.day.phase=S.morningOnly&&rItems("morning").length?"morning":"day";save();return true}
@@ -33,7 +37,7 @@ function morningOn(){return !!(S.morningOnly&&S.day&&S.day.phase==="morning"&&rI
 function morningScreen(v){
   const w=el("div","mscr");const h=el("div","mh");h.appendChild(el("h2",null,"Доброе утро ☀️"));
   const sk=el("button","chipb","Пропустить");sk.type="button";sk.id="mskip";sk.onclick=()=>{S.day.skipMorning=S.day.iso;S.day.phase="day";wakeMark();save();render()};h.appendChild(sk);w.appendChild(h);
-  w.appendChild(qrBox());scenChips(w,"morning");routineGroup(w,"morning",true);v.appendChild(w)}
+  w.appendChild(qrBox());scenChips(w,"morning");routineGroup(w,"morning",true);wishCard(w);v.appendChild(w)}
 function eveningScreen(v){
   const w=el("div","mscr");const h=el("div","mh");h.appendChild(el("h2",null,"Вечер 🌙"));
   const bk=el("button","chipb","Назад");bk.type="button";bk.id="ebk";bk.onclick=()=>{S.day.phase="day";S.day.evening=false;save();render()};h.appendChild(bk);w.appendChild(h);

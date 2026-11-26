@@ -42,12 +42,13 @@ function refreshCdn(){document.querySelectorAll(".cdn[data-cd]").forEach((n)=>{
 setInterval(refreshCdn,20000);
 function pillBtn(t,cls,title){const pl=el("button","mins"+cls,"");pl.type="button";if(title)pl.title=title;pl.dataset.tid=t.id;wirePill(pl,t);return pl}
 function cardBase(t,opt={}){
-  const li=el("div","card"+(t.done?" done":""));
+  const li=el("div","card"+(t.done?" done":"")+(t.carry&&!t.done&&t.where==="today"?" carry":""));
   const ck=el("button","ck",t.done?"✓":"");ck.setAttribute("aria-label","Отметить");
   ck.onclick=(e)=>{e.stopPropagation();pushUndo();if(t.done){t.done=false;if(t.type==="работа")t.status="todo";save();render()}else complete(t)};
   li.appendChild(ck);
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
+  if(t.carry&&!t.done&&t.where==="today")meta.appendChild(el("span","carrytag","со вчера"));
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
   if(checkTxt(t)&&!opt.v)meta.appendChild(ckTag(t));
   if(t.tpl&&!t.link)meta.appendChild(el("span","chip pc-gray","⚙ ядро"));
