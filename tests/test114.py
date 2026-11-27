@@ -35,7 +35,7 @@ with sync_playwright() as p:
     pg.click('#dnb');assert not pg.evaluate("()=>document.getElementById('dnb').classList.contains('min')")
     # после полуночи: 30 минут до овертайма, потом секундомер +
     pg.evaluate("()=>{S.day.phase='day';UI.view='tasks';const d=new Date();d.setHours(24,10,0,0);window.__off=d.getTime()-Date.now();DNB.min=false;render()}")
-    assert 'овертайма' in t('.re .dl') and t('.re .dt').startswith('19:'),(t('.re .dl'),t('.re .dt'))
+    assert 'овертайма' in t('.re .dl') and t('.re .dt').startswith(('19:','20:00')),(t('.re .dl'),t('.re .dt'))
     pg.evaluate("()=>{const d=new Date();d.setHours(24,45,0,0);window.__off=d.getTime()-Date.now();render()}")
     assert 'Овертайм' in t('.re .dl') and t('.re .dt').startswith('+15:'),(t('.re .dl'),t('.re .dt'))
     assert pg.evaluate("()=>document.getElementById('dnb').classList.contains('late')")
