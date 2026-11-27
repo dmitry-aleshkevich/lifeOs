@@ -1,13 +1,14 @@
 # поповер даты и времени: слоты 30 мин, ручной ввод, применить/отмена, занятые слоты
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[],"evening":[]}}
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     def op():
         if not pg.locator(".card[data-cid=a] .dtbtn").count():pg.click(".card[data-cid=a]",position={"x":300,"y":10})
         pg.click(".card[data-cid=a] .dtbtn")
@@ -27,7 +28,7 @@ with sync_playwright() as p:
     assert pg.evaluate("()=>byId('a').at")=="10:20"   # отмена не меняет
     # занятые слоты из календаря (подставной токен и fetch)
     pg.evaluate("""()=>{GC.tok='x';GC.exp=Date.now()+3600000;const d=byId('a').due;const f=window.fetch;
-      window.fetch=(u,o)=>String(u).includes('googleapis')?Promise.resolve({ok:true,json:()=>Promise.resolve({items:[{id:'e1',start:{dateTime:d+'T12:00:00'},end:{dateTime:d+'T13:00:00'}}]})}):f(u,o)}""")
+      window.fetch=(u,o)=>String(u).includes('googleapis')?Promise.resolve({ok:true,json:()=>Promise.resolve({items:[{id:'e1',start:{dateTime:d+'T12:00:00'},end:{dateTime:d+'T13:00:00'}}]})}):f(u,o);render()}""")  # render: поповер мог уже открыться по наведению, до подмены
     op();pg.wait_for_selector(".dtp .dts");pg.wait_for_selector(".dts.busy")
     assert pg.locator(".dts.busy").count()==2   # 12:00 и 12:30
     pg.click(".dtp .chipb:has-text('Убрать')");pg.wait_for_timeout(100)

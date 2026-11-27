@@ -1,6 +1,7 @@
 # таймлайн на телефоне: перетаскивание долгим нажатием (touch-события): со склада на час, по таймлайну, обратно на склад
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[],"evening":[]}}
 JS_TOUCH="""async ([sel,toSel,dx,dy,hold])=>{
   const src=document.querySelector(sel);const r=src.getBoundingClientRect();const x=r.left+r.width/2,y=r.top+r.height/2;
@@ -12,11 +13,11 @@ JS_TOUCH="""async ([sel,toSel,dx,dy,hold])=>{
   document.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,pointerId:7,pointerType:'touch',isPrimary:true,clientX:tx,clientY:ty}));
 }"""
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=402,height=812),is_mobile=True,has_touch=True).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""()=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];const m=(id,n,o)=>Object.assign(task({name:n,min:30},{type:'дела',where:'today',ord:S.tasks.length}),{id},o||{});
       S.tasks.push(m('s1','Склад-задача'),m('t1','На сетке',{at:'11:00'}));UI.sys='дела';UI.env='timeline';UI.view='tasks';save();render()}""")
     pg.wait_for_selector('.tl .slot')

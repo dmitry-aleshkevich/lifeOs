@@ -1,14 +1,15 @@
 # v2b: фазы дня — Утро (QR, конфетти) → День → Вечер → День закрыт
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[{"id":"m1","name":"Душ","min":10},{"id":"m2","name":"Вода","min":0}],"evening":[{"id":"e1","name":"Зубы","min":0},{"id":"e2","name":"Сон","min":0}]}}
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.wait_for_timeout(300)
     pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     at=lambda h:pg.evaluate("h=>{window.__off=new Date().setHours(h,0,0,0)-Date.now();render()}",h)
     # утро выключено (в тестовой базе)
     at(8);assert pg.locator(".card[data-cid=a]").count()==1

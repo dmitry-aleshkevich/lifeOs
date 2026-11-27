@@ -1,13 +1,14 @@
 # время текстом: завтра в 9, в пт 18:00, через 2 часа; поповер понимает слова
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[],"evening":[]}}
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("()=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];UI.env='list';UI.view='tasks';save();render()}")
     P=lambda s:pg.evaluate("s=>parseWhen(s)",s)
     tm=pg.evaluate("()=>[dayOf(NOW()),dayOf(NOW()+864e5)]")

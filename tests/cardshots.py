@@ -1,11 +1,12 @@
 # screenshots of every task-card state in Today and Plan: python3 cardshots.py <outdir> [w]
 import sys, os
 from playwright.sync_api import sync_playwright
+from paths import URL
 out=sys.argv[1]; W=int(sys.argv[2]) if len(sys.argv)>2 else 900; os.makedirs(out, exist_ok=True)
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=W,height=900), has_touch=W<500).new_page(); pg.on("pageerror",lambda e:print("PAGEERROR",e))
-    pg.add_init_script("localStorage.setItem('lifeos.focus.v1','plan')"); pg.goto("file:///home/claude/work/lo/archive/v1/index.html"); pg.wait_for_timeout(700)
+    pg.add_init_script("localStorage.setItem('lifeos.focus.v1','plan')"); pg.goto(URL+"/archive/v1/index.html"); pg.wait_for_timeout(700)
     if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
     for n in ["Позвонить в банк 18:00 15м","Купить продукты 10м","Готовая задача 5м"]: pg.fill("#tdQa",n); pg.press("#tdQa","Enter"); pg.wait_for_timeout(150)
     pg.evaluate("""(()=>{const s=JSON.parse(localStorage.getItem('lifeos.v1'));})()""")

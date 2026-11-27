@@ -1,15 +1,16 @@
 # облако Beta 2.0: вход, запись os2, витрина bot-morning/bot-plan, подтяжка из облака на новом устройстве
 import json
 from playwright.sync_api import sync_playwright
-FAKE=open("/home/claude/work/lo/fake_sb.js",encoding="utf8").read()
-URL="file:///home/claude/work/lo/index.html"
+from paths import ROOT, URL
+FAKE=open(ROOT/"fake_sb.js",encoding="utf8").read()
+URL=URL+"/index.html"
 def mk(b):
     c=b.new_context(viewport=dict(width=1300,height=900));pg=c.new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.route("**/@supabase/supabase-js@2",lambda r:r.fulfill(body=FAKE,content_type="application/javascript"))
     return pg,errs
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg,errs=mk(b)
     pg.add_init_script("if(!localStorage.getItem('lifeos.v2b')&&!localStorage.getItem('lifeos.v1'))localStorage.setItem('lifeos.v1',JSON.stringify({tasks:[{id:'a',name:'Дело',where:'today'}],routines:{morning:[],evening:[]}}))")
     pg.goto(URL);pg.wait_for_selector('#sbGate input[type=email]')

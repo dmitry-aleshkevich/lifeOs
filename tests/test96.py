@@ -1,14 +1,15 @@
 # v2b: сценарии — версии, редактор, применение (утро заменяет, вечер добавляется, свой → задача с подзадачами)
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[],"routines":{"morning":[{"id":"m1","name":"Душ","min":10}],"evening":[{"id":"e1","name":"Зубы","min":3}]},
     "mScen":[{"id":"fast","name":"Быстро","icon":"⚡","items":[{"name":"Умыться","min":2}]},{"id":"home","name":"Дома","icon":"🏠","items":[{"name":"Душ","min":10},{"name":"Чай","min":5}]},{"id":"custom","name":"Кастом","icon":"✨","items":[]}]}
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1200,height=1000)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.click("#viewSeg button:has-text('Сценарии')")
     assert pg.locator(".scsec[data-sid]").count()==3          # Утро, Вечер, Уборка
     assert pg.locator(".scsec[data-sid=morning] .col[data-ver]").count()==3

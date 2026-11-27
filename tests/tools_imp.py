@@ -2,6 +2,7 @@
 # Rules whose selector matches nothing in the covered states are left untouched (untested).
 import re, os, sys, subprocess, json, hashlib
 from playwright.sync_api import sync_playwright
+from paths import URL
 CSS = open('src/app.css', encoding='utf8').read()
 # locate rules with !important: (start,end) of each declaration block + selector
 rules = []
@@ -15,7 +16,7 @@ def variant(strip):
     out.append(CSS[last:]); return ''.join(out)
 INIT = "localStorage.setItem('lifeos.focus.v1','plan'); document.addEventListener('DOMContentLoaded',()=>{const st=document.createElement('style');st.textContent='*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}';document.head.appendChild(st)})"
 def states(pg, vp, shot, mark):
-    pg.goto("file:///home/claude/work/lo/archive/v1/index.html"); pg.wait_for_timeout(600); pg.set_default_timeout(4000)
+    pg.goto(URL+"/archive/v1/index.html"); pg.wait_for_timeout(600); pg.set_default_timeout(4000)
     if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
     for n in ["Магазин 18:00 40м", "Купить 10м"]: pg.fill("#tdQa", n); pg.press("#tdQa", "Enter"); pg.wait_for_timeout(120)
     shot('today'); mark()
@@ -32,7 +33,7 @@ def run(css, collect=False):
     open('src/app.css', 'w', encoding='utf8').write(css); subprocess.run(['python3', 'build.py'], capture_output=True)
     hashes = []; matched = set()
     with sync_playwright() as p:
-        b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
+        b = p.chromium.launch()
         for name, vp in [("d", dict(width=1300, height=900)), ("m", dict(width=390, height=844))]:
             ctx = b.new_context(viewport=vp, has_touch=(name == "m")); pg = ctx.new_page(); pg.clock.set_fixed_time("2026-11-22T14:00:00"); pg.add_init_script(INIT)
             shot = lambda tag: (pg.evaluate("document.querySelectorAll('.mins.live,.tin-time,#eveBan').forEach(e=>e.textContent='0')"), hashes.append(tag + hashlib.md5(pg.screenshot(full_page=True)).hexdigest()))

@@ -1,13 +1,14 @@
 # v2b: шаблоны дня (ядро + фильтр LifeCore), привычки с редактором, итоги
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[],"evening":[]},"habits":[{"id":"smoke","name":"Без сигарет"},{"id":"gym","name":"Зал","days":[1,3,5]}],"habitLog":{}}
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1200,height=1000)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     # среда 25.11.2026 12:00 → обед-a, ужин (зал только пн/ср/пт: среда → зал есть, обед-b)
     pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.tasks=S.tasks.filter(t=>!t.tpl);S.planGen='';render()}");pg.wait_for_timeout(200)
     names=pg.evaluate("()=>S.tasks.filter(t=>t.tpl&&!t.link).map(t=>t.name).join('|')")

@@ -1,14 +1,15 @@
 # карточка «Далат» внизу утреннего экрана: превью зоны, крестик до завтра, тап — крупно
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[],"evening":[]}}
 PX="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1100,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""async(px)=>{const s=await mpStore('readwrite');
       s.put({id:'d1',type:'img',src:px,x:100,y:3800,w:600,h:400,z:1});s.put({id:'d2',type:'text',text:'Кроссовый мотоцикл',x:900,y:4000,fs:80,color:'#fff',z:2});
       s.put({id:'b1',type:'img',src:px,x:100,y:2000,w:600,h:400,z:1});s.put({id:'m1',type:'text',text:'Вилла',x:100,y:100,fs:80,z:1});

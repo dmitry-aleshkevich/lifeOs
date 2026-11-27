@@ -1,6 +1,7 @@
 # масштаб таймлайна: Shift+колесо на компьютере, щипок на телефоне; пределы 24..160; запоминается
 import json
 from playwright.sync_api import sync_playwright
+from paths import URL
 V1={"tasks":[{"id":"a","name":"Дело","where":"today"}],"routines":{"morning":[],"evening":[]}}
 PINCH="""async ([d0,d1])=>{
   const tl=document.querySelector('.tl'),r=tl.getBoundingClientRect(),cx=r.left+r.width/2,cy=Math.max(r.top,60)+200;
@@ -11,13 +12,13 @@ PINCH="""async ([d0,d1])=>{
   fire('touchend',[]);
 }"""
 def setup(pg,mobile):
-    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto(URL+"/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""()=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];S.tasks.push(Object.assign(task({name:'Зал',min:60,at:'15:00'},{type:'дела',where:'today',ord:1}),{id:'g'}));UI.sys='дела';UI.env='timeline';UI.view='tasks';save();render()}""")
     pg.wait_for_selector('.tl .slot')
 hr=lambda pg:pg.evaluate("()=>document.querySelector('.tl .hr').getBoundingClientRect().height")
 with sync_playwright() as p:
-    b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
+    b=p.chromium.launch()
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)));setup(pg,False)
     assert round(hr(pg))==56
