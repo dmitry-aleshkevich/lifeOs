@@ -20,8 +20,9 @@
 
 ## Среда
 
-- Клон: `git clone --depth 1 https://github.com/dmitry-aleshkevich/lifeos /home/claude/lifeos`
-- Тесты ждут путь `/home/claude/work/lo`: `mkdir -p /home/claude/work && ln -sfn /home/claude/lifeos /home/claude/work/lo`
+- Mac Дмитрия (с 28.11): клон — `/Users/dmitry/dev/lifeos-app` (`gh repo clone dmitry-aleshkevich/lifeOs /Users/dmitry/dev/lifeos-app`). Папку `/Users/dmitry/dev/LifeOS` не трогать: там старые архивы.
+- Бот: `/Users/dmitry/dev/morning-bot`, его приложение: `/Users/dmitry/dev/morning-app`.
+- Тесты пока **не запускаются**: Playwright не установлен (перед установкой спросить Дмитрия), а в файлах `tests/` зашиты пути старого контейнера `/home/claude/work/lo` и `/usr/bin/google-chrome`. Их надо заменить на пути от папки репозитория и на скачанный Chromium (`playwright install chromium`).
 - **Рабочая версия — Beta 2.0.** Исходники `v2b/src/` (`shell.html`, `css/*.css`, `lib-qrcode.js`, `js/NN-имя.js` — склеиваются по имени). **Правим исходники, не `v2b/build.html` и не корневой `index.html`.**
 - Сборка: `python3 build_v2b.py` → `v2b/build.html` (без облака, по ней гоняются тесты); `python3 build_pages.py` → корневой `index.html` (+ `v2b/cloud.html`: вход Supabase, документ `os2`). Корневой `index.html` — то, что открывается на GitHub Pages и на иконке телефона.
 - Старые версии (v1, бета) — только архив в `archive/` (не развиваем). Тесты старых версий — `archive/tests-old/`.
