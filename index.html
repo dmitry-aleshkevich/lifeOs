@@ -432,6 +432,21 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
       var st = db.transaction("items", "readwrite").objectStore("items"); r.data.forEach(function (row) { if (row.data && row.data.id) st.put(row.data); });
     } catch (x) {}
   }
+  /* свежая запись os2 из облака: применяем и перезагружаемся */
+  function takeRemote(row) { if (row && row.data && row.data.s && row.data.at > localAt()) { applyRemote(row.data); reloadSoon(); return true; } return false; }
+  /* вернулись в приложение: пока телефон спал, сигналы realtime могли пропасть — перечитываем состояние и отметки бота */
+  var resyncing = false;
+  async function resync() {
+    if (!uid || !armed || frozen || resyncing || document.hidden) return;
+    resyncing = true;
+    try {
+      if (takeRemote((await sb.from(T).select("id,data").eq("id", DOC).maybeSingle()).data)) return;
+      var c = (await sb.from(T).select("id,data").eq("id", "bot-checkins").maybeSingle()).data;
+      if (c) subs.forEach(function (f) { f("UPDATE", c); });
+    } catch (x) {} finally { resyncing = false; }
+  }
+  document.addEventListener("visibilitychange", resync);
+  ["focus", "pageshow", "online"].forEach(function (n) { addEventListener(n, resync); });
   var ready = (async function () {
     if (!document.body) await new Promise(function (r) { document.addEventListener("DOMContentLoaded", r); });
     var s = (await sb.auth.getSession()).data.session;
@@ -443,7 +458,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
     armed = true; if (!localAt() && localStorage.getItem(LK)) rawSet.call(localStorage, AK, String(Date.now())); push(); pullMap();
     chan = sb.channel("lifeos2-" + uid).on("postgres_changes", { event: "*", schema: "public", table: T, filter: "user_id=eq." + uid }, function (p) {
       var row = p.new && p.new.id ? p.new : p.old;
-      if (row && row.id === DOC && p.eventType !== "DELETE" && row.data && row.data.s && row.data.at > localAt()) { applyRemote(row.data); reloadSoon(); return; }
+      if (row && row.id === DOC && p.eventType !== "DELETE" && takeRemote(row)) return;
       subs.forEach(function (f) { f(p.eventType, row); });
     }).subscribe();
     return uid;
@@ -3120,7 +3135,7 @@ function dayRoll(){
     S.tasks.forEach((t)=>{if(cand(t)&&t.where==="today")t.carry=1});
     S.tasks.forEach((t)=>{if(cand(t)&&t.where!=="today"&&(t.where==="tomorrow"||t.due===iso)){t.where="today";if(t.due&&t.due<iso)t.due=iso}})}
   if(S.day.iso)S.tasks.filter((t)=>t.routine).forEach((t)=>Object.assign(t,{done:false,doneAt:0,spent:0,acc:0,sessions:0,tm:null,archived:false}));
-  S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";
+  S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";S.day.bot={};
   S.day.phase=S.morningOnly&&rItems("morning").length?"morning":"day";save();return true}
 function phaseCheck(){const p=S.day.phase;
   if(p==="morning"&&rItems("morning").every((t)=>t.done)){S.day.phase="day";wakeMark();save();confetti()}
@@ -3888,8 +3903,10 @@ function checkinsApply(d){
   evs.forEach((ev)=>{if(!ev||!ev.item||(ev.kind!=="morning"&&ev.kind!=="evening"))return;
     const list=(ev.kind==="morning"?today.morning:today.evening).today.items;
     const row=list.find((x)=>x.stepId===ev.item)||list.find((x)=>x.id===ev.item);const t=row&&byId(row.id);if(!t)return;
+    /* каждое событие бота применяется к пункту один раз: иначе снятая вручную отметка возвращалась бы при каждом перечитывании */
+    const seen=S.day.bot||(S.day.bot={}),k=ev.kind+":"+t.id,at=+ev.at||0;if(seen[k]!==undefined&&at<=seen[k])return;seen[k]=at;ch=true;
     if(ev.done&&!t.done){markDone(t);logA("отмечено в боте "+nmq(t));ch=true}
-    else if(!ev.done&&t.done&&(+ev.at||0)>(t.doneAt||0)){t.done=false;t.doneAt=0;ch=true}});
+    else if(!ev.done&&t.done&&at>(t.doneAt||0)){t.done=false;t.doneAt=0}});
   if(ch){save();render()}}
 async function checkinsInit(){
   try{const db=await window.claude?.use("db");if(!db)return;

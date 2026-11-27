@@ -5,8 +5,10 @@ function checkinsApply(d){
   evs.forEach((ev)=>{if(!ev||!ev.item||(ev.kind!=="morning"&&ev.kind!=="evening"))return;
     const list=(ev.kind==="morning"?today.morning:today.evening).today.items;
     const row=list.find((x)=>x.stepId===ev.item)||list.find((x)=>x.id===ev.item);const t=row&&byId(row.id);if(!t)return;
+    /* каждое событие бота применяется к пункту один раз: иначе снятая вручную отметка возвращалась бы при каждом перечитывании */
+    const seen=S.day.bot||(S.day.bot={}),k=ev.kind+":"+t.id,at=+ev.at||0;if(seen[k]!==undefined&&at<=seen[k])return;seen[k]=at;ch=true;
     if(ev.done&&!t.done){markDone(t);logA("отмечено в боте "+nmq(t));ch=true}
-    else if(!ev.done&&t.done&&(+ev.at||0)>(t.doneAt||0)){t.done=false;t.doneAt=0;ch=true}});
+    else if(!ev.done&&t.done&&at>(t.doneAt||0)){t.done=false;t.doneAt=0}});
   if(ch){save();render()}}
 async function checkinsInit(){
   try{const db=await window.claude?.use("db");if(!db)return;

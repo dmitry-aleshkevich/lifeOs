@@ -52,6 +52,21 @@
       var st = db.transaction("items", "readwrite").objectStore("items"); r.data.forEach(function (row) { if (row.data && row.data.id) st.put(row.data); });
     } catch (x) {}
   }
+  /* свежая запись os2 из облака: применяем и перезагружаемся */
+  function takeRemote(row) { if (row && row.data && row.data.s && row.data.at > localAt()) { applyRemote(row.data); reloadSoon(); return true; } return false; }
+  /* вернулись в приложение: пока телефон спал, сигналы realtime могли пропасть — перечитываем состояние и отметки бота */
+  var resyncing = false;
+  async function resync() {
+    if (!uid || !armed || frozen || resyncing || document.hidden) return;
+    resyncing = true;
+    try {
+      if (takeRemote((await sb.from(T).select("id,data").eq("id", DOC).maybeSingle()).data)) return;
+      var c = (await sb.from(T).select("id,data").eq("id", "bot-checkins").maybeSingle()).data;
+      if (c) subs.forEach(function (f) { f("UPDATE", c); });
+    } catch (x) {} finally { resyncing = false; }
+  }
+  document.addEventListener("visibilitychange", resync);
+  ["focus", "pageshow", "online"].forEach(function (n) { addEventListener(n, resync); });
   var ready = (async function () {
     if (!document.body) await new Promise(function (r) { document.addEventListener("DOMContentLoaded", r); });
     var s = (await sb.auth.getSession()).data.session;
@@ -63,7 +78,7 @@
     armed = true; if (!localAt() && localStorage.getItem(LK)) rawSet.call(localStorage, AK, String(Date.now())); push(); pullMap();
     chan = sb.channel("lifeos2-" + uid).on("postgres_changes", { event: "*", schema: "public", table: T, filter: "user_id=eq." + uid }, function (p) {
       var row = p.new && p.new.id ? p.new : p.old;
-      if (row && row.id === DOC && p.eventType !== "DELETE" && row.data && row.data.s && row.data.at > localAt()) { applyRemote(row.data); reloadSoon(); return; }
+      if (row && row.id === DOC && p.eventType !== "DELETE" && takeRemote(row)) return;
       subs.forEach(function (f) { f(p.eventType, row); });
     }).subscribe();
     return uid;
