@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""()=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];const m=(id,n,w)=>Object.assign(task({name:n,min:10},{type:'дела',where:w,ord:S.tasks.length}),{id});
       S.tasks.push(m('t1','Сегодняшняя','today'),m('t2','Завтрашняя','tomorrow'),m('t3','Из дел','backlog'));CORE.show=false;GF.tomorrow=true;GF.backlog=true;
       UI.sys='дела';UI.env='list';UI.view='tasks';save();render()}""")

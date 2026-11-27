@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg=b.new_context(viewport=dict(width=1400,height=1000)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""()=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];S.tasks.push(Object.assign(task({name:'Склад-задача',min:30},{type:'дела',where:'today',ord:1}),{id:'s1'}));save();UI.sys='дела';UI.env='timeline';UI.view='tasks';save&&0;render()}""")
     pg.evaluate("()=>{const b=document.querySelector('#viewSeg button');}")
     pg.evaluate("()=>{try{UI.env='timeline';render()}catch(e){}}")

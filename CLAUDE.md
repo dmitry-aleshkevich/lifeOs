@@ -22,8 +22,8 @@
 
 - Клон: `git clone --depth 1 https://github.com/dmitry-aleshkevich/lifeos /home/claude/lifeos`
 - Тесты ждут путь `/home/claude/work/lo`: `mkdir -p /home/claude/work && ln -sfn /home/claude/lifeos /home/claude/work/lo`
-- **Рабочая версия — Beta 2.0.** Исходники `v2b/src/` (`shell.html`, `css/*.css`, `lib-qrcode.js`, `js/NN-имя.js` — склеиваются по имени). **Правим исходники, не `v2b/index.html` и не корневой `index.html`.**
-- Сборка: `python3 build_v2b.py` → `v2b/index.html` (без облака, по ней гоняются тесты); `python3 build_pages.py` → корневой `index.html` (+ `v2b/cloud.html`: вход Supabase, документ `os2`). Корневой `index.html` — то, что открывается на GitHub Pages и на иконке телефона.
+- **Рабочая версия — Beta 2.0.** Исходники `v2b/src/` (`shell.html`, `css/*.css`, `lib-qrcode.js`, `js/NN-имя.js` — склеиваются по имени). **Правим исходники, не `v2b/build.html` и не корневой `index.html`.**
+- Сборка: `python3 build_v2b.py` → `v2b/build.html` (без облака, по ней гоняются тесты); `python3 build_pages.py` → корневой `index.html` (+ `v2b/cloud.html`: вход Supabase, документ `os2`). Корневой `index.html` — то, что открывается на GitHub Pages и на иконке телефона.
 - Старые версии (v1, бета) — только архив в `archive/` (не развиваем). Тесты старых версий — `archive/tests-old/`.
 - **Тесты:** `python3 build_v2b.py && python3 build_pages.py`, затем `cd tests && ./run_tests.sh` (`RETRY=1` для мигающих). Тест облака — test123 (на `fake_sb.js`, без сети).
 - **Перед пушем:** обе сборки, зелёные тесты, commit и push в `main`.

@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     run=lambda i:pg.evaluate(f"()=>!!(byId('{i}').tm&&byId('{i}').tm.run)")
     for ph,rk in (("morning","morning"),("evening","evening")):
         pg.evaluate(f"""()=>{{S.morningOnly=false;S.tasks=[];CORE.show=true;['r1','r2','r3'].forEach((id,i)=>S.tasks.push(Object.assign(task({{name:'П'+i,min:5}},{{type:'дела',where:'today',routine:'{rk}',ord:i}}),{{id}})));S.day.phase='{ph}';UI.sys='дела';UI.env='list';UI.view='tasks';save();render()}}""")

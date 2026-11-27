@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg=b.new_context(viewport=dict(width=1300,height=1000)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.tasks=S.tasks.filter(t=>!t.tpl);S.planGen='';UI.env='calendar';render()}")
     assert pg.locator(".caltitle").inner_text()=="Ноябрь 2026"
     assert pg.locator(".day[data-date='2026-11-27'] .dots").get_attribute("data-n")=="1" and pg.locator(".day[data-date='2026-11-27'] .card").count()==0

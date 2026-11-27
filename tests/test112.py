@@ -12,7 +12,7 @@ PINCH="""async ([d0,d1])=>{
 }"""
 def setup(pg,mobile):
     pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""()=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];S.tasks.push(Object.assign(task({name:'Зал',min:60,at:'15:00'},{type:'дела',where:'today',ord:1}),{id:'g'}));UI.sys='дела';UI.env='timeline';UI.view='tasks';save();render()}""")
     pg.wait_for_selector('.tl .slot')
 hr=lambda pg:pg.evaluate("()=>document.querySelector('.tl .hr').getBoundingClientRect().height")

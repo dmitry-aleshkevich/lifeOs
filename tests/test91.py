@@ -10,7 +10,7 @@ with sync_playwright() as p:
     pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button');pg.wait_for_timeout(500)
     assert pg.locator(".vsw a").count()==3
     before=pg.evaluate("()=>localStorage.getItem('lifeos.v2')")
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(500)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(500)
     assert pg.locator(".vsw").count()==0
     assert pg.locator(".card[data-cid=a]").count()==1
     pg.evaluate("()=>{S.tasks.find(t=>t.id==='a').name='Изменено';save();render()}")

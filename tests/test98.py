@@ -7,7 +7,7 @@ with sync_playwright() as p:
     pg=b.new_context(viewport=dict(width=1400,height=1000)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
-    pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
+    pg.goto("file:///home/claude/work/lo/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     # предзадача лежит в конце массива (как после «+ до»), родитель — раньше
     pg.evaluate("""()=>{const mk=(n,o)=>task({name:n},Object.assign({type:'работа',status:'todo'},o));
       const P=mk('Парент',{}),T=mk('Другая',{status:'wait'}),K=mk('Пред',{link:P.id,rel:'pre'});
