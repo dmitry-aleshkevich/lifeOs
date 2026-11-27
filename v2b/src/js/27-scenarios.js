@@ -26,7 +26,7 @@ const scenDefaultVer=(sc)=>{if(sc.kind!=="morning")return sc.versions[0].id;cons
 function scenApply(sc,ver){scenInit();pushUndo();BATCH=true;
   try{const base=sc.kind==="custom"?{type:"дела",where:"today"}:{type:"дела",where:"today",routine:sc.kind};
     const all=scenTasks(sc,ver),roots=all.filter((t)=>!t.link);
-    const clone=(t)=>task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((c)=>({text:c.text||c.t||c.name||"",done:false}))},Object.assign({ord:S.tasks.length},base));
+    const clone=(t)=>task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((c)=>({text:c.text||c.t||c.name||"",done:false}))},Object.assign({ord:S.tasks.length,src:t.id},base));
     if(sc.kind==="morning")S.tasks=S.tasks.filter((t)=>!(t.routine==="morning"&&!t.done));
     roots.forEach((r)=>{const par=clone(r),kids=all.filter((k)=>k.link===r.id);
       S.tasks.push(...kids.filter((k)=>k.rel==="pre").map((k)=>Object.assign(clone(k),{link:par.id,rel:"pre"})),par,...kids.filter((k)=>k.rel!=="pre").map((k)=>Object.assign(clone(k),{link:par.id,rel:"post"})))});
