@@ -67,13 +67,21 @@ const ENVS={
   }},
   kanban:{name:"Канбан",render(host){
     const work=UI.sys==="работа";
+    S.cols=S.cols||[];const hasCol=(t)=>S.cols.some((c)=>c.id===t.col);
     const STAT=work?[["todo","В работу","blue"],["doing","В процессе","yellow"],["wait","Жду","violet"],["done","Готово","green"]]
-      :[["today","Сегодня","orange"],["tomorrow","Завтра","blue"],["backlog","Нужно делать","gray"],["wait","Жду","violet"],["done","Готово","green"]];
+      :[["today","Сегодня","orange"],["tomorrow","Завтра","blue"],["backlog","Нужно делать","gray"],...S.cols.map((c)=>["c:"+c.id,c.name,"gray"]),["wait","Жду","violet"],["done","Готово","green"]];
     const base=()=>mine().filter((t)=>!t.link&&!t.archived);
-    const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:(!t.done&&(t.where||"")===k));
+    const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:k.startsWith("c:")?(!t.done&&t.where==="backlog"&&t.col===k.slice(2)):(!t.done&&(t.where||"")===k&&!(k==="backlog"&&hasCol(t))));
     const inProj=(t,k)=>(t.project||"")===k&&(work?!t.status:(!t.done&&!t.where));
-    const board=(label,id,cols,pick,addOpts)=>kbBoard(host,{label,id,cols,pick,addOpts,base});
-    board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
+    const board=(label,id,cols,pick,addOpts,x)=>kbBoard(host,Object.assign({label,id,cols,pick,addOpts,base},x||{}));
+    const colX=(h,k)=>{if(!k.startsWith("c:"))return;const c=S.cols.find((x)=>x.id===k.slice(2));if(!c)return;
+      const tag=h.querySelector(".tag");const nm=el("input","hin vn");nm.type="text";nm.value=c.name;nm.maxLength=30;nm.setAttribute("aria-label","Название колонки");
+      nm.onchange=()=>{const v=nm.value.trim();if(v){c.name=v;save()}else nm.value=c.name};if(tag)tag.replaceWith(nm);
+      const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delcol";dv.setAttribute("aria-label","Удалить колонку");dv.title="Удалить колонку: задачи вернутся в «Нужно делать»";
+      dv.onclick=()=>{pushUndo();S.cols=S.cols.filter((x)=>x!==c);S.tasks.forEach((t)=>{if(t.col===c.id)delete t.col});save();render()};h.appendChild(dv)};
+    board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:k.startsWith("c:")?{where:"backlog",col:k.slice(2)}:{where:k,col:""},work?null:{colHeadX:colX});
+    if(!work){const ac=el("button","chipb on","＋ Колонка");ac.type="button";ac.id="addcol";ac.onclick=()=>{pushUndo();S.cols.push({id:"c-"+uid(),name:"Новая колонка"});save();render();
+      const ins=[...document.querySelectorAll('.col[data-board=status] .vn')].pop();if(ins){ins.focus();ins.select()}};host.appendChild(ac)}
     const pcols=S.projects.filter((p)=>p.type===UI.sys&&!p.hidden&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
     board("Проекты","project",pcols,inProj,(k)=>({project:k,where:""}));

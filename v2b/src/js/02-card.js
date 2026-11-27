@@ -49,6 +49,7 @@ function cardBase(t,opt={}){
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
   if(t.carry&&!t.done&&t.where==="today")meta.appendChild(el("span","carrytag","со вчера"));
+  if(t.type==="дела"&&t.where==="backlog"&&t.col&&!t.done){const cc=(S.cols||[]).find((x)=>x.id===t.col);if(cc)meta.appendChild(el("span","chip pc-gray",cc.name))}
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
   if(checkTxt(t)&&!opt.v)meta.appendChild(ckTag(t));
   if(t.tpl&&!t.link)meta.appendChild(el("span","chip pc-gray","⚙ ядро"));

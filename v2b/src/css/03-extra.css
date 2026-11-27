@@ -10,3 +10,4 @@
 .wmx{position:absolute;right:8px;top:8px;z-index:6;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.88);color:#222;font-size:16px;line-height:1;cursor:pointer;padding:0}
 .wmo{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px}
 .wmo .wmp{width:min(100%,1100px);cursor:zoom-out}
+.chipb.sent{background:var(--pc-green-bg)!important;color:var(--pc-green)!important;border-color:var(--pc-green)!important}

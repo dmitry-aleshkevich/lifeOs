@@ -376,6 +376,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
 .wmx{position:absolute;right:8px;top:8px;z-index:6;width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.88);color:#222;font-size:16px;line-height:1;cursor:pointer;padding:0}
 .wmo{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px}
 .wmo .wmp{width:min(100%,1100px);cursor:zoom-out}
+.chipb.sent{background:var(--pc-green-bg)!important;color:var(--pc-green)!important;border-color:var(--pc-green)!important}
 </style>
 </head>
 <body>
@@ -2107,6 +2108,7 @@ function cardBase(t,opt={}){
   const txt=el("div","txt"); txt.appendChild(el("span","nm",t.name||"Без названия"));
   const meta=el("div","meta"); const p=proj(t.project);
   if(t.carry&&!t.done&&t.where==="today")meta.appendChild(el("span","carrytag","со вчера"));
+  if(t.type==="дела"&&t.where==="backlog"&&t.col&&!t.done){const cc=(S.cols||[]).find((x)=>x.id===t.col);if(cc)meta.appendChild(el("span","chip pc-gray",cc.name))}
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
   if(checkTxt(t)&&!opt.v)meta.appendChild(ckTag(t));
   if(t.tpl&&!t.link)meta.appendChild(el("span","chip pc-gray","⚙ ядро"));
@@ -2583,7 +2585,8 @@ function kbBoard(host,o){
     else{h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));{const sm=items.reduce((a,t)=>a+(t.min||0),0);h.appendChild(el("span","hsum",Math.floor(sm/60)+":"+String(sm%60).padStart(2,"0")))}
       if(id==="status"&&((work&&k==="todo")||(!work&&k==="today")||k==="done")){
         const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
-        b.onclick=()=>clearColumn(k);h.appendChild(b)}}
+        b.onclick=()=>clearColumn(k);h.appendChild(b)}
+      if(o.colHeadX)o.colHeadX(h,k,items,c)}
     c.appendChild(h);
     items.forEach((t)=>rowWithKids(c,t,{v:true,noProject:id==="project"||id==="scen"}));
     if(!(id==="status"&&k==="done")){
@@ -2631,7 +2634,7 @@ function dropKanban(d,t,o,after){
   if(board==="status"){
     if(key==="done"){if(!t.done)markDone(t)}
     else{if(t.done)t.done=false;
-      if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else t.where=key}}
+      if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else if(key.startsWith("c:")){t.where="backlog";t.col=key.slice(2)}else{t.where=key;delete t.col}}}
   else{t.project=key;if(t.tm&&t.tm.run)pauseT(t);t.done=false;if(work)t.status="";else t.where=""}
   if(o)S.tasks.splice(S.tasks.indexOf(o)+(after?1:0),0,t);else S.tasks.push(t)}
 /* Alt + бросок в другую версию сценария: копия задачи (с до/после-подзадачами), оригинал остаётся */
@@ -2913,13 +2916,21 @@ const ENVS={
   }},
   kanban:{name:"Канбан",render(host){
     const work=UI.sys==="работа";
+    S.cols=S.cols||[];const hasCol=(t)=>S.cols.some((c)=>c.id===t.col);
     const STAT=work?[["todo","В работу","blue"],["doing","В процессе","yellow"],["wait","Жду","violet"],["done","Готово","green"]]
-      :[["today","Сегодня","orange"],["tomorrow","Завтра","blue"],["backlog","Нужно делать","gray"],["wait","Жду","violet"],["done","Готово","green"]];
+      :[["today","Сегодня","orange"],["tomorrow","Завтра","blue"],["backlog","Нужно делать","gray"],...S.cols.map((c)=>["c:"+c.id,c.name,"gray"]),["wait","Жду","violet"],["done","Готово","green"]];
     const base=()=>mine().filter((t)=>!t.link&&!t.archived);
-    const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:(!t.done&&(t.where||"")===k));
+    const inStat=(t,k)=>work?t.status===k:(k==="done"?t.done:k.startsWith("c:")?(!t.done&&t.where==="backlog"&&t.col===k.slice(2)):(!t.done&&(t.where||"")===k&&!(k==="backlog"&&hasCol(t))));
     const inProj=(t,k)=>(t.project||"")===k&&(work?!t.status:(!t.done&&!t.where));
-    const board=(label,id,cols,pick,addOpts)=>kbBoard(host,{label,id,cols,pick,addOpts,base});
-    board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:{where:k});
+    const board=(label,id,cols,pick,addOpts,x)=>kbBoard(host,Object.assign({label,id,cols,pick,addOpts,base},x||{}));
+    const colX=(h,k)=>{if(!k.startsWith("c:"))return;const c=S.cols.find((x)=>x.id===k.slice(2));if(!c)return;
+      const tag=h.querySelector(".tag");const nm=el("input","hin vn");nm.type="text";nm.value=c.name;nm.maxLength=30;nm.setAttribute("aria-label","Название колонки");
+      nm.onchange=()=>{const v=nm.value.trim();if(v){c.name=v;save()}else nm.value=c.name};if(tag)tag.replaceWith(nm);
+      const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delcol";dv.setAttribute("aria-label","Удалить колонку");dv.title="Удалить колонку: задачи вернутся в «Нужно делать»";
+      dv.onclick=()=>{pushUndo();S.cols=S.cols.filter((x)=>x!==c);S.tasks.forEach((t)=>{if(t.col===c.id)delete t.col});save();render()};h.appendChild(dv)};
+    board(work?"Сейчас в работе":"План","status",STAT,inStat,(k)=>work?{status:k}:k.startsWith("c:")?{where:"backlog",col:k.slice(2)}:{where:k,col:""},work?null:{colHeadX:colX});
+    if(!work){const ac=el("button","chipb on","＋ Колонка");ac.type="button";ac.id="addcol";ac.onclick=()=>{pushUndo();S.cols.push({id:"c-"+uid(),name:"Новая колонка"});save();render();
+      const ins=[...document.querySelectorAll('.col[data-board=status] .vn')].pop();if(ins){ins.focus();ins.select()}};host.appendChild(ac)}
     const pcols=S.projects.filter((p)=>p.type===UI.sys&&!p.hidden&&(work||!/^работа$/i.test(p.name))).map((p)=>[p.id,p.name,p.color]);
     pcols.push(["","Без проекта","gray"]);
     board("Проекты","project",pcols,inProj,(k)=>({project:k,where:""}));
@@ -3710,6 +3721,13 @@ let scenCur={};const scOpen=new Set();
 function scenCopyVer(sc,from,nv){const map={};
   scenTasks(sc,from).forEach((t)=>{const c=task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((x)=>({text:x.text||"",done:false}))},{type:"сценарий",sc:sc.id,sv:nv.id,where:"",ord:S.tasks.length});map[t.id]=c;c.link=t.link;c.rel=t.rel;S.tasks.push(c)});
   const old=scenTasks(sc,from),cur=scenTasks(sc,nv);cur.forEach((c,i)=>{if(c.link){const o=old.find((x)=>x.id===c.link);const idx=old.indexOf(o);c.link=o?cur[idx].id:""}})}
+/* реакция на «Отправить»: тост и кнопка на секунду зеленеет с ✓ */
+const plRu=(n,f)=>n%10===1&&n%100!==11?f[0]:(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?f[1]:f[2]);
+function scenSent(sc,ver,n){
+  const msg=sc.kind==="morning"?"Применено к утру: "+n+" "+plRu(n,["пункт","пункта","пунктов"]):sc.kind==="evening"?"Добавлено в вечер: "+n+" "+plRu(n,["пункт","пункта","пунктов"]):"Отправлено: "+n+" "+plRu(n,["задача","задачи","задач"])+" в «Сегодня»";
+  closeToast();const tz=el("div","toast");tz.id="toast";tz.textContent=msg;tz._t=setTimeout(()=>tz.remove(),2600);document.body.appendChild(tz);
+  const b=document.querySelector('.scsec[data-sid="'+sc.id+'"] [data-ver="'+ver.id+'"] [data-a=apply]');
+  if(b){const old=b.textContent;b.classList.add("sent");b.textContent="✓ Отправлено";setTimeout(()=>{if(b.isConnected){b.classList.remove("sent");b.textContent=old}},1200)}}
 function renderScen(v){scenInit();
   v.appendChild(el("div","ghead")).appendChild(el("span",null,"Сценарии — набор задач, колонки — его версии. Задачи те же, что в Делах"));
   const fl=el("div","scflt");fl.id="scflt";
@@ -3737,7 +3755,7 @@ function renderScen(v){scenInit();
         h.appendChild(el("span","cnt",fmtMin(scenSum(sc,ver))));
         if(sc.versions.length>1){const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delver";dv.setAttribute("aria-label","Удалить версию");dv.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id&&t.sv===ver.id));sc.versions=sc.versions.filter((x)=>x!==ver);save();render()};h.appendChild(dv)}},
       colFoot:(c,k)=>{const ver=verOf(k);
-        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>scenApply(sc,ver);c.appendChild(ap)}})});
+        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>{const n=scenTasks(sc,ver).length;scenApply(sc,ver);scenSent(sc,ver,n)};c.appendChild(ap)}})});
   const add=el("button","chipb on","＋ Сценарий");add.type="button";add.id="scadd";add.onclick=()=>{S.scen.push({id:"t-"+uid(),kind:"custom",name:"Новый сценарий",icon:"",versions:[{id:"std",name:"Стандарт"}]});save();render()};v.appendChild(add)}
 function renderScenTabs(v){const t=el("div","seg");t.id="scenTabs";[["scen","Сценарии"],["plan","Шаблоны"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.tab=k;b.setAttribute("aria-pressed",(UI.scenTab||"scen")===k);b.onclick=()=>{UI.scenTab=k;render()};t.appendChild(b)});v.appendChild(t);
   if((UI.scenTab||"scen")==="plan")renderPlan(v);else renderScen(v)}

@@ -109,7 +109,8 @@ function kbBoard(host,o){
     else{h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));{const sm=items.reduce((a,t)=>a+(t.min||0),0);h.appendChild(el("span","hsum",Math.floor(sm/60)+":"+String(sm%60).padStart(2,"0")))}
       if(id==="status"&&((work&&k==="todo")||(!work&&k==="today")||k==="done")){
         const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
-        b.onclick=()=>clearColumn(k);h.appendChild(b)}}
+        b.onclick=()=>clearColumn(k);h.appendChild(b)}
+      if(o.colHeadX)o.colHeadX(h,k,items,c)}
     c.appendChild(h);
     items.forEach((t)=>rowWithKids(c,t,{v:true,noProject:id==="project"||id==="scen"}));
     if(!(id==="status"&&k==="done")){
@@ -157,7 +158,7 @@ function dropKanban(d,t,o,after){
   if(board==="status"){
     if(key==="done"){if(!t.done)markDone(t)}
     else{if(t.done)t.done=false;
-      if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else t.where=key}}
+      if(work){if(key==="wait"&&t.tm&&t.tm.run)pauseT(t);t.status=key}else if(key.startsWith("c:")){t.where="backlog";t.col=key.slice(2)}else{t.where=key;delete t.col}}}
   else{t.project=key;if(t.tm&&t.tm.run)pauseT(t);t.done=false;if(work)t.status="";else t.where=""}
   if(o)S.tasks.splice(S.tasks.indexOf(o)+(after?1:0),0,t);else S.tasks.push(t)}
 /* Alt + бросок в другую версию сценария: копия задачи (с до/после-подзадачами), оригинал остаётся */

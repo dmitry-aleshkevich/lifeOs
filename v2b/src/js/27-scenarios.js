@@ -41,6 +41,13 @@ let scenCur={};const scOpen=new Set();
 function scenCopyVer(sc,from,nv){const map={};
   scenTasks(sc,from).forEach((t)=>{const c=task({name:t.name,min:t.min,desc:t.desc,at:t.at||"",check:(t.check||[]).map((x)=>({text:x.text||"",done:false}))},{type:"сценарий",sc:sc.id,sv:nv.id,where:"",ord:S.tasks.length});map[t.id]=c;c.link=t.link;c.rel=t.rel;S.tasks.push(c)});
   const old=scenTasks(sc,from),cur=scenTasks(sc,nv);cur.forEach((c,i)=>{if(c.link){const o=old.find((x)=>x.id===c.link);const idx=old.indexOf(o);c.link=o?cur[idx].id:""}})}
+/* реакция на «Отправить»: тост и кнопка на секунду зеленеет с ✓ */
+const plRu=(n,f)=>n%10===1&&n%100!==11?f[0]:(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?f[1]:f[2]);
+function scenSent(sc,ver,n){
+  const msg=sc.kind==="morning"?"Применено к утру: "+n+" "+plRu(n,["пункт","пункта","пунктов"]):sc.kind==="evening"?"Добавлено в вечер: "+n+" "+plRu(n,["пункт","пункта","пунктов"]):"Отправлено: "+n+" "+plRu(n,["задача","задачи","задач"])+" в «Сегодня»";
+  closeToast();const tz=el("div","toast");tz.id="toast";tz.textContent=msg;tz._t=setTimeout(()=>tz.remove(),2600);document.body.appendChild(tz);
+  const b=document.querySelector('.scsec[data-sid="'+sc.id+'"] [data-ver="'+ver.id+'"] [data-a=apply]');
+  if(b){const old=b.textContent;b.classList.add("sent");b.textContent="✓ Отправлено";setTimeout(()=>{if(b.isConnected){b.classList.remove("sent");b.textContent=old}},1200)}}
 function renderScen(v){scenInit();
   v.appendChild(el("div","ghead")).appendChild(el("span",null,"Сценарии — набор задач, колонки — его версии. Задачи те же, что в Делах"));
   const fl=el("div","scflt");fl.id="scflt";
@@ -68,7 +75,7 @@ function renderScen(v){scenInit();
         h.appendChild(el("span","cnt",fmtMin(scenSum(sc,ver))));
         if(sc.versions.length>1){const dv=el("button","ib danger","🗑");dv.type="button";dv.dataset.a="delver";dv.setAttribute("aria-label","Удалить версию");dv.onclick=()=>{S.tasks=S.tasks.filter((t)=>!(t.type==="сценарий"&&t.sc===sc.id&&t.sv===ver.id));sc.versions=sc.versions.filter((x)=>x!==ver);save();render()};h.appendChild(dv)}},
       colFoot:(c,k)=>{const ver=verOf(k);
-        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>scenApply(sc,ver);c.appendChild(ap)}})});
+        const ap=el("button","chipb on",sc.kind==="morning"?"Применить к утру":sc.kind==="evening"?"Добавить в вечер":"Добавить в «Сегодня»");ap.type="button";ap.dataset.a="apply";ap.style.marginTop="10px";ap.onclick=()=>{const n=scenTasks(sc,ver).length;scenApply(sc,ver);scenSent(sc,ver,n)};c.appendChild(ap)}})});
   const add=el("button","chipb on","＋ Сценарий");add.type="button";add.id="scadd";add.onclick=()=>{S.scen.push({id:"t-"+uid(),kind:"custom",name:"Новый сценарий",icon:"",versions:[{id:"std",name:"Стандарт"}]});save();render()};v.appendChild(add)}
 function renderScenTabs(v){const t=el("div","seg");t.id="scenTabs";[["scen","Сценарии"],["plan","Шаблоны"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.tab=k;b.setAttribute("aria-pressed",(UI.scenTab||"scen")===k);b.onclick=()=>{UI.scenTab=k;render()};t.appendChild(b)});v.appendChild(t);
   if((UI.scenTab||"scen")==="plan")renderPlan(v);else renderScen(v)}
