@@ -22,13 +22,13 @@
 
 - Клон: `git clone --depth 1 https://github.com/dmitry-aleshkevich/lifeos /home/claude/lifeos`
 - Тесты ждут путь `/home/claude/work/lo`: `mkdir -p /home/claude/work && ln -sfn /home/claude/lifeos /home/claude/work/lo`
-- v1: исходники `src/shell.html`, `src/app.css`, `src/js/*.js`.
-- v2 (бета): `v2/index.html`.
-- v2b (Beta 2.0): исходники `v2b/src/` (`shell.html`, `css/*.css`, `lib-qrcode.js`, `js/NN-имя.js` — склеиваются по имени). **Правим исходники, не `v2b/index.html`.** Сборка: `python3 build_v2b.py` (до тестов и перед пушем).
-- **Тесты гонять по чистой сборке:** `python3 build.py`, затем `cd tests && ./run_tests.sh`.
-  Сборка с Supabase (`build_gh.py`) без сети падает и валит все тесты.
-- **Перед пушем:** `python3 build.py && python3 build_gh.py index.html`, затем commit и push в `main`.
-- test63 падает и на старом коде. 40, 41, 43, 44, 52, 66 иногда мигают — перезапустить по одному.
+- **Рабочая версия — Beta 2.0.** Исходники `v2b/src/` (`shell.html`, `css/*.css`, `lib-qrcode.js`, `js/NN-имя.js` — склеиваются по имени). **Правим исходники, не `v2b/index.html` и не корневой `index.html`.**
+- Сборка: `python3 build_v2b.py` → `v2b/index.html` (без облака, по ней гоняются тесты); `python3 build_pages.py` → корневой `index.html` (+ `v2b/cloud.html`: вход Supabase, документ `os2`). Корневой `index.html` — то, что открывается на GitHub Pages и на иконке телефона.
+- Старые версии (v1, бета) — только архив в `archive/` (не развиваем). Тесты старых версий — `archive/tests-old/`.
+- **Тесты:** `python3 build_v2b.py && python3 build_pages.py`, затем `cd tests && ./run_tests.sh` (`RETRY=1` для мигающих). Тест облака — test123 (на `fake_sb.js`, без сети).
+- **Перед пушем:** обе сборки, зелёные тесты, commit и push в `main`.
+- Мигающие тесты: 40, 41, 43, 44, 52, 66 — перезапустить по одному.
+- Бот: контракт `INTEGRATION.md`; приложение пишет `os2`, `bot-morning`, `bot-plan` (`v2b/src/js/27b-bot.js`), бот пишет только `bot-checkins`/`bot-settings`. Формат меняем только добавлением полей и сначала в `INTEGRATION.md`. Секреты в репозиторий не писать.
 
 ## Команда «идём в новый чат»
 

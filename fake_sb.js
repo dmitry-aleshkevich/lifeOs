@@ -3,10 +3,10 @@ window.__save = () => localStorage.setItem("__fakedb", JSON.stringify(window.__d
 window.supabase = { createClient: () => {
   let session = JSON.parse(localStorage.getItem("__fakesess") || "null");
   const q = (table) => { const st = { f: {} };
-    const run = () => { let rows = Object.entries(window.__db).map(([id, data]) => ({ id, data })); if (st.f.id) rows = rows.filter((r) => r.id === st.f.id); return rows; };
+    const run = () => { let rows = Object.entries(window.__db).map(([id, data]) => ({ id, data })); if (st.f.id) rows = rows.filter((r) => r.id === st.f.id); if (st.like) rows = rows.filter((r) => r.id.startsWith(st.like)); return rows; };
     const o = {
       select() { return o; }, eq(k, v) { st.f[k] = v; if (st.del) { delete window.__db[v]; window.__save(); return Promise.resolve({ error: null }); } return o; },
-      maybeSingle() { return Promise.resolve({ data: run()[0] || null, error: null }); },
+      like(k, pat) { st.like = pat.replace('%', ''); return o; }, maybeSingle() { return Promise.resolve({ data: run()[0] || null, error: null }); },
       then(r, j) { return Promise.resolve({ data: run(), error: null }).then(r, j); },
       upsert(rows) { (Array.isArray(rows) ? rows : [rows]).forEach((r) => { window.__db[r.id] = r.data; }); window.__save(); return Promise.resolve({ error: null }); },
       delete() { st.del = true; return o; } };

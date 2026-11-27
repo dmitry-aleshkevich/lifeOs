@@ -382,7 +382,6 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
 <body>
 <div class="head">
   <div><h1>LifeOS</h1></div>
-  <div class="seg vsw"><a href="../index.html">V1</a><a href="../v2/index.html">Beta</a><a class="on" href="#">Beta 2.0</a></div>
 </div>
 <div id="stk">
 <div class="bar" id="bar1" style="margin-bottom:10px">
@@ -3005,7 +3004,7 @@ function chainSync(){
     cur=end;
     for(const k of post){if(has&&!(k.aa||!k.at)&&pm(k.at)!==null)cur=pm(k.at)+mn(k,15);else{put(k,cur);cur+=mn(k,15)}walk(k,seen)}};
   S.tasks.forEach((t)=>{if(!(t.link&&(t.rel==="pre"||t.rel==="post")))walk(t,new Set())})}
-function save(){try{chainSync()}catch{}try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
+function save(){try{chainSync()}catch{}try{localStorage.setItem(V2,JSON.stringify(S))}catch{}try{botSync()}catch{}}
 /* ---------- фазы дня (Beta 2.0): Утро → День → Вечер → Ночь; новый день с 04:00, по часам фаза не меняется ---------- */
 const APP_URL="https://dmitry-aleshkevich.github.io/qr/?n=1";
 const rItems=(k)=>S.tasks.filter((t)=>t.routine===k&&!t.link&&t.type==="дела");
@@ -3552,7 +3551,7 @@ async function mpCloudInit() {
 function mpSaveLocal(rec) { mpStore("readwrite").then((s) => s.put(rec)).catch(() => {}); }
 
 function mpBuild() {
-  mpBuilt = true;
+  mpBuilt = true; mpCloudInit();
   const root = mpRoot = document.createElement("div"); root.className = "mp";
   root.innerHTML = `<div class="mpvp"><div class="mpworld"></div></div>
     <div class="mpbar"><button data-a="fit">Вписать</button><button data-a="text">+ Текст</button><button data-a="photo">+ Фото</button><button data-a="del" hidden class="d">Удалить</button><button data-a="save" title="Копия карты в файл">В файл</button><button data-a="load">Из файла</button></div>
@@ -3759,6 +3758,23 @@ function renderScen(v){scenInit();
   const add=el("button","chipb on","＋ Сценарий");add.type="button";add.id="scadd";add.onclick=()=>{S.scen.push({id:"t-"+uid(),kind:"custom",name:"Новый сценарий",icon:"",versions:[{id:"std",name:"Стандарт"}]});save();render()};v.appendChild(add)}
 function renderScenTabs(v){const t=el("div","seg");t.id="scenTabs";[["scen","Сценарии"],["plan","Шаблоны"]].forEach(([k,l])=>{const b=el("button",null,l);b.type="button";b.dataset.tab=k;b.setAttribute("aria-pressed",(UI.scenTab||"scen")===k);b.onclick=()=>{UI.scenTab=k;render()};t.appendChild(b)});v.appendChild(t);
   if((UI.scenTab||"scen")==="plan")renderPlan(v);else renderScen(v)}
+/* ---------- витрина для Telegram-бота: документы bot-morning и bot-plan (пишет только приложение, формат — INTEGRATION.md) ---------- */
+let BOT_T=null,BOT_LAST={};
+const botItems=(sc,ver)=>S.tasks.filter((t)=>t.type==="сценарий"&&t.sc===sc.id&&t.sv===ver.id&&!t.link).sort((a,b)=>(a.ord||0)-(b.ord||0)).map((t)=>({id:t.id,name:t.name,min:t.min||0}));
+function botDocs(){
+  if(!Array.isArray(S.scen))scenInit();
+  const mo=(S.scen||[]).find((s)=>s.kind==="morning"),ev=(S.scen||[]).find((s)=>s.kind==="evening"),now=Date.now(),day=S.day&&S.day.iso||dayISO();
+  const morning={versions:mo?mo.versions.map((v)=>({id:v.id,name:v.name,icon:"",items:botItems(mo,v)})):[],
+    today:{day:day,versionId:(S.day&&S.day.scen&&S.day.scen.morning)||null,items:rItems("morning").map((t)=>({id:t.id,name:t.name,min:t.min||0,done:!!t.done,spent:Math.round(t.spent||0)}))}};
+  const evening={items:ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],today:{day:day,items:rItems("evening").map((t)=>({id:t.id,name:t.name,min:t.min||0,done:!!t.done,spent:Math.round(t.spent||0)}))}};
+  const pl=(w)=>S.tasks.filter((t)=>t.type==="дела"&&!t.routine&&!t.link&&!t.archived&&t.where===w).sort((a,b)=>(a.ord||0)-(b.ord||0)).map((t)=>({id:t.id,name:t.name,min:t.min||0,done:!!t.done}));
+  return{"bot-morning":{schema:1,updatedAt:now,tz:"Asia/Ho_Chi_Minh",defaults:{morning:{1:"fast",2:"home",3:"fast",4:"home",5:"fast",6:"home",0:"home"}},morning:morning,evening:evening},
+    "bot-plan":{schema:1,updatedAt:now,day:day,today:pl("today"),tomorrow:pl("tomorrow")}}}
+async function botPush(){
+  try{const db=await window.claude?.use("db");if(!db)return;const col=db.collection();
+    const docs=botDocs();for(const id of Object.keys(docs)){const d=docs[id],key=JSON.stringify(Object.assign({},d,{updatedAt:0}));
+      if(BOT_LAST[id]===key)continue;BOT_LAST[id]=key;await col.doc(id).set(d)}}catch{}}
+function botSync(){if(!window.claude)return;clearTimeout(BOT_T);BOT_T=setTimeout(botPush,1500)}
 const VIEWS={habits:renderHabits,stats:renderStats,plan:renderPlan,scen:renderScenTabs,map:renderMap};
 function boot(){
   const v1=read(V1);

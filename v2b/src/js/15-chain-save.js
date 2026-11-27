@@ -9,4 +9,4 @@ function chainSync(){
     cur=end;
     for(const k of post){if(has&&!(k.aa||!k.at)&&pm(k.at)!==null)cur=pm(k.at)+mn(k,15);else{put(k,cur);cur+=mn(k,15)}walk(k,seen)}};
   S.tasks.forEach((t)=>{if(!(t.link&&(t.rel==="pre"||t.rel==="post")))walk(t,new Set())})}
-function save(){try{chainSync()}catch{}try{localStorage.setItem(V2,JSON.stringify(S))}catch{}}
+function save(){try{chainSync()}catch{}try{localStorage.setItem(V2,JSON.stringify(S))}catch{}try{botSync()}catch{}}

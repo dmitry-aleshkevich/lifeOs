@@ -15,7 +15,7 @@ def variant(strip):
     out.append(CSS[last:]); return ''.join(out)
 INIT = "localStorage.setItem('lifeos.focus.v1','plan'); document.addEventListener('DOMContentLoaded',()=>{const st=document.createElement('style');st.textContent='*,*::before,*::after{transition:none!important;animation:none!important;caret-color:transparent!important}';document.head.appendChild(st)})"
 def states(pg, vp, shot, mark):
-    pg.goto("file:///home/claude/work/lo/index.html"); pg.wait_for_timeout(600); pg.set_default_timeout(4000)
+    pg.goto("file:///home/claude/work/lo/archive/v1/index.html"); pg.wait_for_timeout(600); pg.set_default_timeout(4000)
     if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
     for n in ["Магазин 18:00 40м", "Купить 10м"]: pg.fill("#tdQa", n); pg.press("#tdQa", "Enter"); pg.wait_for_timeout(120)
     shot('today'); mark()

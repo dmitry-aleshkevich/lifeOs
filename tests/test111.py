@@ -7,7 +7,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(executable_path="/usr/bin/google-chrome",args=["--no-sandbox"])
     pg=b.new_context(viewport=dict(width=1200,height=900)).new_page();errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
-    pg.goto("file:///home/claude/work/lo/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
+    pg.goto("file:///home/claude/work/lo/archive/v2/index.html");pg.evaluate("v=>{localStorage.clear();localStorage.setItem('lifeos.v1',v)}",json.dumps(V1));pg.reload();pg.wait_for_selector('#sysSeg button')
     pg.goto("file:///home/claude/work/lo/v2b/index.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("""l=>{S.morningOnly=false;S.day.phase='day';S.tasks=[];const m=(id,n,d)=>Object.assign(task({name:n,min:20,desc:d},{type:'дела',where:'today',ord:S.tasks.length}),{id});
       S.tasks.push(m('lg','Длинное',l),m('sh','Короткое','коротко'));UI.sys='дела';UI.env='list';UI.view='tasks';save();render()}""",LONG)

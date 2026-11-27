@@ -158,7 +158,7 @@ async function mpCloudInit() {
 function mpSaveLocal(rec) { mpStore("readwrite").then((s) => s.put(rec)).catch(() => {}); }
 
 function mpBuild() {
-  mpBuilt = true;
+  mpBuilt = true; mpCloudInit();
   const root = mpRoot = document.createElement("div"); root.className = "mp";
   root.innerHTML = `<div class="mpvp"><div class="mpworld"></div></div>
     <div class="mpbar"><button data-a="fit">Вписать</button><button data-a="text">+ Текст</button><button data-a="photo">+ Фото</button><button data-a="del" hidden class="d">Удалить</button><button data-a="save" title="Копия карты в файл">В файл</button><button data-a="load">Из файла</button></div>
