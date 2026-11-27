@@ -2254,7 +2254,7 @@ function workQueue(){
   return {cur,nxt,all:cur.concat(nxt)}}
 function candidates(sys){
   if(sys==="работа")return workQueue().all;
-  return S.tasks.filter((t)=>t.type===sys&&!t.routine&&!t.link&&!t.done&&(t.where||"")==="today")}
+  return S.tasks.filter((t)=>t.type===sys&&!t.routine&&!t.link&&!t.tpl&&!t.done&&(t.where||"")==="today")}
 function focusCompute(sys){
   const pr=PRESETS.find((p)=>p[0]===F.preset)[2],c=candidates(sys),out=[];
   if(pr.n)c.slice(0,pr.n).forEach((t)=>out.push(t.id));
