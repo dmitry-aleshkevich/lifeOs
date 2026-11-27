@@ -14,7 +14,7 @@ jobs:
           base="https://dmitry-aleshkevich.github.io/lifeOs"
           for i in $(seq 1 30); do
             ok=1
-            for path in "/" "/v2/"; do
+            for path in "/" "/v2b/"; do
               code=$(curl -s -o /tmp/p.html -w '%{http_code}' "$base$path?t=$(date +%s)")
               [ "$code" = "200" ] && [ -s /tmp/p.html ] || ok=0
             done

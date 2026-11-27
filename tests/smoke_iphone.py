@@ -8,7 +8,7 @@ with sync_playwright() as p:
     ctx = b.new_context(**p.devices["iPhone 13"])
     pg = ctx.new_page()
     pg.on("pageerror", lambda e: errs.append("v1: " + str(e)))
-    pg.goto(f"file://{root}/index.html"); pg.wait_for_timeout(800)
+    pg.goto(f"file://{root}/v2b/build.html"); pg.wait_for_timeout(800)
     if pg.is_visible("#mscen"): pg.keyboard.press("Escape")
     assert pg.is_visible(".vsw a"), "нет ссылки Beta"
     pg.tap(".vsw a"); pg.wait_for_url("**/v2/index.html", timeout=5000)
