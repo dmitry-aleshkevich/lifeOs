@@ -18,18 +18,18 @@ function beeps(){
     for(let i=0;i<6;i++){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=i%2?660:880;
       g.gain.setValueAtTime(0.0001,t0+i*0.5);g.gain.exponentialRampToValueAtTime(0.35,t0+i*0.5+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+i*0.5+0.4);
       o.connect(g);g.connect(AC.destination);o.start(t0+i*0.5);o.stop(t0+i*0.5+0.45)}}catch{}}
-function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);logT(t,NOW()-m.seg);m.run=false;if(t.type==="работа"&&t.status==="doing")t.status="wait"}
+function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);logT(t,NOW()-m.seg);m.run=false;m.at=NOW();if(t.type==="работа"&&t.status==="doing")t.status="wait"}
 function startT(t){audio();
   S.tasks.forEach((x)=>{if(x!==t&&x.tm&&x.tm.run)pauseT(x)});
   if(!t.tm){const sw=!t.min;t.tm={run:true,sw,end:NOW()+(sw?0:t.min*60000),left:0,seg:NOW(),rang:false}}
   else if(!t.tm.run){t.tm.run=true;t.tm.end=NOW()+t.tm.left;t.tm.seg=NOW()}
   if(t.type==="работа"&&!t.done)t.status="doing";
-  save();tick();if(t.type==="работа")render()}
+  t.tm.at=NOW();save();tick();if(t.type==="работа")render()}
 function toggleT(t){logA((t.tm&&t.tm.run?"пауза ":"старт ")+nmq(t));if(t.tm&&t.tm.run){pauseT(t);save();tick();if(t.type==="работа")render()}else startT(t)}
 function addT(t,min){const add=min*60000;
   if(!t.tm){t.min=(t.min||0)+min;save();render();return}
   if(t.tm.sw)return;
-  const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;save();tick()}
+  const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;t.tm.at=NOW();save();tick()}
 function markDone(t){
   if(t.tm){if(t.tm.run)pauseT(t);t.tm=null}
   delete t.carry;t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";logDone(t);if(t.routine&&S&&S.day)phaseCheck()}

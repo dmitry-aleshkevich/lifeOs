@@ -2278,18 +2278,18 @@ function beeps(){
     for(let i=0;i<6;i++){const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=i%2?660:880;
       g.gain.setValueAtTime(0.0001,t0+i*0.5);g.gain.exponentialRampToValueAtTime(0.35,t0+i*0.5+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t0+i*0.5+0.4);
       o.connect(g);g.connect(AC.destination);o.start(t0+i*0.5);o.stop(t0+i*0.5+0.45)}}catch{}}
-function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);logT(t,NOW()-m.seg);m.run=false;if(t.type==="работа"&&t.status==="doing")t.status="wait"}
+function pauseT(t){const m=t.tm;if(!m||!m.run)return;m.left=m.end-NOW();t.acc=(t.acc||0)+(NOW()-m.seg);logT(t,NOW()-m.seg);m.run=false;m.at=NOW();if(t.type==="работа"&&t.status==="doing")t.status="wait"}
 function startT(t){audio();
   S.tasks.forEach((x)=>{if(x!==t&&x.tm&&x.tm.run)pauseT(x)});
   if(!t.tm){const sw=!t.min;t.tm={run:true,sw,end:NOW()+(sw?0:t.min*60000),left:0,seg:NOW(),rang:false}}
   else if(!t.tm.run){t.tm.run=true;t.tm.end=NOW()+t.tm.left;t.tm.seg=NOW()}
   if(t.type==="работа"&&!t.done)t.status="doing";
-  save();tick();if(t.type==="работа")render()}
+  t.tm.at=NOW();save();tick();if(t.type==="работа")render()}
 function toggleT(t){logA((t.tm&&t.tm.run?"пауза ":"старт ")+nmq(t));if(t.tm&&t.tm.run){pauseT(t);save();tick();if(t.type==="работа")render()}else startT(t)}
 function addT(t,min){const add=min*60000;
   if(!t.tm){t.min=(t.min||0)+min;save();render();return}
   if(t.tm.sw)return;
-  const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;save();tick()}
+  const l=leftOf(t);const nl=l<0?add:l+add;t.tm.left=nl;if(t.tm.run)t.tm.end=NOW()+nl;t.tm.rang=false;t.tm.at=NOW();save();tick()}
 function markDone(t){
   if(t.tm){if(t.tm.run)pauseT(t);t.tm=null}
   delete t.carry;t.spent=t.acc||0;t.acc=0;t.done=true;t.doneAt=NOW();if(t.type==="работа")t.status="done";logDone(t);if(t.routine&&S&&S.day)phaseCheck()}
@@ -3135,7 +3135,7 @@ function dayRoll(){
     S.tasks.forEach((t)=>{if(cand(t)&&t.where==="today")t.carry=1});
     S.tasks.forEach((t)=>{if(cand(t)&&t.where!=="today"&&(t.where==="tomorrow"||t.due===iso)){t.where="today";if(t.due&&t.due<iso)t.due=iso}})}
   if(S.day.iso)S.tasks.filter((t)=>t.routine).forEach((t)=>Object.assign(t,{done:false,doneAt:0,spent:0,acc:0,sessions:0,tm:null,archived:false}));
-  S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";S.day.bot={};
+  S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";S.day.bot={};S.day.botRun=0;
   S.day.phase=S.morningOnly&&rItems("morning").length?"morning":"day";save();return true}
 function phaseCheck(){const p=S.day.phase;
   if(p==="morning"&&rItems("morning").every((t)=>t.done)){S.day.phase="day";wakeMark();save();confetti()}
@@ -3881,6 +3881,12 @@ const botItems=(sc,ver)=>S.tasks.filter((t)=>t.type==="сценарий"&&t.sc==
 function botStep(items,vitems,used){return items.map((t)=>{let id=t.src&&vitems.some((v)=>v.id===t.src)?t.src:"";
   if(!id){const m=vitems.find((v)=>v.name===t.name&&!used.has(v.id));id=m?m.id:""}if(id)used.add(id);
   return{id:t.id,stepId:id||null,name:t.name,min:t.min||0,done:!!t.done,spent:Math.round(t.spent||0)}})}
+/* общий таймер: идущий таймер пункта рутины, иначе последний на паузе (формат — INTEGRATION.md п. 0.05) */
+function botRun(rows){
+  const c=rows.map((r)=>({r,t:byId(r.id)})).filter((x)=>x.t&&x.t.tm&&!x.t.done);
+  const x=c.find((y)=>y.t.tm.run)||c.sort((a,b)=>(b.t.tm.at||0)-(a.t.tm.at||0))[0];if(!x)return null;
+  const m=x.t.tm,at=Math.round(m.at||m.seg),p=m.run?0:at,from=Math.round((m.run?m.seg:at)-(x.t.acc||0));
+  return{item:x.r.stepId||x.r.id,at,startedAt:from,endsAt:m.sw?0:Math.round(m.run?m.end:at+m.left),pausedAt:p}}
 function botDocs(){
   if(!Array.isArray(S.scen))scenInit();
   const mo=(S.scen||[]).find((s)=>s.kind==="morning"),ev=(S.scen||[]).find((s)=>s.kind==="evening"),now=Date.now(),day=S.day&&S.day.iso||dayISO();
@@ -3888,6 +3894,7 @@ function botDocs(){
   const morning={versions:mo?mo.versions.map((v)=>({id:v.id,name:v.name,icon:"",items:botItems(mo,v)})):[],
     today:{day:day,versionId:(S.day&&S.day.scen&&S.day.scen.morning)||null,items:botStep(rItems("morning"),mver?botItems(mo,mver):[],new Set())}};
   const evening={items:ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],today:{day:day,items:botStep(rItems("evening"),ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],new Set())}};
+  morning.today.run=botRun(morning.today.items);evening.today.run=botRun(evening.today.items);
   const pl=(w)=>S.tasks.filter((t)=>t.type==="дела"&&!t.routine&&!t.link&&!t.archived&&t.where===w).sort((a,b)=>(a.ord||0)-(b.ord||0)).map((t)=>({id:t.id,name:t.name,min:t.min||0,done:!!t.done}));
   return{"bot-morning":{schema:1,updatedAt:now,tz:"Asia/Ho_Chi_Minh",defaults:{morning:{1:"fast",2:"home",3:"fast",4:"home",5:"fast",6:"home",0:"home"}},morning:morning,evening:evening},
     "bot-plan":{schema:1,updatedAt:now,day:day,today:pl("today"),tomorrow:pl("tomorrow")}}}
@@ -3898,16 +3905,31 @@ async function botPush(){
 function botSync(){if(!window.claude)return;clearTimeout(BOT_T);BOT_T=setTimeout(botPush,1500)}
 /* ---------- отметки из Telegram-бота: документ bot-checkins (пишет только бот, приложение читает; формат — INTEGRATION.md п. 5) ---------- */
 function checkinsApply(d){
-  if(!d||!d.days||!S||!S.day)return;const evs=d.days[S.day.iso]||[];if(!evs.length)return;let ch=false;
+  if(!d||!d.days||!S||!S.day)return;const evs=d.days[S.day.iso]||[];if(!evs.length&&!d.run)return;let ch=false;
   const today=botDocs()["bot-morning"];
   evs.forEach((ev)=>{if(!ev||!ev.item||(ev.kind!=="morning"&&ev.kind!=="evening"))return;
     const list=(ev.kind==="morning"?today.morning:today.evening).today.items;
     const row=list.find((x)=>x.stepId===ev.item)||list.find((x)=>x.id===ev.item);const t=row&&byId(row.id);if(!t)return;
     /* каждое событие бота применяется к пункту один раз: иначе снятая вручную отметка возвращалась бы при каждом перечитывании */
     const seen=S.day.bot||(S.day.bot={}),k=ev.kind+":"+t.id,at=+ev.at||0;if(seen[k]!==undefined&&at<=seen[k])return;seen[k]=at;ch=true;
-    if(ev.done&&!t.done){markDone(t);logA("отмечено в боте "+nmq(t));ch=true}
+    if(ev.done&&!t.done){markDone(t);if(ev.spent>0)t.spent=ev.spent;logA("отмечено в боте "+nmq(t));ch=true}
     else if(!ev.done&&t.done&&at>(t.doneAt||0)){t.done=false;t.doneAt=0}});
+  if(botRunApply(d.run,today))ch=true;
   if(ch){save();render()}}
+/* таймер из бота: применяется один раз и только если он новее своих таймеров этой рутины */
+function botRunApply(r,today){
+  if(!r||!r.item||r.day!==S.day.iso||(r.kind!=="morning"&&r.kind!=="evening"))return false;
+  const list=(r.kind==="morning"?today.morning:today.evening).today.items;
+  const row=list.find((x)=>x.stepId===r.item)||list.find((x)=>x.id===r.item);const t=row&&byId(row.id);if(!t||t.done)return false;
+  const at=+r.at||0;if(at<=(S.day.botRun||0)||rItems(r.kind).some((x)=>x.tm&&!x.done&&(x.tm.at||0)>=at))return false;
+  S.day.botRun=at;
+  S.tasks.forEach((x)=>{if(x!==t&&x.tm&&x.tm.run){pauseT(x);x.tm.at=at}});
+  const end=+r.endsAt||0,from=+r.startedAt||at,p=+r.pausedAt||0;
+  if(p){if(t.tm&&t.tm.run)pauseT(t);t.acc=p-from;t.tm={run:false,sw:!end,end:end||from,left:(end||from)-p,seg:from,rang:!!end&&end<=p}}
+  else if(!t.tm){t.acc=0;t.tm={run:true,sw:!end,end:end||from,left:0,seg:from,rang:!!end&&end<=NOW()}}
+  else{const m=t.tm;if(!m.run){m.run=true;m.seg=NOW();if(m.sw)m.end=NOW()+m.left}
+    if(end&&!m.sw){m.end=end;m.rang=end<=NOW()}}
+  t.tm.at=at;logA("таймер из бота "+nmq(t));return true}
 async function checkinsInit(){
   try{const db=await window.claude?.use("db");if(!db)return;
     db.collection().doc("bot-checkins").onSnapshot((snap)=>{if(snap&&snap.exists)try{checkinsApply(snap.data())}catch{}})}catch{}}

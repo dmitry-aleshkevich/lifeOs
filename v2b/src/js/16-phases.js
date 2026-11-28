@@ -12,7 +12,7 @@ function dayRoll(){
     S.tasks.forEach((t)=>{if(cand(t)&&t.where==="today")t.carry=1});
     S.tasks.forEach((t)=>{if(cand(t)&&t.where!=="today"&&(t.where==="tomorrow"||t.due===iso)){t.where="today";if(t.due&&t.due<iso)t.due=iso}})}
   if(S.day.iso)S.tasks.filter((t)=>t.routine).forEach((t)=>Object.assign(t,{done:false,doneAt:0,spent:0,acc:0,sessions:0,tm:null,archived:false}));
-  S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";S.day.bot={};
+  S.day.iso=iso;S.day.evening=false;S.day.skipMorning="";S.day.bot={};S.day.botRun=0;
   S.day.phase=S.morningOnly&&rItems("morning").length?"morning":"day";save();return true}
 function phaseCheck(){const p=S.day.phase;
   if(p==="morning"&&rItems("morning").every((t)=>t.done)){S.day.phase="day";wakeMark();save();confetti()}
