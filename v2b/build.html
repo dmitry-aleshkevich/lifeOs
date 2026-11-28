@@ -3771,10 +3771,17 @@ function botRun(rows){
   const x=c.find((y)=>y.t.tm.run)||c.sort((a,b)=>(b.t.tm.at||0)-(a.t.tm.at||0))[0];if(!x)return null;
   const m=x.t.tm,at=Math.round(m.at||m.seg),p=m.run?0:at,from=Math.round((m.run?m.seg:at)-(x.t.acc||0));
   return{item:x.r.stepId||x.r.id,at,startedAt:from,endsAt:m.sw?0:Math.round(m.run?m.end:at+m.left),pausedAt:p}}
+/* из какой версии утра сделаны пункты дня: выбранная кнопкой, иначе самая похожая — по ссылкам src, названиям, числу лишних шагов, минутам; при равенстве версия дня (★) */
+function botVer(mo,rows){const sel=mo.versions.find((v)=>v.id===(S.day&&S.day.scen&&S.day.scen.morning));if(sel)return sel;
+  const def=scenDefaultVer(mo);
+  const score=(v)=>{const s=botItems(mo,v),linked=botStep(rows,s,new Set()),hit=linked.filter((x)=>x.stepId);
+    return[rows.filter((t)=>t.src&&s.some((x)=>x.id===t.src)).length,hit.length,hit.length-s.length,
+      hit.filter((x)=>s.find((y)=>y.id===x.stepId).min===x.min).length,v.id===def?1:0]};
+  return mo.versions.map((v)=>({v,k:score(v)})).sort((a,b)=>{const i=a.k.findIndex((n,j)=>n!==b.k[j]);return i<0?0:b.k[i]-a.k[i]})[0]?.v}
 function botDocs(){
   if(!Array.isArray(S.scen))scenInit();
   const mo=(S.scen||[]).find((s)=>s.kind==="morning"),ev=(S.scen||[]).find((s)=>s.kind==="evening"),now=Date.now(),day=S.day&&S.day.iso||dayISO();
-  const mver=mo&&(mo.versions.find((v)=>v.id===(S.day&&S.day.scen&&S.day.scen.morning))||mo.versions[0]);
+  const mver=mo&&botVer(mo,rItems("morning"));
   const morning={versions:mo?mo.versions.map((v)=>({id:v.id,name:v.name,icon:"",items:botItems(mo,v)})):[],
     today:{day:day,versionId:(S.day&&S.day.scen&&S.day.scen.morning)||null,items:botStep(rItems("morning"),mver?botItems(mo,mver):[],new Set())}};
   const evening={items:ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],today:{day:day,items:botStep(rItems("evening"),ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],new Set())}};
