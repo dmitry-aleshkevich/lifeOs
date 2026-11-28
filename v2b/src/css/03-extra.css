@@ -11,3 +11,6 @@
 .wmo{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px}
 .wmo .wmp{width:min(100%,1100px);cursor:zoom-out}
 .chipb.sent{background:var(--pc-green-bg)!important;color:var(--pc-green)!important;border-color:var(--pc-green)!important}
+.kb .col h3 .hprice{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.kb .col h3 .hprice~.cnt,.kb .col h3 .hprice~.hsum{flex:none}
+.kb .col h3:has(.hprice) .tag{min-width:0;overflow:hidden;white-space:nowrap;flex:0 1 auto}

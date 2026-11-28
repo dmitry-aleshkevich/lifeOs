@@ -111,7 +111,7 @@ function kbBoard(host,o){
     c.style.setProperty("--cink","var(--pc-"+col+")");
     const h=el("h3");
     if(o.colHead)o.colHead(h,k,items,c);
-    else{h.appendChild(el("span","tag",title));h.appendChild(el("span","cnt",String(items.length)));{const sm=items.reduce((a,t)=>a+(t.min||0),0);h.appendChild(el("span","hsum",Math.floor(sm/60)+":"+String(sm%60).padStart(2,"0")))}
+    else{h.appendChild(el("span","tag",title));if(id==="project"){const pb=priceBadge(k);if(pb)h.appendChild(pb)}h.appendChild(el("span","cnt",String(items.length)));{const sm=items.reduce((a,t)=>a+(t.min||0),0);h.appendChild(el("span","hsum",Math.floor(sm/60)+":"+String(sm%60).padStart(2,"0")))}
       if(id==="status"&&((work&&k==="todo")||(!work&&k==="today")||k==="done")){
         const b=el("button","clr","Очистить");b.type="button";b.title=k==="done"?"Убрать выполненные с доски":"Вернуть задачи в проекты";
         b.onclick=()=>clearColumn(k);h.appendChild(b)}

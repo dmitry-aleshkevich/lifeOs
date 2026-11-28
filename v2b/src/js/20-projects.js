@@ -5,6 +5,9 @@ function projHide(p,on){p.hidden=!!on;
     if(on){if(!t.archived){t.archived=true;t.pHid=true}}else if(t.pHid){t.archived=false;t.pHid=false}})}
 function projReorder(ids){const list=projList(),slots=list.map((p)=>S.projects.indexOf(p));
   ids.forEach((id,i)=>{S.projects[slots[i]]=list.find((p)=>p.id===id)})}
+/* цена проекта в шапке колонки; голое число — по разрядам, свой текст («1500 $») как есть */
+function priceBadge(id){const p=S.projects.find((x)=>x.id===id),v=p&&String(p.price||"").trim();if(!v)return null;
+  const b=el("span","hprice",/^\d+$/.test(v)?(+v).toLocaleString("ru-RU"):v);b.title="Цена проекта: "+v;return b}
 function projClose(){const p=document.getElementById("ppop");if(p)p.remove()}
 function projOpen(){
   if(document.getElementById("ppop")){projClose();return}
@@ -21,7 +24,7 @@ function projOpen(){
     const g=el("span","pg","⋮⋮");g.setAttribute("aria-hidden","true");
     const n=el("input","pn pnin");n.type="text";n.value=p.name;n.maxLength=40;n.setAttribute("aria-label","Название проекта");n.style.background="var(--pc-"+(p.color||"gray")+"-bg)";
     n.onchange=()=>{const x=n.value.trim();if(!x){n.value=p.name;return}pushUndo();p.name=x;logA("проект переименован: "+x);save();render()};
-    const pr=el("input","pprice");pr.type="text";pr.value=p.price||"";pr.placeholder="цена";pr.maxLength=20;pr.setAttribute("aria-label","Цена проекта");pr.onchange=()=>{p.price=pr.value.trim();save()};
+    const pr=el("input","pprice");pr.type="text";pr.value=p.price||"";pr.placeholder="цена";pr.maxLength=20;pr.setAttribute("aria-label","Цена проекта");pr.onchange=()=>{p.price=pr.value.trim();save();render()};
     const dl=el("button","pe pdel","🗑");dl.type="button";dl.title="Удалить проект";dl.setAttribute("aria-label","Удалить проект");
     dl.onclick=()=>{if(dl.dataset.arm!=="1"){dl.dataset.arm="1";dl.textContent="Точно?";setTimeout(()=>{dl.dataset.arm="";dl.textContent="🗑"},2500);return}
       pushUndo();S.tasks.forEach((t)=>{if(t.project===p.id)t.project=""});S.projects=S.projects.filter((x)=>x!==p);logA("проект удалён: "+p.name);save();draw();render()};
