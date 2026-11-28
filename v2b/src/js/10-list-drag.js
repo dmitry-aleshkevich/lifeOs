@@ -3,7 +3,7 @@ let DR=null,swallow=false;
 document.addEventListener("click",(e)=>{if(swallow){e.stopPropagation();e.preventDefault();swallow=false}},true);
 function dragStart(){const d=DR;d.active=true;d.li.classList.add("dragging");if(d.group.length>1)document.querySelectorAll(".card.sel").forEach((c)=>c.classList.add("dragging"));document.body.classList.add("drag");
   const r=d.li.getBoundingClientRect();d.dx=d.x-r.left;d.dy=d.y-r.top;
-  const g=d.li.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";g.querySelectorAll(".panel,.plus,.x").forEach((n)=>n.remove());if(d.group.length>1){const bd=el("span","gcount",String(d.group.length));g.appendChild(bd)}document.body.appendChild(g);d.ghost=g;
+  const g=d.li.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";g.querySelectorAll(".panel,.plus,.x,.more,.tline").forEach((n)=>n.remove());if(d.group.length>1){const bd=el("span","gcount",String(d.group.length));g.appendChild(bd)}document.body.appendChild(g);d.ghost=g;
   const ln=el("div","dropline");ln.hidden=true;document.body.appendChild(ln);d.line=ln;
   const loop=()=>{if(!DR||!DR.active)return;if(DR.y<70)scrollBy(0,-14);else if(DR.y>innerHeight-70)scrollBy(0,14);dragMove();requestAnimationFrame(loop)};requestAnimationFrame(loop)}
 function plusAt(d){

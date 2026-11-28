@@ -53,6 +53,7 @@ function cardBase(t,opt={}){
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
   if(checkTxt(t)&&!opt.v)meta.appendChild(ckTag(t));
   if(t.tpl&&!t.link)meta.appendChild(el("span","chip pc-gray","⚙ ядро"));
+  if(t.push&&!t.done){const b=el("span","bellm","🔔");b.title="Пуш в Telegram: "+pushLabel(t.push.before);meta.appendChild(b)}
   const kids=S.tasks.filter((x)=>x.link===t.id).length;
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
   if(t.desc){const d=el("span","desc"+(DESCX.has(t.id)?" open":""),t.desc);d.dataset.did=t.id;meta.appendChild(d);
@@ -62,7 +63,7 @@ function cardBase(t,opt={}){
   if(opt.v){
     li.classList.add("v");
     const top=el("div","top");top.appendChild(li.firstChild);top.appendChild(txt);
-    if(!t.done)top.appendChild(pillBtn(t," kp","Старт/пауза. ПКМ — время"));
+    if(!t.done&&!isCheck(t))top.appendChild(pillBtn(t," kp","Старт/пауза. ПКМ — время"));
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
@@ -80,7 +81,7 @@ function cardBase(t,opt={}){
   {const a=atSpan(t,opt);if(a)li.appendChild(a)}
   if(t.done){const sp=t.spent||0;
     if(sp>0||t.min){const c=el("span","mins done-t"+(t.min&&sp>t.min*60000?" late":" early"),fmtSpent(sp));li.appendChild(c)}}
-  else li.appendChild(pillBtn(t,opt.hot?" hot":""));
+  else if(!isCheck(t))li.appendChild(pillBtn(t,opt.hot?" hot":""));
   return li;
 }
 

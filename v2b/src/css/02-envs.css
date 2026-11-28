@@ -119,7 +119,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .dh{display:flex;justify-content:space-between;align-items:center}.cal .dadd{border:0;background:transparent;color:var(--muted);font-weight:800;font-size:14px;cursor:pointer;opacity:0;padding:0 4px}.cal .day:hover .dadd,.cal .dadd:focus{opacity:1}@media(hover:none){.cal .dadd{opacity:.5}}
 .cal .day{position:relative;display:flex;flex-direction:column;gap:3px}.cal.week .day{min-height:340px}
-.cal .day .card{padding:4px 6px;min-height:0;font-size:11px;gap:5px}.cal .day .card .mins,.cal .day .card .plus,.cal .day .card .x,.cal .day .card .meta{display:none}.cal .day .card .ck{width:16px;height:16px;min-width:16px;font-size:10px}
+.cal .day .card{padding:4px 6px;min-height:0;font-size:11px;gap:5px}.cal .day .card .mins,.cal .day .card .plus,.cal .day .card .more,.cal .day .card .x,.cal .day .card .meta{display:none}.cal .day .card .ck{width:16px;height:16px;min-width:16px;font-size:10px}
 .cal .day .card.open{position:absolute;z-index:30;left:0;top:22px;width:300px;max-width:90vw;box-shadow:0 8px 28px rgba(0,0,0,.25);font-size:14px}.cal .day .card.open .mins,.cal .day .card.open .meta{display:flex}
 .cal .day.dropcol,.store.dropcol{outline:2px dashed var(--accent);outline-offset:-2px}
 .store{min-height:120px}.store .card{margin-bottom:6px}

@@ -41,12 +41,10 @@ function panel(t){
   const nw=el("input","cl-new");nw.type="text";nw.placeholder="Новый пункт чек-листа";
   nw.onkeydown=(e)=>{if(e.key==="Enter"&&nw.value.trim()){pushUndo();t.check.push({text:nw.value.trim(),done:false});save();UI.focusNew=t.id;render()}};
   cl.appendChild(nw);p.appendChild(cl);
-  // подвал: слева дата и время (серым), справа «Удалить»
+  // подвал: дата и время; удаление и календарь — в меню «⋯»
   const r3=el("div","row pfoot");
   const dtb=el("button","dtbtn"+((t.at||t.due)?" set":""),(t.at||t.due)?dateLabel(t):"📅");dtb.type="button";
   dtb.title="Дата и время";const opn=()=>{if(UI.dt===t.id)return;UI.dt=t.id;UI.dtd=null;render()};dtb.onclick=opn;let hv=0;dtb.onmouseenter=()=>{clearTimeout(hv);hv=setTimeout(opn,180)};dtb.onmouseleave=()=>clearTimeout(hv);r3.appendChild(dtb);
-  const gcb=el("button","chipb gcb",t.gcal?"✓ В календаре":"📅 В календарь");gcb.type="button";gcb.title="Записать в Google Calendar (нужно время начала)";gcb.onclick=()=>toCalendar(t);r3.appendChild(gcb);
-  const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
   if(UI.dt===t.id){
     const bx=el("div","dtbox dtp");

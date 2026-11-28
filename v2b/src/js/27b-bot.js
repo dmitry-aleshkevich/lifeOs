@@ -9,8 +9,15 @@ function botStep(items,vitems,used){return items.map((t)=>{let id=t.src&&vitems.
 function botRun(rows){
   const c=rows.map((r)=>({r,t:byId(r.id)})).filter((x)=>x.t&&x.t.tm&&!x.t.done);
   const x=c.find((y)=>y.t.tm.run)||c.sort((a,b)=>(b.t.tm.at||0)-(a.t.tm.at||0))[0];if(!x)return null;
-  const m=x.t.tm,at=Math.round(m.at||m.seg),p=m.run?0:at,from=Math.round((m.run?m.seg:at)-(x.t.acc||0));
-  return{item:x.r.stepId||x.r.id,at,startedAt:from,endsAt:m.sw?0:Math.round(m.run?m.end:at+m.left),pausedAt:p}}
+  return Object.assign({item:x.r.stepId||x.r.id},timerOf(x.t))}
+function timerOf(t){const m=t.tm,at=Math.round(m.at||m.seg),p=m.run?0:at,from=Math.round((m.run?m.seg:at)-(t.acc||0));
+  return{at,startedAt:from,endsAt:m.sw?0:Math.round(m.run?m.end:at+m.left),pausedAt:p}}
+/* задачи с включённым пушем: день и время начала, со вчерашнего дня (формат — INTEGRATION.md п. 0.06) */
+function botPushes(day){const from=dayOf(NOW()-864e5);
+  return S.tasks.filter((t)=>t.push&&t.at&&(t.type==="дела"||t.type==="работа")&&!t.routine&&!t.archived)
+    .map((t)=>({t,d:t.due||(t.where==="today"?day:t.where==="tomorrow"?dayOf(NOW()+864e5):"")}))
+    .filter((x)=>x.d&&x.d>=from).sort((a,b)=>(a.d+a.t.at).localeCompare(b.d+b.t.at)).slice(0,100)
+    .map(({t,d})=>({id:t.id,name:t.name,min:t.min||0,day:d,time:t.at,before:+t.push.before||0,done:!!t.done,run:t.tm&&!t.done?timerOf(t):null}))}
 /* из какой версии утра сделаны пункты дня: выбранная кнопкой, иначе самая похожая — по ссылкам src, названиям, числу лишних шагов, минутам; при равенстве версия дня (★) */
 function botVer(mo,rows){const sel=mo.versions.find((v)=>v.id===(S.day&&S.day.scen&&S.day.scen.morning));if(sel)return sel;
   const def=scenDefaultVer(mo);
@@ -27,8 +34,9 @@ function botDocs(){
   const evening={items:ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],today:{day:day,items:botStep(rItems("evening"),ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],new Set())}};
   morning.today.run=botRun(morning.today.items);evening.today.run=botRun(evening.today.items);
   const pl=(w)=>S.tasks.filter((t)=>t.type==="дела"&&!t.routine&&!t.link&&!t.archived&&t.where===w).sort((a,b)=>(a.ord||0)-(b.ord||0)).map((t)=>({id:t.id,name:t.name,min:t.min||0,done:!!t.done}));
-  return{"bot-morning":{schema:1,updatedAt:now,tz:"Asia/Ho_Chi_Minh",defaults:{morning:{1:"fast",2:"home",3:"fast",4:"home",5:"fast",6:"home",0:"home"}},morning:morning,evening:evening},
-    "bot-plan":{schema:1,updatedAt:now,day:day,today:pl("today"),tomorrow:pl("tomorrow")}}}
+  const cfg=S.notify?{"bot-pushcfg":Object.assign({schema:1,updatedAt:now},notifyCfg())}:{};
+  return Object.assign(cfg,{"bot-morning":{schema:1,updatedAt:now,tz:"Asia/Ho_Chi_Minh",defaults:{morning:{1:"fast",2:"home",3:"fast",4:"home",5:"fast",6:"home",0:"home"}},morning:morning,evening:evening},
+    "bot-plan":{schema:1,updatedAt:now,day:day,today:pl("today"),tomorrow:pl("tomorrow"),pushes:botPushes(day)}})}
 async function botPush(){
   try{const db=await window.claude?.use("db");if(!db)return;const col=db.collection();
     const docs=botDocs();for(const id of Object.keys(docs)){const d=docs[id],key=JSON.stringify(Object.assign({},d,{updatedAt:0}));

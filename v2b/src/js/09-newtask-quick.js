@@ -88,6 +88,11 @@ function card(t,opt={}){
         else{UI.sub={id:t.id,rel,dur:0,txt:""};render()}};li.appendChild(b)})}
   if(UI.sub&&UI.sub.id===t.id)li.appendChild(subBox(t));
   const x=el("button","x","✕");x.type="button";x.title="Удалить";x.setAttribute("aria-label","Удалить");x.onclick=(e)=>{e.stopPropagation();delTask(t)};li.appendChild(x);
+  const mb=el("button","more","⋯");mb.type="button";mb.title="Ещё: пуш, перенос, длительность, календарь, удалить";mb.setAttribute("aria-label","Меню задачи");
+  mb.onclick=(e)=>{e.stopPropagation();const r=mb.getBoundingClientRect();taskMenu(t,r.right-250,r.bottom+4)};li.appendChild(mb);
+  li.addEventListener("contextmenu",(e)=>{if(e.target.closest("button,input,textarea,.panel")||!matchMedia("(hover:hover)").matches)return;
+    e.preventDefault();e.stopPropagation();taskMenu(t,e.clientX,e.clientY)});
+  lineSync(li,opt.v?null:t);
   if(CKS.has(t.id)&&t.check&&t.check.length&&UI.open!==t.id)li.appendChild(ckList(t));
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}

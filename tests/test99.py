@@ -1,4 +1,4 @@
-# «В календарь»: запись в Google Calendar (OAuth и сеть подменены)
+# «В календарь» (меню «⋯»): запись в Google Calendar (OAuth и сеть подменены)
 import json
 from playwright.sync_api import sync_playwright
 from paths import URL
@@ -14,17 +14,17 @@ with sync_playwright() as p:
     pg.goto(URL+"/v2b/build.html");pg.wait_for_selector('#viewSeg button');pg.wait_for_timeout(300)
     pg.evaluate("()=>{window.__off=new Date(2026,10,25,12).getTime()-Date.now();S.tasks=S.tasks.filter(t=>!t.tpl);S.planGen='';render()}");pg.wait_for_timeout(200)
     pg.evaluate(STUB)
-    pg.click(".card[data-cid=a] .nm >> nth=0") if False else pg.click(".card[data-cid=a]",position={"x":300,"y":10});pg.wait_for_selector(".card[data-cid=a] .gcb")
-    pg.click(".card[data-cid=a] .gcb");pg.wait_for_timeout(300)
+    def tocal(i):
+        pg.click(".card[data-cid=%s] >> nth=0 >> .more"%i);pg.click(".pop button:has-text('Google Календар')")
+    tocal("a");pg.wait_for_timeout(300)
     c=pg.evaluate("()=>window.__calls");assert len(c)==1 and c[0]["m"]=="POST" and c[0]["a"]=="Bearer tok" and c[0]["u"].endswith("/calendars/primary/events")
     body=json.loads(c[0]["b"]);assert body["summary"]=="Созвон" and body["start"]["dateTime"].endswith("T15:30:00") and body["end"]["dateTime"].endswith("T16:15:00"),body
     assert pg.evaluate("()=>byId('a').gcal")=="ev1"
     # повторное нажатие обновляет событие, а не создаёт второе
-    pg.click(".card[data-cid=a]",position={"x":300,"y":10});pg.click(".card[data-cid=a]",position={"x":300,"y":10}) if False else None
-    pg.evaluate("()=>{UI.open='a';render()}");pg.click(".card[data-cid=a] .gcb");pg.wait_for_timeout(300)
+    tocal("a");pg.wait_for_timeout(300)
     c=pg.evaluate("()=>window.__calls");assert len(c)==2 and c[1]["m"]=="PATCH" and c[1]["u"].endswith("/events/ev1")
     # без времени — не отправляем
-    pg.evaluate("()=>{UI.open='b';render()}");pg.click(".card[data-cid=b] .gcb");pg.wait_for_timeout(200)
+    tocal("b");pg.wait_for_timeout(200)
     assert len(pg.evaluate("()=>window.__calls"))==2
     # кнопка «День в календарь»
     pg.evaluate("()=>{byId('a').gcal='';byId('b').at='18:00';byId('b').gcal='';UI.open=null;render()}")

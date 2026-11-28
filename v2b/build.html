@@ -53,6 +53,17 @@ h1{font-size:26px;margin:0 0 2px;letter-spacing:-.02em}
 .card .x{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
  color:var(--muted);font-size:10px;line-height:1;cursor:pointer;padding:0;opacity:0;transition:opacity .12s;z-index:2}
 @media (hover:hover){.card:hover>.x{opacity:1}}
+.card>.more{flex:none;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-size:18px;font-weight:900;line-height:1;cursor:pointer;padding:0;margin-left:-4px}
+.card>.more:hover{background:var(--surface-2);color:var(--ink)}
+.card.v>.more{position:absolute;top:-7px;right:17px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:13px;margin:0;opacity:0;z-index:2}
+.card.v.open>.more{opacity:1}
+@media (hover:hover){.card.v:hover>.more{opacity:1}}
+@media (hover:none){.card.v>.more{opacity:1}}
+.card.open>.txt .meta .desc,.card.open>.txt .meta .dtag,.card.open>.top .meta .desc,.card.open>.top .meta .dtag{display:none}
+.bellm{font-size:11px}
+.tline{position:absolute;left:14px;right:14px;bottom:0;height:3px;border-radius:2px;overflow:hidden;pointer-events:none}
+.tline i{display:block;height:100%;background:var(--accent);transition:width .5s linear}
+.tline.pause i{background:var(--muted)}.tline.over i{background:var(--pc-red)}
 .panel{flex:0 0 100%;width:100%;border-top:1px solid var(--line);margin-top:6px;padding-top:10px;display:flex;flex-direction:column;gap:10px;cursor:default}
 .card.dragging{opacity:.3}
 .col.dropcol{outline:2px dashed var(--accent);outline-offset:-2px}
@@ -217,6 +228,13 @@ body.lassoing{user-select:none;-webkit-user-select:none}
 .pc-yellow{background:var(--pc-yellow-bg);color:var(--pc-yellow)}.pc-violet{background:var(--pc-violet-bg);color:var(--pc-violet)}
 .pc-blue{background:var(--pc-blue-bg);color:var(--pc-blue)}.pc-green{background:var(--pc-green-bg);color:var(--pc-green)}
 .pc-aqua{background:var(--pc-aqua-bg);color:var(--pc-aqua)}.pc-gray{background:var(--pc-gray-bg);color:var(--pc-gray)}
+.npop{position:fixed;right:12px;top:110px;z-index:60;width:min(320px,calc(100vw - 24px));box-sizing:border-box;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 12px 36px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:10px}
+.nph{display:flex;justify-content:space-between;align-items:center}
+.npr{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}.npr span{flex:1}
+.npr input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.npr input[type=time]{font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 6px}
+.npn{font-size:12px;color:var(--muted)}
+@media (max-width:480px){.card:not(.v)>.txt .nm{white-space:normal;line-height:1.25}#bar2 .fbtn{padding:8px 10px;font-size:12px}}
 /* ---------- окружения ---------- */
 .kb::-webkit-scrollbar{height:8px}.kb::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
 .ghead{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px;display:flex;justify-content:space-between}
@@ -338,7 +356,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
 .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal .dh{display:flex;justify-content:space-between;align-items:center}.cal .dadd{border:0;background:transparent;color:var(--muted);font-weight:800;font-size:14px;cursor:pointer;opacity:0;padding:0 4px}.cal .day:hover .dadd,.cal .dadd:focus{opacity:1}@media(hover:none){.cal .dadd{opacity:.5}}
 .cal .day{position:relative;display:flex;flex-direction:column;gap:3px}.cal.week .day{min-height:340px}
-.cal .day .card{padding:4px 6px;min-height:0;font-size:11px;gap:5px}.cal .day .card .mins,.cal .day .card .plus,.cal .day .card .x,.cal .day .card .meta{display:none}.cal .day .card .ck{width:16px;height:16px;min-width:16px;font-size:10px}
+.cal .day .card{padding:4px 6px;min-height:0;font-size:11px;gap:5px}.cal .day .card .mins,.cal .day .card .plus,.cal .day .card .more,.cal .day .card .x,.cal .day .card .meta{display:none}.cal .day .card .ck{width:16px;height:16px;min-width:16px;font-size:10px}
 .cal .day .card.open{position:absolute;z-index:30;left:0;top:22px;width:300px;max-width:90vw;box-shadow:0 8px 28px rgba(0,0,0,.25);font-size:14px}.cal .day .card.open .mins,.cal .day .card.open .meta{display:flex}
 .cal .day.dropcol,.store.dropcol{outline:2px dashed var(--accent);outline-offset:-2px}
 .store{min-height:120px}.store .card{margin-bottom:6px}
@@ -392,6 +410,7 @@ body.xview #bar2,body.xview #sysSeg,body.xview #envSeg,body.xview #fbtn,body.xvi
   <button class="fbtn" id="fbtn" type="button" hidden>🔥 Фокус</button>
   <button class="fbtn" id="tbtn" type="button" hidden title="Показать только сегодняшние задачи">📅 Сегодня</button>
   <button class="fbtn" id="cbtn" type="button" title="Утро, еда, зал и вечер: показать или скрыть">⚙ LifeCore</button>
+  <button class="fbtn" id="nbtn" type="button" title="Уведомления в Telegram" aria-label="Уведомления">🔔</button>
   <button class="fbtn pbtn" id="pbtn" type="button" title="Проекты: порядок и видимость" aria-label="Проекты"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   </div>
 </div>
@@ -2111,6 +2130,7 @@ function cardBase(t,opt={}){
   if(p&&!opt.noProject){const c=el("span","chip pc-"+p.color,p.name);meta.appendChild(c)}
   if(checkTxt(t)&&!opt.v)meta.appendChild(ckTag(t));
   if(t.tpl&&!t.link)meta.appendChild(el("span","chip pc-gray","⚙ ядро"));
+  if(t.push&&!t.done){const b=el("span","bellm","🔔");b.title="Пуш в Telegram: "+pushLabel(t.push.before);meta.appendChild(b)}
   const kids=S.tasks.filter((x)=>x.link===t.id).length;
   if(kids)meta.appendChild(el("span","subn",kids+" подзадач"+(kids===1?"а":"и")));
   if(t.desc){const d=el("span","desc"+(DESCX.has(t.id)?" open":""),t.desc);d.dataset.did=t.id;meta.appendChild(d);
@@ -2120,7 +2140,7 @@ function cardBase(t,opt={}){
   if(opt.v){
     li.classList.add("v");
     const top=el("div","top");top.appendChild(li.firstChild);top.appendChild(txt);
-    if(!t.done)top.appendChild(pillBtn(t," kp","Старт/пауза. ПКМ — время"));
+    if(!t.done&&!isCheck(t))top.appendChild(pillBtn(t," kp","Старт/пауза. ПКМ — время"));
     li.appendChild(top);
     if(t.min){const pr=el("div","prog"),i=el("i");
       i.style.width=Math.min(100,Math.round((spentOf(t)/60000)/t.min*100))+"%";pr.appendChild(i);li.appendChild(pr)}
@@ -2138,7 +2158,7 @@ function cardBase(t,opt={}){
   {const a=atSpan(t,opt);if(a)li.appendChild(a)}
   if(t.done){const sp=t.spent||0;
     if(sp>0||t.min){const c=el("span","mins done-t"+(t.min&&sp>t.min*60000?" late":" early"),fmtSpent(sp));li.appendChild(c)}}
-  else li.appendChild(pillBtn(t,opt.hot?" hot":""));
+  else if(!isCheck(t))li.appendChild(pillBtn(t,opt.hot?" hot":""));
   return li;
 }
 
@@ -2411,12 +2431,10 @@ function panel(t){
   const nw=el("input","cl-new");nw.type="text";nw.placeholder="Новый пункт чек-листа";
   nw.onkeydown=(e)=>{if(e.key==="Enter"&&nw.value.trim()){pushUndo();t.check.push({text:nw.value.trim(),done:false});save();UI.focusNew=t.id;render()}};
   cl.appendChild(nw);p.appendChild(cl);
-  // подвал: слева дата и время (серым), справа «Удалить»
+  // подвал: дата и время; удаление и календарь — в меню «⋯»
   const r3=el("div","row pfoot");
   const dtb=el("button","dtbtn"+((t.at||t.due)?" set":""),(t.at||t.due)?dateLabel(t):"📅");dtb.type="button";
   dtb.title="Дата и время";const opn=()=>{if(UI.dt===t.id)return;UI.dt=t.id;UI.dtd=null;render()};dtb.onclick=opn;let hv=0;dtb.onmouseenter=()=>{clearTimeout(hv);hv=setTimeout(opn,180)};dtb.onmouseleave=()=>clearTimeout(hv);r3.appendChild(dtb);
-  const gcb=el("button","chipb gcb",t.gcal?"✓ В календаре":"📅 В календарь");gcb.type="button";gcb.title="Записать в Google Calendar (нужно время начала)";gcb.onclick=()=>toCalendar(t);r3.appendChild(gcb);
-  const del=el("button","chipb danger","Удалить");del.type="button";del.onclick=()=>delTask(t);r3.appendChild(del);
   p.appendChild(r3);
   if(UI.dt===t.id){
     const bx=el("div","dtbox dtp");
@@ -2563,6 +2581,11 @@ function card(t,opt={}){
         else{UI.sub={id:t.id,rel,dur:0,txt:""};render()}};li.appendChild(b)})}
   if(UI.sub&&UI.sub.id===t.id)li.appendChild(subBox(t));
   const x=el("button","x","✕");x.type="button";x.title="Удалить";x.setAttribute("aria-label","Удалить");x.onclick=(e)=>{e.stopPropagation();delTask(t)};li.appendChild(x);
+  const mb=el("button","more","⋯");mb.type="button";mb.title="Ещё: пуш, перенос, длительность, календарь, удалить";mb.setAttribute("aria-label","Меню задачи");
+  mb.onclick=(e)=>{e.stopPropagation();const r=mb.getBoundingClientRect();taskMenu(t,r.right-250,r.bottom+4)};li.appendChild(mb);
+  li.addEventListener("contextmenu",(e)=>{if(e.target.closest("button,input,textarea,.panel")||!matchMedia("(hover:hover)").matches)return;
+    e.preventDefault();e.stopPropagation();taskMenu(t,e.clientX,e.clientY)});
+  lineSync(li,opt.v?null:t);
   if(CKS.has(t.id)&&t.check&&t.check.length&&UI.open!==t.id)li.appendChild(ckList(t));
   if(UI.open===t.id){li.classList.add("open");li.appendChild(panel(t))}
   return li}
@@ -2656,7 +2679,7 @@ let DR=null,swallow=false;
 document.addEventListener("click",(e)=>{if(swallow){e.stopPropagation();e.preventDefault();swallow=false}},true);
 function dragStart(){const d=DR;d.active=true;d.li.classList.add("dragging");if(d.group.length>1)document.querySelectorAll(".card.sel").forEach((c)=>c.classList.add("dragging"));document.body.classList.add("drag");
   const r=d.li.getBoundingClientRect();d.dx=d.x-r.left;d.dy=d.y-r.top;
-  const g=d.li.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";g.querySelectorAll(".panel,.plus,.x").forEach((n)=>n.remove());if(d.group.length>1){const bd=el("span","gcount",String(d.group.length));g.appendChild(bd)}document.body.appendChild(g);d.ghost=g;
+  const g=d.li.cloneNode(true);g.classList.add("ghost");g.style.width=r.width+"px";g.querySelectorAll(".panel,.plus,.x,.more,.tline").forEach((n)=>n.remove());if(d.group.length>1){const bd=el("span","gcount",String(d.group.length));g.appendChild(bd)}document.body.appendChild(g);d.ghost=g;
   const ln=el("div","dropline");ln.hidden=true;document.body.appendChild(ln);d.line=ln;
   const loop=()=>{if(!DR||!DR.active)return;if(DR.y<70)scrollBy(0,-14);else if(DR.y>innerHeight-70)scrollBy(0,14);dragMove();requestAnimationFrame(loop)};requestAnimationFrame(loop)}
 function plusAt(d){
@@ -3769,8 +3792,15 @@ function botStep(items,vitems,used){return items.map((t)=>{let id=t.src&&vitems.
 function botRun(rows){
   const c=rows.map((r)=>({r,t:byId(r.id)})).filter((x)=>x.t&&x.t.tm&&!x.t.done);
   const x=c.find((y)=>y.t.tm.run)||c.sort((a,b)=>(b.t.tm.at||0)-(a.t.tm.at||0))[0];if(!x)return null;
-  const m=x.t.tm,at=Math.round(m.at||m.seg),p=m.run?0:at,from=Math.round((m.run?m.seg:at)-(x.t.acc||0));
-  return{item:x.r.stepId||x.r.id,at,startedAt:from,endsAt:m.sw?0:Math.round(m.run?m.end:at+m.left),pausedAt:p}}
+  return Object.assign({item:x.r.stepId||x.r.id},timerOf(x.t))}
+function timerOf(t){const m=t.tm,at=Math.round(m.at||m.seg),p=m.run?0:at,from=Math.round((m.run?m.seg:at)-(t.acc||0));
+  return{at,startedAt:from,endsAt:m.sw?0:Math.round(m.run?m.end:at+m.left),pausedAt:p}}
+/* задачи с включённым пушем: день и время начала, со вчерашнего дня (формат — INTEGRATION.md п. 0.06) */
+function botPushes(day){const from=dayOf(NOW()-864e5);
+  return S.tasks.filter((t)=>t.push&&t.at&&(t.type==="дела"||t.type==="работа")&&!t.routine&&!t.archived)
+    .map((t)=>({t,d:t.due||(t.where==="today"?day:t.where==="tomorrow"?dayOf(NOW()+864e5):"")}))
+    .filter((x)=>x.d&&x.d>=from).sort((a,b)=>(a.d+a.t.at).localeCompare(b.d+b.t.at)).slice(0,100)
+    .map(({t,d})=>({id:t.id,name:t.name,min:t.min||0,day:d,time:t.at,before:+t.push.before||0,done:!!t.done,run:t.tm&&!t.done?timerOf(t):null}))}
 /* из какой версии утра сделаны пункты дня: выбранная кнопкой, иначе самая похожая — по ссылкам src, названиям, числу лишних шагов, минутам; при равенстве версия дня (★) */
 function botVer(mo,rows){const sel=mo.versions.find((v)=>v.id===(S.day&&S.day.scen&&S.day.scen.morning));if(sel)return sel;
   const def=scenDefaultVer(mo);
@@ -3787,8 +3817,9 @@ function botDocs(){
   const evening={items:ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],today:{day:day,items:botStep(rItems("evening"),ev&&ev.versions[0]?botItems(ev,ev.versions[0]):[],new Set())}};
   morning.today.run=botRun(morning.today.items);evening.today.run=botRun(evening.today.items);
   const pl=(w)=>S.tasks.filter((t)=>t.type==="дела"&&!t.routine&&!t.link&&!t.archived&&t.where===w).sort((a,b)=>(a.ord||0)-(b.ord||0)).map((t)=>({id:t.id,name:t.name,min:t.min||0,done:!!t.done}));
-  return{"bot-morning":{schema:1,updatedAt:now,tz:"Asia/Ho_Chi_Minh",defaults:{morning:{1:"fast",2:"home",3:"fast",4:"home",5:"fast",6:"home",0:"home"}},morning:morning,evening:evening},
-    "bot-plan":{schema:1,updatedAt:now,day:day,today:pl("today"),tomorrow:pl("tomorrow")}}}
+  const cfg=S.notify?{"bot-pushcfg":Object.assign({schema:1,updatedAt:now},notifyCfg())}:{};
+  return Object.assign(cfg,{"bot-morning":{schema:1,updatedAt:now,tz:"Asia/Ho_Chi_Minh",defaults:{morning:{1:"fast",2:"home",3:"fast",4:"home",5:"fast",6:"home",0:"home"}},morning:morning,evening:evening},
+    "bot-plan":{schema:1,updatedAt:now,day:day,today:pl("today"),tomorrow:pl("tomorrow"),pushes:botPushes(day)}})}
 async function botPush(){
   try{const db=await window.claude?.use("db");if(!db)return;const col=db.collection();
     const docs=botDocs();for(const id of Object.keys(docs)){const d=docs[id],key=JSON.stringify(Object.assign({},d,{updatedAt:0}));
@@ -3796,7 +3827,7 @@ async function botPush(){
 function botSync(){if(!window.claude)return;clearTimeout(BOT_T);BOT_T=setTimeout(botPush,1500)}
 /* ---------- отметки из Telegram-бота: документ bot-checkins (пишет только бот, приложение читает; формат — INTEGRATION.md п. 5) ---------- */
 function checkinsApply(d){
-  if(!d||!d.days||!S||!S.day)return;const evs=d.days[S.day.iso]||[];if(!evs.length&&!d.run)return;let ch=false;
+  if(!d||!d.days||!S||!S.day)return;let ch=taskEventsApply(d);const evs=d.days[S.day.iso]||[];if(!evs.length&&!d.run){if(ch){save();render()}return}
   const today=botDocs()["bot-morning"];
   evs.forEach((ev)=>{if(!ev||!ev.item||(ev.kind!=="morning"&&ev.kind!=="evening"))return;
     const list=(ev.kind==="morning"?today.morning:today.evening).today.items;
@@ -3807,24 +3838,106 @@ function checkinsApply(d){
     else if(!ev.done&&t.done&&at>(t.doneAt||0)){t.done=false;t.doneAt=0}});
   if(botRunApply(d.run,today))ch=true;
   if(ch){save();render()}}
-/* таймер из бота: применяется один раз и только если он новее своих таймеров этой рутины */
-function botRunApply(r,today){
-  if(!r||!r.item||r.day!==S.day.iso||(r.kind!=="morning"&&r.kind!=="evening"))return false;
-  const list=(r.kind==="morning"?today.morning:today.evening).today.items;
-  const row=list.find((x)=>x.stepId===r.item)||list.find((x)=>x.id===r.item);const t=row&&byId(row.id);if(!t||t.done)return false;
-  const at=+r.at||0;if(at<=(S.day.botRun||0)||rItems(r.kind).some((x)=>x.tm&&!x.done&&(x.tm.at||0)>=at))return false;
-  S.day.botRun=at;
+/* задачи: «Готово», «+1 час» и таймер из пушей. Берём события всех дней (приложение могли не открывать), каждое — один раз */
+function taskEventsApply(d){
+  const seen=S.botSeen||(S.botSeen={});let ch=false;
+  const evs=Object.values(d.days).flat().filter((e)=>e&&e.item&&(e.kind==="task"||e.kind==="move")).sort((a,b)=>(a.at||0)-(b.at||0));
+  evs.forEach((ev)=>{const t=byId(ev.item),at=+ev.at||0,k=ev.kind+":"+ev.item;if(!t||at<=(seen[k]||0))return;seen[k]=at;ch=true;
+    if(ev.kind==="move"){const to=ev.to||{};if(!t.done&&to.day&&to.time){dueSync(t,to.day);t.at=to.time;delete t.aa;logA("перенесено в боте "+nmq(t))}}
+    else if(ev.done&&!t.done){markDone(t);if(ev.spent>0)t.spent=ev.spent;logA("отмечено в боте "+nmq(t))}});
+  Object.entries(d.taskRuns||{}).filter(([,r])=>r&&r.at).sort((a,b)=>a[1].at-b[1].at).forEach(([id,r])=>{const t=byId(id),k="run:"+id;
+    if(!t||t.done||r.at<=Math.max(seen[k]||0,t.tm&&t.tm.at||0))return;seen[k]=+r.at;timerApply(t,r);ch=true});
+  const old=NOW()-9*864e5;Object.keys(seen).forEach((k)=>{if(seen[k]<old)delete seen[k]});
+  return ch}
+/* поставить задаче таймер, присланный ботом; остальные бегущие ставятся на паузу */
+function timerApply(t,r){const at=+r.at||0;
   S.tasks.forEach((x)=>{if(x!==t&&x.tm&&x.tm.run){pauseT(x);x.tm.at=at}});
   const end=+r.endsAt||0,from=+r.startedAt||at,p=+r.pausedAt||0;
   if(p){if(t.tm&&t.tm.run)pauseT(t);t.acc=p-from;t.tm={run:false,sw:!end,end:end||from,left:(end||from)-p,seg:from,rang:!!end&&end<=p}}
   else if(!t.tm){t.acc=0;t.tm={run:true,sw:!end,end:end||from,left:0,seg:from,rang:!!end&&end<=NOW()}}
   else{const m=t.tm;if(!m.run){m.run=true;m.seg=NOW();if(m.sw)m.end=NOW()+m.left}
     if(end&&!m.sw){m.end=end;m.rang=end<=NOW()}}
-  t.tm.at=at;logA("таймер из бота "+nmq(t));return true}
+  t.tm.at=at;logA("таймер из бота "+nmq(t))}
+/* таймер из бота: применяется один раз и только если он новее своих таймеров этой рутины */
+function botRunApply(r,today){
+  if(!r||!r.item||r.day!==S.day.iso||(r.kind!=="morning"&&r.kind!=="evening"))return false;
+  const list=(r.kind==="morning"?today.morning:today.evening).today.items;
+  const row=list.find((x)=>x.stepId===r.item)||list.find((x)=>x.id===r.item);const t=row&&byId(row.id);if(!t||t.done)return false;
+  const at=+r.at||0;if(at<=(S.day.botRun||0)||rItems(r.kind).some((x)=>x.tm&&!x.done&&(x.tm.at||0)>=at))return false;
+  S.day.botRun=at;timerApply(t,r);return true}
 async function checkinsInit(){
   try{const db=await window.claude?.use("db");if(!db)return;
     db.collection().doc("bot-checkins").onSnapshot((snap)=>{if(snap&&snap.exists)try{checkinsApply(snap.data())}catch{}})}catch{}}
 if(window.claude)setTimeout(checkinsInit,0);
+/* ---------- меню задачи «⋯», перенос, пуши в Telegram и настройки уведомлений ---------- */
+const PUSH_OPTS=[0,5,15,30,60];
+const pushLabel=(m)=>m?"за "+(m<60?m+" мин":m%60?m+" мин":m/60+" ч"):"в момент начала";
+/* задача-чек: есть время начала, но нет длительности — таймер не нужен, только отметка */
+const isCheck=(t)=>t.type!=="сценарий"&&!t.routine&&!t.min&&!!t.at&&!t.tm&&!t.done;
+const askMin=(def)=>{const v=parseInt(prompt("Минут:",String(def)),10);return v>0?v:null};
+function setPush(t,m){pushUndo();if(m===null)delete t.push;else t.push={before:m};
+  logA("пуш "+(m===null?"выключен":pushLabel(m))+" "+nmq(t));
+  if(m!==null&&!t.at){UI.open=t.id;UI.dt=t.id;UI.dtd=null;save();render();note("Укажи время начала — без него пуш не придёт");return}
+  save();render()}
+function setWhen(t,ms){const d=new Date(ms),pd=(n)=>String(n).padStart(2,"0");
+  dueSync(t,dayOf(ms));t.at=pd(d.getHours())+":"+pd(d.getMinutes());delete t.aa}
+/* +1 час от времени задачи; если оно уже прошло (или не задано) — через час от сейчас */
+function plusHour(t){pushUndo();let base=NOW();
+  if(t.at){const [h,m]=t.at.split(":").map(Number),k=t.due||(t.where==="tomorrow"?dayOf(NOW()+864e5):dayISO()),[y,mo,d]=k.split("-").map(Number);
+    base=Math.max(base,new Date(y,mo-1,d+(h<4?1:0),h,m).getTime())}
+  setWhen(t,Math.ceil((base+36e5)/6e4)*6e4);logA("перенос на час "+nmq(t));save();render();note("Перенёс на "+dateLabel(t))}
+function toTomorrow(t){pushUndo();dueSync(t,dayOf(NOW()+864e5));logA("перенос на завтра "+nmq(t));save();render();note("Перенёс на завтра")}
+function taskMenu(t,x,y){
+  const plain=t.type!=="сценарий"&&!t.routine,items=[];
+  const sub=(list)=>popup(x,y,list);
+  if(plain){
+    items.push(["🔔 Пуш в Telegram: "+(t.push?pushLabel(t.push.before):"нет")+" ›",()=>{
+      const cur=t.push?t.push.before:null,mark=(v)=>cur===v?"✓ ":"    ";
+      const list=PUSH_OPTS.map((m)=>[mark(m)+pushLabel(m),()=>setPush(t,m)]);
+      list.push(["Своё число…",()=>{const v=askMin(10);if(v)setPush(t,v)}],"-",[mark(null)+"Без пуша",()=>setPush(t,null)]);sub(list)}]);
+    items.push(["⏰ Перенести ›",()=>sub([["На 1 час",()=>plusHour(t)],["На завтра",()=>toTomorrow(t)]])]);
+  }
+  const setMin=(m)=>{pushUndo();t.min=m;save();render()};
+  if(!t.done)items.push(["⏱ Длительность: "+(t.min?t.min+" мин":"без времени")+" ›",()=>{
+    const list=[5,10,15,25,30,45,60].map((m)=>[(t.min===m?"✓ ":"    ")+m+" мин",()=>setMin(m)]);
+    list.push(["Своё число…",()=>{const v=askMin(t.min||20);if(v)setMin(v)}],["Без времени",()=>setMin(0)]);
+    if(isCheck(t))list.push("-",["▶ Запустить секундомер",()=>{startT(t);render()}]);sub(list)}]);
+  items.push([t.gcal?"📅 Обновить в Google Календаре":"📅 В Google Календарь",()=>toCalendar(t)],"-",["🗑 Удалить",()=>delTask(t)]);
+  popup(x,y,items)}
+/* тонкая линия прогресса по нижнему краю карточки в списке: синяя идёт, серая пауза, красная — время вышло */
+function lineSync(li,t){
+  let l=li.querySelector(":scope>.tline");
+  if(!(t&&t.tm&&!t.tm.sw&&!t.done&&t.min)){if(l)l.remove();return}
+  if(!l){l=el("div","tline");l.appendChild(el("i"));li.appendChild(l)}
+  const left=leftOf(t),done=spentOf(t),over=left<0,w=over?100:Math.min(100,Math.max(0,done/(done+left||1)*100));
+  l.classList.toggle("over",over);l.classList.toggle("pause",!t.tm.run&&!over);
+  l.firstChild.style.width=w.toFixed(1)+"%"}
+const lineTick=()=>document.querySelectorAll(".card[data-cid]:not(.v)").forEach((c)=>lineSync(c,byId(c.dataset.cid)));
+setInterval(()=>{if(S)lineTick()},500);
+document.addEventListener("click",()=>setTimeout(()=>{if(S)lineTick()},0));
+
+/* настройки уведомлений: время по Вьетнаму; пока не трогали — боты берут то же самое по умолчанию */
+const NOTIFY=[["morning","☀️ Утро","04:00","12:00","09:00"],["evening","🌙 Вечер","17:00","23:00","21:45"],
+  ["finance","💰 Финансовый замер","12:00","23:30","23:00"],["subs","🔔 Подписки","05:00","22:00","10:00"]];
+function notifyCfg(){const o={};NOTIFY.forEach(([k,,,,def])=>{const c=(S.notify||{})[k]||{};o[k]={on:c.on!==false,time:c.time||def}});return o}
+function notifyClose(){const p=document.getElementById("npop");if(p)p.remove()}
+function notifyOpen(){
+  if(document.getElementById("npop")){notifyClose();return}
+  const pop=el("div","npop");pop.id="npop";
+  const h=el("div","nph");h.appendChild(el("b","","Уведомления в Telegram"));
+  const x=el("button","fbx","×");x.type="button";x.setAttribute("aria-label","Закрыть");x.onclick=notifyClose;h.appendChild(x);pop.appendChild(h);
+  const cfg=notifyCfg();
+  NOTIFY.forEach(([k,label,min,max])=>{const r=el("label","npr"),cb=el("input"),ti=el("input");
+    cb.type="checkbox";cb.checked=cfg[k].on;cb.dataset.k=k;ti.type="time";ti.value=cfg[k].time;ti.min=min;ti.max=max;ti.dataset.k=k;ti.title="С "+min+" до "+max;
+    const put=()=>{let v=ti.value||cfg[k].time;if(v<min)v=min;if(v>max)v=max;ti.value=v;
+      S.notify=Object.assign(notifyCfg(),{[k]:{on:cb.checked,time:v}});logA("уведомления: "+k+" "+(cb.checked?v:"выкл"));save()};
+    cb.onchange=put;ti.onchange=put;r.append(cb,el("span",null,label),ti);pop.appendChild(r)});
+  pop.appendChild(el("div","npn","Пуш о задаче включается в самой задаче: ⋯ → Пуш в Telegram."));
+  ["keydown","keyup","keypress"].forEach((ev)=>pop.addEventListener(ev,(e)=>{e.stopPropagation();if(ev==="keydown"&&e.key==="Escape")notifyClose()}));
+  pop.addEventListener("click",(e)=>e.stopPropagation());
+  document.body.appendChild(pop)}
+document.getElementById("nbtn").onclick=(e)=>{e.stopPropagation();notifyOpen()};
+document.addEventListener("pointerdown",(e)=>{if(document.getElementById("npop")&&!e.target.closest("#npop,#nbtn"))notifyClose()});
 const VIEWS={habits:renderHabits,stats:renderStats,plan:renderPlan,scen:renderScenTabs,map:renderMap};
 function boot(){
   const v1=read(V1);
